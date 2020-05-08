@@ -10,20 +10,19 @@
         email                : emanuele.gissi@gmail.com
 """
 
-__author__ = 'Emanuele Gissi'
-__date__ = '2020-05-04'
-__copyright__ = '(C) 2020 by Emanuele Gissi'
+__author__ = "Emanuele Gissi"
+__date__ = "2020-05-04"
+__copyright__ = "(C) 2020 by Emanuele Gissi"
 
 # This will get replaced with a git SHA1 when you do a git archive
 
-__revision__ = '$Format:%H$'
+__revision__ = "$Format:%H$"
 
 from qgis.core import QgsProcessingProvider
 from .QGIS2FDS_algorithm import QGIS2FDSAlgorithm
 
 
 class QGIS2FDSProvider(QgsProcessingProvider):
-
     def __init__(self):
         """
         Default constructor.
@@ -32,8 +31,7 @@ class QGIS2FDSProvider(QgsProcessingProvider):
 
     def unload(self):
         """
-        Unloads the provider. Any tear-down steps required by the provider
-        should be implemented here.
+        Unloads the provider.
         """
         pass
 
@@ -42,38 +40,28 @@ class QGIS2FDSProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(QGIS2FDSAlgorithm())
-        # add additional algorithms here
-        # self.addAlgorithm(MyOtherAlgorithm())
 
     def id(self):
         """
-        Returns the unique provider id, used for identifying the provider. This
-        string should be a unique, short, character only string, eg "qgis" or
-        "gdal". This string should not be localised.
+        Returns the unique provider id.
         """
-        return 'Export terrain'
+        return "Export terrain"
 
     def name(self):
         """
-        Returns the provider name, which is used to describe the provider
-        within the GUI.
-
-        This string should be short (e.g. "Lastools") and localised.
+        Returns the provider name.
         """
-        return self.tr('Export terrain')
+        return "Export terrain"
 
     def icon(self):
         """
-        Should return a QIcon which is used for your provider inside
+        Returns a QIcon which is used for your provider inside
         the Processing toolbox.
         """
         return QgsProcessingProvider.icon(self)
 
     def longName(self):
         """
-        Returns the a longer version of the provider name, which can include
-        extra details such as version numbers. E.g. "Lastools LIDAR tools
-        (version 2.2.1)". This string should be localised. The default
-        implementation returns the same string as name().
+        Returns the a longer version of the provider name.
         """
         return self.name()
