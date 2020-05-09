@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # FIXME
+# Export to a specific file
 # MISC: export image
 # SURF: RGB and name from from style? ready for anderson
 # SURF: fix SURF_ID can be 99! &SURF lines
@@ -433,7 +434,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         """!
         Returns the algorithm name.
         """
-        return "Export terrain to NIST FDS"
+        return "Export terrain"
 
     def displayName(self):
         """!

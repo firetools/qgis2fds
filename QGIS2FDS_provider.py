@@ -45,13 +45,13 @@ class QGIS2FDSProvider(QgsProcessingProvider):
         """
         Returns the unique provider id.
         """
-        return "Export terrain"
+        return "Export to FDS"
 
     def name(self):
         """
         Returns the provider name.
         """
-        return "Export terrain"
+        return "Export to FDS"
 
     def icon(self):
         """
