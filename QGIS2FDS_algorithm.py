@@ -2,10 +2,10 @@
 
 # FIXME
 # MISC: export image
-# SURF: RGB from from style? ready for anderson
+# SURF: RGB and name from from style? ready for anderson
 # SURF: fix SURF_ID can be 99! &SURF lines
 # GEOM ID
-# Inset DEVCs
+# Insert DEVCs
 
 """
  QGIS2FDS
