@@ -12,8 +12,8 @@ Formulas : https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinat
 # The crs is WGS84
 # zn: UTM zone number
 # ne: UTM north emisphere True/False
-# easting: easting
-# northing: northing
+# x: easting
+# y: northing
 # elevation: elevation
 # lon: longitude in decimal degrees
 # lat: latitude in decimal degrees
@@ -140,7 +140,7 @@ def lonlat_to_utm(lon, lat, force_zn=None, force_ne=None):
         + M3 * math.sin(4 * lat_rad)
         - M4 * math.sin(6 * lat_rad)
     )
-    easting = (
+    x = (
         K0
         * n
         * (
@@ -150,7 +150,7 @@ def lonlat_to_utm(lon, lat, force_zn=None, force_ne=None):
         )
         + 500000
     )
-    northing = K0 * (
+    y = K0 * (
         m
         + n
         * lat_tan
@@ -161,21 +161,20 @@ def lonlat_to_utm(lon, lat, force_zn=None, force_ne=None):
         )
     )
     if not ne:
-        northing += 10000000
-    return zn, ne, easting, northing
+        y += 10000000
+    return zn, ne, x, y
 
 
-def utm_to_lonlat(zn, ne, easting, northing):
+def utm_to_lonlat(zn, ne, x, y):
     """!
     Conversion from UTM to longitude/latitude.
     @param zn: UTM zone number.
     @param ne: UTM north emisphere True/False.
-    @param easting: easting.
-    @param northing: northing.
+    @param x: easting.
+    @param y: northing.
     @return the longitude and latitude.
     """
-    x = easting - 500000
-    y = northing
+    x -= 500000
     if not ne:
         y -= 10000000
     m = y / K0
@@ -339,36 +338,32 @@ class UTM:
     UTM coordinate system.
     """
 
-    def __init__(self, zn=1, ne=True, easting=500000, northing=5000000, elevation=0.0):
+    def __init__(self, zn=1, ne=True, x=500000, y=5000000, elevation=0.0):
         """!
         Constructor of the class.
         @param zn: UTM zone number.
         @param ne: UTM north emisphere True/False.
-        @param easting: easting in meters.
-        @param northing: northing in meters.
+        @param x: easting in meters.
+        @param y: northing in meters.
         @param elevation: elevation in meters.
         """
         # Check range
         if not 1 <= zn <= 60:
             raise ValueError(f"Zone number {zn} out of range")
-        if not 100000 <= easting < 900000:
-            raise ValueError(f"Easting {easting} out of range")
+        if not 100000 <= x < 900000:
+            raise ValueError(f"Easting {x} out of range")
         if ne:
-            if not -1e-6 <= northing <= 9300000:
-                raise ValueError(
-                    f"Northing {northing} out of range in northern emisphere"
-                )
+            if not -1e-6 <= y <= 9300000:
+                raise ValueError(f"Northing {y} out of range in northern emisphere")
         else:
-            if not 1100000 <= northing <= 10000000:
-                raise ValueError(
-                    f"Northing {northing} out of range in southern emisphere"
-                )
+            if not 1100000 <= y <= 10000000:
+                raise ValueError(f"Northing {y} out of range in southern emisphere")
         # Assign
-        self.zn, self.ne, self.easting, self.northing, self.elevation = (
+        self.zn, self.ne, self.x, self.y, self.elevation = (
             zn,
             ne,
-            easting,
-            northing,
+            x,
+            y,
             elevation,
         )
 
@@ -377,14 +372,14 @@ class UTM:
         String representation of the class.
         @return the string.
         """
-        return f"{self.zn}{self.ne and 'N' or 'S'}  {self.easting:.1f}m E  {self.northing:.1f}m N (WGS84) h={self.elevation}m"
+        return f"{self.zn}{self.ne and 'N' or 'S'}  {self.x:.1f}m E  {self.y:.1f}m N (WGS84) h={self.elevation}m"
 
     def __repr__(self):
         """!
         Representation of the class.
         @return TODO
         """
-        return f"UTM({self.zn}, {self.ne}, {self.easting}, {self.northing}, {self.elevation})"
+        return f"UTM({self.zn}, {self.ne}, {self.x}, {self.y}, {self.elevation})"
 
     @property
     def epsg(self):
@@ -407,11 +402,7 @@ class UTM:
         Retrive the Geographic coordinate.
         @return the LonLat equivalent object.
         """
-        return LonLat(
-            *utm_to_lonlat(
-                zn=self.zn, ne=self.ne, easting=self.easting, northing=self.northing
-            )
-        )
+        return LonLat(*utm_to_lonlat(zn=self.zn, ne=self.ne, x=self.x, y=self.y))
 
     def to_url(self):
         """!
