@@ -24,14 +24,14 @@ import math
 # Get verts, faces, landuses
 
 
-def get_geometry(layer, origin_x, origin_y):
+def get_geometry(layer, utm_origin):
     """!
     Get verts, faces, and landuses from sampling point layer.
     @param layer: QGIS vector layer of quad faces center points with landuse.
-    @param origin: domain origin.
+    @param utm_origin: domain origin in UTM CRS.
     @return verts, faces, landuses
     """
-    matrix = _get_matrix(layer=layer, origin_x=origin_x, origin_y=origin_y)
+    matrix = _get_matrix(layer=layer, utm_origin=utm_origin)
     faces, landuses = _get_faces(matrix=matrix)
     verts = _get_verts(matrix=matrix)
     return verts, faces, landuses
@@ -72,22 +72,23 @@ def _dot_product(p0, p1, p2):
     return (v0[0] * v1[0] + v0[1] * v1[1]) / (_norm(v0) * _norm(v1))
 
 
-def _get_matrix(layer, origin_x, origin_y):
+def _get_matrix(layer, utm_origin):
     """
     Return the matrix of quad faces center points with landuse.
     @param layer: QGIS vector layer of quad faces center points with landuse.
-    @param origin: domain origin.
+    @param utm_origin: domain origin in UTM CRS.
     @return matrix of quad faces center points with landuse.
     """
 
     features = layer.getFeatures()  # get the points
     first_point, prev_point = None, None
     # Loop on points
+    ox, oy = utm_origin.x(), utm_origin.y()
     for f in features:
         a = f.attributes()  # order: z, x, y, landuse
         point = (
-            a[1] - origin_x,  # x, relative to origin
-            a[2] - origin_y,  # y, relative to origin
+            a[1] - ox,  # x, relative to origin
+            a[2] - oy,  # y, relative to origin
             a[0],  # z absolute
             a[3],  # landuse
         )
