@@ -24,9 +24,12 @@ from qgis.core import QgsExpressionContextUtils, QgsProject
 import time
 from . import utils
 
+# Config
 
-SURF_selections = {
-    0: {  # Landfire FBFM13
+landuse_types = "Landfire FBFM13", "CIMA Propagator"
+
+landuse_types_selections = {
+    0: {  # "Landfire FBFM13"
         0: 19,  # not available
         1: 1,
         2: 2,
@@ -47,7 +50,7 @@ SURF_selections = {
         98: 17,
         99: 18,
     },
-    1: {  # CIMA Propagator
+    1: {  # "CIMA Propagator"
         0: 19,  # not available
         1: 5,
         2: 4,
@@ -65,38 +68,25 @@ def _get_surf_str():
         (
             f"! Boundary conditions",
             f"! 13 Anderson Fire Behavior Fuel Models",  # FIXME
-            # f"&SURF ID='A01' RGB=255,252,167 VEG_LSET_FUEL_INDEX= 1 HRRPUA=100. RAMP_Q='f01' /",  # FIXME RGB and other
-            # f"&SURF ID='A02' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 2 HRRPUA=500. RAMP_Q='f02' /",
-            # f"&SURF ID='A03' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 3 HRRPUA=500. RAMP_Q='f03' /",
-            # f"&SURF ID='A04' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 4 HRRPUA=500. RAMP_Q='f04' /",
-            # f"&SURF ID='A05' RGB=241,142, 27 VEG_LSET_FUEL_INDEX= 5 HRRPUA=500. RAMP_Q='f05' /",
-            # f"&SURF ID='A06' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 6 HRRPUA=500. RAMP_Q='f06' /",
-            # f"&SURF ID='A07' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 7 HRRPUA=500. RAMP_Q='f07' /",
-            # f"&SURF ID='A08' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 8 HRRPUA=500. RAMP_Q='f08' /",
-            # f"&SURF ID='A09' RGB=252,135, 47 VEG_LSET_FUEL_INDEX= 9 HRRPUA=500. RAMP_Q='f09' /",
-            # f"&SURF ID='A10' RGB= 42, 82, 23 VEG_LSET_FUEL_INDEX=10 HRRPUA=500. RAMP_Q='f10' /",
-            # f"&SURF ID='A11' RGB=252,135, 47 VEG_LSET_FUEL_INDEX=11 HRRPUA=500. RAMP_Q='f11' /",
-            # f"&SURF ID='A12' RGB=252,135, 47 VEG_LSET_FUEL_INDEX=12 HRRPUA=500. RAMP_Q='f12' /",
-            # f"&SURF ID='A13' RGB=252,135, 47 VEG_LSET_FUEL_INDEX=13 HRRPUA=500. RAMP_Q='f13' /",
-            f"&SURF ID='A01' RGB=255,252,167 HRRPUA=100. RAMP_Q='f01' /",  # FIXME RGB and other
-            f"&SURF ID='A02' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f02' /",
-            f"&SURF ID='A03' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f03' /",
-            f"&SURF ID='A04' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f04' /",
-            f"&SURF ID='A05' RGB=241,142, 27 HRRPUA=500. RAMP_Q='f05' /",
-            f"&SURF ID='A06' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f06' /",
-            f"&SURF ID='A07' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f07' /",
-            f"&SURF ID='A08' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f08' /",
-            f"&SURF ID='A09' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f09' /",
-            f"&SURF ID='A10' RGB= 42, 82, 23 HRRPUA=500. RAMP_Q='f10' /",
-            f"&SURF ID='A11' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f11' /",
-            f"&SURF ID='A12' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f12' /",
-            f"&SURF ID='A13' RGB=252,135, 47 HRRPUA=500. RAMP_Q='f13' /",
-            f"&SURF ID='Urban' RGB= 59, 81, 84 /",
-            f"&SURF ID='Snow-Ice' RGB= 59, 81, 84 /",
-            f"&SURF ID='Agricolture' RGB= 59, 81, 84 /",
-            f"&SURF ID='Water' RGB= 59, 81, 84 /",
-            f"&SURF ID='Barren' RGB= 59, 81, 84 /",
-            f"&SURF ID='NA' RGB=204,204,204 /",
+            f"&SURF ID='A01' RGB=255,254,212 VEG_LSET_FUEL_INDEX= 1 HRRPUA=100. RAMP_Q='f01' /",
+            f"&SURF ID='A02' RGB=255,253,102 VEG_LSET_FUEL_INDEX= 2 HRRPUA=500. RAMP_Q='f02' /",
+            f"&SURF ID='A03' RGB=236,212, 99 VEG_LSET_FUEL_INDEX= 3 HRRPUA=500. RAMP_Q='f03' /",
+            f"&SURF ID='A04' RGB=254,193,119 VEG_LSET_FUEL_INDEX= 4 HRRPUA=500. RAMP_Q='f04' /",
+            f"&SURF ID='A05' RGB=249,197, 92 VEG_LSET_FUEL_INDEX= 5 HRRPUA=500. RAMP_Q='f05' /",
+            f"&SURF ID='A06' RGB=217,196,152 VEG_LSET_FUEL_INDEX= 6 HRRPUA=500. RAMP_Q='f06' /",
+            f"&SURF ID='A07' RGB=170,155,127 VEG_LSET_FUEL_INDEX= 7 HRRPUA=500. RAMP_Q='f07' /",
+            f"&SURF ID='A08' RGB=229,253,214 VEG_LSET_FUEL_INDEX= 8 HRRPUA=500. RAMP_Q='f08' /",
+            f"&SURF ID='A09' RGB=162,191, 90 VEG_LSET_FUEL_INDEX= 9 HRRPUA=500. RAMP_Q='f09' /",
+            f"&SURF ID='A10' RGB=114,154, 85 VEG_LSET_FUEL_INDEX=10 HRRPUA=500. RAMP_Q='f10' /",
+            f"&SURF ID='A11' RGB=235,212,253 VEG_LSET_FUEL_INDEX=11 HRRPUA=500. RAMP_Q='f11' /",
+            f"&SURF ID='A12' RGB=163,177,243 VEG_LSET_FUEL_INDEX=12 HRRPUA=500. RAMP_Q='f12' /",
+            f"&SURF ID='A13' RGB=  0,  0,  0 VEG_LSET_FUEL_INDEX=13 HRRPUA=500. RAMP_Q='f13' /",
+            f"&SURF ID='Urban' RGB=186,119, 80 /",
+            f"&SURF ID='Snow-Ice' RGB=234,234,234 /",
+            f"&SURF ID='Agricolture' RGB=253,242,242 /",
+            f"&SURF ID='Water' RGB=137,183,221 /",
+            f"&SURF ID='Barren' RGB=133,153,156 /",
+            f"&SURF ID='NA' RGB=255,255,255 /",
             f" ",
             f"&RAMP ID='f01', T= 0., F=0. /",
             f"&RAMP ID='f01', T= 5., F=1. /",
@@ -167,7 +157,7 @@ def _get_surf_str():
 
 
 def _get_geom_str(verts, faces, landuses, landuse_type):
-    SURF_select = SURF_selections[landuse_type]
+    landuse_select = landuse_types_selections[landuse_type]
     surfid_str = "\n            ".join(
         (
             f"'A01','A02','A03','A04','A05','A06','A07','A08','A09','A10','A11','A12','A13',",
@@ -179,7 +169,7 @@ def _get_geom_str(verts, faces, landuses, landuse_type):
     )
     faces_str = "\n            ".join(
         (
-            f"{f[0]},{f[1]},{f[2]},{SURF_select.get(landuses[i], landuses[0])},"  # on error, choose NA
+            f"{f[0]},{f[1]},{f[2]},{landuse_select.get(landuses[i], landuses[0])},"  # on error, choose NA
             for i, f in enumerate(faces)
         )
     )
@@ -207,11 +197,12 @@ def get_case(
     faces,
     landuses,
     landuse_type,
+    landuses_set,
 ):
     """
     Get FDS case.
     """
-    # Header
+    # Calc header
     # pv = qgis.utils.pluginMetadata("QGIS2FDS", "version")  # TODO
     qv = QgsExpressionContextUtils.globalScope().variable("qgis_version")
     now = time.strftime("%a, %d %b %Y, %H:%M:%S", time.localtime())
@@ -219,11 +210,11 @@ def get_case(
     if len(filepath) > 60:
         filepath = "..." + filepath[-57:]
 
-    # VENT
+    # Calc center of VENT patch
     x, y = (
         utm_fire_origin.x() - utm_origin.x(),  # relative to origin
         utm_fire_origin.y() - utm_origin.y(),
-    )  # center of VENT patch
+    )
 
     return "\n".join(
         (
@@ -242,7 +233,7 @@ def get_case(
             f"! Origin at <{utils.get_utm_str(utm_origin, utm_crs)}>",
             f"! Link: <{utils.get_lonlat_url(origin)}>",
             f" MISC ORIGIN_LAT={origin.y():.7f} ORIGIN_LON={origin.x():.7f} NORTH_BEARING=0. / ! New",
-            f"&MISC TERRAIN_CASE=T SIMULATION_MODE='SVLES' TERRAIN_IMAGE='{chid}_texture.jpg' /",
+            f"&MISC TERRAIN_CASE=T SIMULATION_MODE='SVLES' TERRAIN_IMAGE='{chid}_texture.png' /",
             f" ",
             f"! Reaction",
             f"! from Karlsson, Quintiere 'Enclosure Fire Dyn', CRC Press, 2000",
@@ -277,9 +268,11 @@ def get_case(
             f"&RAMP ID='wd', T=600, F=300. /",
             f"&RAMP ID='wd', T=1200, F=270. /",
             f" ",
-            _get_surf_str(),
+            _get_surf_str(),  # TODO should send the right ones
             f" ",
-            _get_geom_str(verts, faces, landuses, landuse_type),
+            _get_geom_str(
+                verts, faces, landuses, landuse_type
+            ),  # TODO should receive surfid
             f" ",
             f"&TAIL /\n",
         )

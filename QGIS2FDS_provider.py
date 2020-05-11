@@ -45,13 +45,13 @@ class QGIS2FDSProvider(QgsProcessingProvider):
         """
         Returns the unique provider id.
         """
-        return "Export to FDS"
+        return "Export to NIST FDS"
 
     def name(self):
         """
         Returns the provider name.
         """
-        return "Export to FDS"
+        return "Export to NIST FDS"
 
     def icon(self):
         """

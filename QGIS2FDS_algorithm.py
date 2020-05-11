@@ -55,44 +55,6 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         Inputs and output of the algorithm
         """
         self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                "dem_layer", "DEM Layer", defaultValue=None
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterPoint(
-                "origin", "Domain Origin", optional=True, defaultValue="",
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                "landuse_layer", "Landuse Layer", defaultValue=None
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterEnum(
-                "landuse_type",
-                "Landuse Type",
-                options=["Landfire FBFM13", "CIMA Propagator"],  # TODO auto
-                allowMultiple=False,
-                defaultValue=0,
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterPoint(
-                "fire_origin", "Fire Origin", optional=True, defaultValue=""
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterVectorLayer(
-                "devc_layer",
-                "DEVCs layer [Not implemented]",  # TODO
-                optional=True,
-                types=[QgsProcessing.TypeVectorPoint],
-                defaultValue=None,
-            )
-        )
-        self.addParameter(
             QgsProcessingParameterString(
                 "chid",
                 "FDS Case identificator (CHID)",
@@ -109,11 +71,48 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
                 defaultValue="",
             )
         )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                "dem_layer",
+                "DEM Layer (also used as extent of terrain)",
+                defaultValue=None,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                "landuse_layer", "Landuse Layer", defaultValue=None
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterEnum(
+                "landuse_type",
+                "Landuse Layer Type",
+                options=fds.landuse_types,
+                allowMultiple=False,
+                defaultValue=0,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterPoint(
+                "origin",
+                "Domain Origin (if not set, use DEM layer centroid)",
+                optional=True,
+                defaultValue="",
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterPoint(
+                "fire_origin",
+                "Fire Origin (if not set, use Domain Origin)",
+                optional=True,
+                defaultValue="",
+            )
+        )
 
         self.addParameter(
             QgsProcessingParameterFeatureSink(
-                "Final",
-                "Final",
+                "sampling_layer",
+                "Sampling grid output layer",
                 type=QgsProcessing.TypeVectorAnyGeometry,
                 createByDefault=True,
                 defaultValue=None,
@@ -142,7 +141,6 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         )
         landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
         fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
-        devc_layer = self.parameterAsVectorLayer(parameters, "devc_layer", context)
         chid = self.parameterAsString(parameters, "chid", context)
         path = self.parameterAsFile(parameters, "path", context)
 
@@ -167,7 +165,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
 
         # Get origin in WGS84
         if parameters["origin"] is not None:
-            origin = QgsPoint(origin)
+            origin = QgsPoint(origin.x(), origin.y())
             origin.transform(project_to_wgs84_tr)
             feedback.pushInfo(f"User origin: <{origin}> WGS84")
         else:
@@ -188,20 +186,23 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         wgs84_to_utm_tr = QgsCoordinateTransform(
             wgs84_crs, utm_crs, QgsProject.instance()
         )
-        utm_origin = origin.clone()
+        utm_origin = QgsPoint(origin.x(), origin.y())
         utm_origin.transform(wgs84_to_utm_tr)
+        feedback.pushInfo(
+            f"Origin, UTM: <{utm_origin}, WGS84: <{origin}>"
+        )  # FIXME check
 
         # Get fire origin in WGS84
         if parameters["fire_origin"] is not None:
-            fire_origin = QgsPoint(fire_origin)
+            fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
             fire_origin.transform(project_to_wgs84_tr)
             feedback.pushInfo(f"User fire origin: <{fire_origin}> WGS84")
         else:
-            fire_origin = origin
+            fire_origin = QgsPoint(origin.x(), origin.y())
             feedback.pushInfo(f"Fire origin at DEM centroid: <{fire_origin}> WGS84")
 
         # Get fire origin in UTM
-        utm_fire_origin = fire_origin.clone()
+        utm_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
         utm_fire_origin.transform(wgs84_to_utm_tr)
 
         # Save texture
@@ -209,8 +210,8 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         utils.write_image(
             destination_crs=utm_crs,
             extent=dem_layer.extent(),
-            filepath=f"{path}/{chid}_texture.jpg",
-            imagetype="jpg",
+            filepath=f"{path}/{chid}_texture.png",
+            imagetype="png",
         )
 
         feedback.setCurrentStep(2)
@@ -279,9 +280,9 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             "COLUMN_PREFIX": "landuse",
             "INPUT": outputs["AddGeometryAttributes"]["OUTPUT"],
             "RASTERCOPY": parameters["landuse_layer"],
-            "OUTPUT": parameters["Final"],
+            "OUTPUT": parameters["sampling_layer"],
         }
-        outputs["Final"] = processing.run(
+        outputs["sampling_layer"] = processing.run(
             "qgis:rastersampling",
             alg_params,
             context=context,
@@ -289,7 +290,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        results["Final"] = outputs["Final"]["OUTPUT"]
+        results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
 
         feedback.setCurrentStep(6)
         if feedback.isCanceled():
@@ -299,8 +300,8 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Building lists of vertices and faces with landuses...")
 
-        point_layer = context.getMapLayer(outputs["Final"]["OUTPUT"])
-        verts, faces, landuses = geometry.get_geometry(
+        point_layer = context.getMapLayer(outputs["sampling_layer"]["OUTPUT"])
+        verts, faces, landuses, landuses_set = geometry.get_geometry(
             layer=point_layer, utm_origin=utm_origin,
         )
 
@@ -325,6 +326,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             faces=faces,
             landuses=landuses,
             landuse_type=landuse_type,
+            landuses_set=landuses_set,
         )
         utils.write_file(filepath=f"{path}/{chid}.fds", content=content)
 

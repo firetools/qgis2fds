@@ -33,8 +33,9 @@ def get_geometry(layer, utm_origin):
     """
     matrix = _get_matrix(layer=layer, utm_origin=utm_origin)
     faces, landuses = _get_faces(matrix=matrix)
+    landuses_set = set(landuses)
     verts = _get_verts(matrix=matrix)
-    return verts, faces, landuses
+    return verts, faces, landuses, landuses_set
 
 
 # Prepare the matrix of quad faces center points with landuse
