@@ -21,6 +21,7 @@ __revision__ = "$Format:%H$"
 from qgis.core import (
     QgsProject,
     QgsPoint,
+    QgsRectangle,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsVectorLayer,
@@ -30,6 +31,7 @@ from qgis.core import (
     QgsProcessingMultiStepFeedback,
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterVectorLayer,
+    QgsProcessingParameterExtent,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterEnum,
     QgsProcessingParameterBoolean,
@@ -68,14 +70,15 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
                 "Save in folder",
                 behavior=QgsProcessingParameterFile.Folder,
                 fileFilter="All files (*.*)",
-                defaultValue="",
+                defaultValue=None,
             )
         )
         self.addParameter(
+            QgsProcessingParameterExtent("extent", "Terrain Extent", defaultValue=None,)
+        )
+        self.addParameter(
             QgsProcessingParameterRasterLayer(
-                "dem_layer",
-                "DEM Layer (also used as extent of terrain)",
-                defaultValue=None,
+                "dem_layer", "DEM Layer", defaultValue=None,
             )
         )
         self.addParameter(
@@ -95,9 +98,9 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterPoint(
                 "origin",
-                "Domain Origin (if not set, use DEM layer centroid)",
+                "Domain Origin (if not set, use Terrain Extent centroid)",
                 optional=True,
-                defaultValue="",
+                defaultValue=None,
             )
         )
         self.addParameter(
@@ -105,10 +108,9 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
                 "fire_origin",
                 "Fire Origin (if not set, use Domain Origin)",
                 optional=True,
-                defaultValue="",
+                defaultValue=None,
             )
         )
-
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 "sampling_layer",
@@ -123,7 +125,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-        feedback = QgsProcessingMultiStepFeedback(7, model_feedback)
+        feedback = QgsProcessingMultiStepFeedback(8, model_feedback)
         results = {}
         outputs = {}
 
@@ -133,83 +135,90 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Starting...")
 
-        # Get input parameters
-        dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
+        # Get some parameters
+        chid = self.parameterAsString(parameters, "chid", context)
+        path = self.parameterAsFile(parameters, "path", context)
+        landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
+
+        # origin and fire_origin are in project_crs
         origin = self.parameterAsPoint(parameters, "origin", context)
+        fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
+
+        # layers in their respective crs
+        dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
         landuse_layer = self.parameterAsRasterLayer(
             parameters, "landuse_layer", context
         )
-        landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
-        fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
-        chid = self.parameterAsString(parameters, "chid", context)
-        path = self.parameterAsFile(parameters, "path", context)
 
-        # Check DEM layer type
-        if dem_layer.providerType() != "gdal":
-            raise QgsProcessingException(
-                f"Bad DEM type: <{dem_layer.providerType()}>"
-            )  # TODO other sources?
-
-        # Prepare some transformations of CRS
+        # Prepare CRS and their transformations
+        project_crs = QgsProject.instance().crs()
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         dem_crs = dem_layer.crs()
-        project_crs = QgsProject.instance().crs()
-
-        dem_to_wgs84_tr = QgsCoordinateTransform(
-            dem_crs, wgs84_crs, QgsProject.instance()
-        )
 
         project_to_wgs84_tr = QgsCoordinateTransform(
             project_crs, wgs84_crs, QgsProject.instance()
         )
 
-        # Get origin in WGS84
+        # Get extent in WGS84 CRS
+        wgs84_extent = self.parameterAsExtent(
+            parameters, "extent", context, crs=wgs84_crs
+        )
+
+        # Get origin in WGS84 CRS
         if parameters["origin"] is not None:
-            origin = QgsPoint(origin.x(), origin.y())
-            origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"User origin: <{origin}> WGS84")
+            wgs84_origin = QgsPoint(origin.x(), origin.y())
+            wgs84_origin.transform(project_to_wgs84_tr)
+            feedback.pushInfo(f"User origin: <{wgs84_origin}> WGS84")
         else:
-            e = dem_layer.extent()
-            origin = QgsPoint(
-                (e.xMinimum() + e.xMaximum()) / 2.0,
-                (e.yMinimum() + e.yMaximum()) / 2.0,
+            wgs84_origin = QgsPoint(
+                (wgs84_extent.xMinimum() + wgs84_extent.xMaximum()) / 2.0,
+                (wgs84_extent.yMinimum() + wgs84_extent.yMaximum()) / 2.0,
             )
-            origin.transform(dem_to_wgs84_tr)
-            feedback.pushInfo(f"Origin at DEM centroid: <{origin}> WGS84")
+            feedback.pushInfo(
+                f"Origin at Terrain Extent centroid: <{wgs84_origin}> WGS84"
+            )
+
+        # Get fire origin in WGS84 CRS
+        if parameters["fire_origin"] is not None:
+            wgs84_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
+            wgs84_fire_origin.transform(project_to_wgs84_tr)
+            feedback.pushInfo(f"User fire origin: <{wgs84_fire_origin}> WGS84")
+        else:
+            wgs84_fire_origin = QgsPoint(origin.x(), origin.y())
+            feedback.pushInfo(f"Fire origin at origin: <{wgs84_fire_origin}> WGS84")
 
         # Get UTM CRS from origin
         utm_epsg = utils.lonlat_to_epsg(lon=origin.x(), lat=origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
         feedback.pushInfo(f"Optimal UTM CRS: <{utm_crs.description()}>")
 
-        # Get origin in UTM
+        # Get extent in UTM CRS and DEM CRS
+        utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs,)
+        dem_extent = self.parameterAsExtent(parameters, "extent", context, crs=dem_crs)
+
+        # Get origin in UTM CRS
         wgs84_to_utm_tr = QgsCoordinateTransform(
             wgs84_crs, utm_crs, QgsProject.instance()
         )
         utm_origin = QgsPoint(origin.x(), origin.y())
         utm_origin.transform(wgs84_to_utm_tr)
-        feedback.pushInfo(
-            f"Origin, UTM: <{utm_origin}, WGS84: <{origin}>"
-        )  # FIXME check
 
-        # Get fire origin in WGS84
-        if parameters["fire_origin"] is not None:
-            fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
-            fire_origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"User fire origin: <{fire_origin}> WGS84")
-        else:
-            fire_origin = QgsPoint(origin.x(), origin.y())
-            feedback.pushInfo(f"Fire origin at DEM centroid: <{fire_origin}> WGS84")
+        if utm_origin == wgs84_origin:  # check for QGIS bug
+            raise QgsProcessingException(
+                f"QGIS bug: UTM Origin <{utm_origin} and WGS84 Origin <{wgs84_origin}> cannot be the same!"
+            )
 
-        # Get fire origin in UTM
+        # Get fire origin in UTM CRS
         utm_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
         utm_fire_origin.transform(wgs84_to_utm_tr)
 
         # Save texture
+
         feedback.pushInfo("Saving texture image...")
+
         utils.write_image(
             destination_crs=utm_crs,
-            extent=dem_layer.extent(),
+            extent=utm_extent,
             filepath=f"{path}/{chid}_texture.png",
             imagetype="png",
         )
@@ -219,16 +228,39 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             return {}
 
         # QGIS geographic transformations
+        # Creating sampling grid in DEM crs
 
         feedback.pushInfo("Creating sampling grid layer from DEM...")
+
+        xspacing = dem_layer.rasterUnitsPerPixelX()
+        yspacing = dem_layer.rasterUnitsPerPixelY()
+        x0, y0, x1, y1 = (  # terrain extent in DEM CRS
+            dem_extent.xMinimum(),
+            dem_extent.yMinimum(),
+            dem_extent.xMaximum(),
+            dem_extent.yMaximum(),
+        )
+        xd0, yd1 = (  # DEM extent in DEM CRS
+            dem_layer.extent().xMinimum(),
+            dem_layer.extent().yMaximum(),
+        )
+        # align terrain extent to DEM grid (gridding starts from top left corner)
+        x0 = xd0 + round((x0 - xd0) / xspacing) * xspacing + xspacing / 2.0
+        y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
+        dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
+
         alg_params = {
-            "FIELD_NAME": "zcoord",
-            "INPUT_RASTER": parameters["dem_layer"],
-            "RASTER_BAND": 1,
+            "CRS": dem_crs,
+            "EXTENT": dem_extent,
+            "HOVERLAY": 0,
+            "HSPACING": xspacing,
+            "TYPE": 0,  # Points
+            "VOVERLAY": 0,
+            "VSPACING": yspacing,
             "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
-        outputs["RasterPixelsToPoints"] = processing.run(
-            "native:pixelstopoints",
+        outputs["CreateGrid"] = processing.run(
+            "native:creategrid",
             alg_params,
             context=context,
             feedback=feedback,
@@ -239,9 +271,36 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # QGIS geographic transformations
+        # Draping Z values to sampling grid in DEM crs
+
+        feedback.pushInfo("Set Z values from DEM...")
+        alg_params = {
+            "BAND": 1,
+            "INPUT": outputs["CreateGrid"]["OUTPUT"],
+            "NODATA": 0,
+            "RASTER": dem_layer,
+            "SCALE": 1,
+            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+        }
+        outputs["DrapeSetZValueFromRaster"] = processing.run(
+            "native:setzfromraster",
+            alg_params,
+            context=context,
+            feedback=feedback,
+            is_child_algorithm=True,
+        )
+
+        feedback.setCurrentStep(4)
+        if feedback.isCanceled():
+            return {}
+
+        # QGIS geographic transformations
+        # Reprojecting sampling grid to UTM CRS
+
         feedback.pushInfo("Reprojecting sampling grid layer to UTM CRS...")
         alg_params = {
-            "INPUT": outputs["RasterPixelsToPoints"]["OUTPUT"],
+            "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
             "TARGET_CRS": utm_crs,
             "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
@@ -253,9 +312,12 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(4)
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
+
+        # QGIS geographic transformations
+        # Adding geom attributes (x, y, z) to sampling grid in UTM CRS
 
         feedback.pushInfo("Adding geometry attributes to sampling grid layer...")
         alg_params = {
@@ -271,9 +333,12 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(5)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
+
+        # QGIS geographic transformations
+        # Sampling landuse layer with sampling grid in UTM CRS
 
         feedback.pushInfo("Sampling landuse...")
         alg_params = {
@@ -292,7 +357,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
 
         results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
@@ -305,7 +370,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             layer=point_layer, utm_origin=utm_origin,
         )
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
 

@@ -43,20 +43,20 @@ def write_image(destination_crs, extent, filepath, imagetype):
     """
     Save current QGIS canvas to image file.
     """
-    layers = iface.mapCanvas().layers()  # get visible layers
-    settings = QgsMapSettings()
-    settings.setLayers(layers)
-    settings.setBackgroundColor(QColor(255, 255, 255))
+    settings = QgsMapSettings()  # build settings
     settings.setDestinationCrs(destination_crs)  # set output crs
-    settings.setExtent(extent)
+    settings.setExtent(extent)  # in destination_crs
+    layers = iface.mapCanvas().layers()  # get visible layers
+    settings.setLayers(layers)
 
-    dx = 1920 * 2
-    dy = int(
+    w = 1920
+    h = int(
         (extent.yMaximum() - extent.yMinimum())
         / (extent.xMaximum() - extent.xMinimum())
-        * dx
+        * w
     )
-    settings.setOutputSize(QSize(dx, dy))
+    settings.setOutputSize(QSize(w, h))
+    settings.setOutputDpi(200)
 
     render = QgsMapRendererParallelJob(settings)
     render.start()
@@ -99,7 +99,6 @@ def clip_raster(raster, column_count, row_count, output_extent):
     file_writer.writeRaster(pipe, column_count, row_count, output_extent, raster.crs())
 
     return QgsRasterLayer(file_name, "clipped_raster")
-
 
 
 def write_raster_layer(rlayer):  # FIXME ?

@@ -88,10 +88,10 @@ def _get_matrix(layer, utm_origin):
     for f in features:
         a = f.attributes()  # order: z, x, y, landuse
         point = (
-            a[1] - ox,  # x, relative to origin
-            a[2] - oy,  # y, relative to origin
-            a[0],  # z absolute
-            a[3],  # landuse
+            a[5] - ox,  # x, relative to origin
+            a[6] - oy,  # y, relative to origin
+            a[7],  # z absolute
+            a[8],  # landuse
         )
         if first_point is None:
             # point is the first point of the matrix
