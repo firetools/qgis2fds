@@ -5,15 +5,15 @@
 [general]
 name=QGIS2FDS
 qgisMinimumVersion=3.0
-description=Export terrain in NIST FDS notation
+description=Export terrains in NIST FDS notation
 version=0.1
 author=Emanuele Gissi
 email=emanuele.gissi@gmail.com
 
 about=Export terrain elevation, landuse, and georeferencing to NIST FDS for computational fluid dynamics (CFD) wild fire simulationor air dispersion of pollutants
 
-tracker=https://github.com/firetools/qgis2fds
-repository=https://github.com/firetools/qgis2fds/issues
+tracker=https://github.com/firetools/qgis2fds/issues
+repository=https://github.com/firetools/qgis2fds
 # End of mandatory metadata
 
 # Recommended items:
