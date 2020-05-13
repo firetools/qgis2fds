@@ -1,26 +1,13 @@
-# qgis2fds
-Export terrain elevation, landuse, and georeferencing to NIST FDS for computational fluid dynamics (CFD) wild fire simulation
+# Welcome to the QGIS2FDS Plugin repository!
 
-Your plugin QGIS2FDS was created in:
-    /home/egissi/github/firetools/qgis2fds
+The open source plugin to export terrains and landuse from the [QGIS](http://www.qgis.org) geographic information system to the [NIST Fire Dynamics Simulator (FDS)](https://pages.nist.gov/fds-smv/) for wildfire simulation and atmospheric dispersion of fire pollutants.
 
-Your QGIS plugin directory is located at:
-    /home/egissi/.local/share/QGIS/QGIS3/profiles/default/python/plugins
+To learn how to use this plugin, please read the [wiki](https://github.com/firetools/qgis2fds/wiki).
 
-What's Next:
+---
 
-  * Copy the entire directory containing your new plugin to the QGIS plugin
-    directory
+The development of QGIS2FDS is funded by a grant from the Italian Ministry of Foreign Affairs and International Cooperation.
 
-  * Run the tests (``make test``)
+By the research project WUIFI-21 (High fidelity computational fluid dynamics modeling of forest fires for Wildland-Urban Interface communities resilience and protection) the participating organizations intend to extend the capabilities of FDS on the prediction of wildland-urban interface fires propagation.
 
-  * Test the plugin by enabling it in the QGIS plugin manager
-
-  * Customize it by editing the implementation file: ``QGIS2FDS.py``
-
-  * You can use the Makefile to compile your Ui and resource files when
-    you make changes. This requires GNU make (gmake)
-
-For more information, see the PyQGIS Developer Cookbook at:
-http://www.qgis.org/pyqgis-cookbook/index.html
-
+![MAECI](https://github.com/firetools/qgis2fds/wiki/images/MAECI.png)
