@@ -63,11 +63,17 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         """
         project = QgsProject.instance()
 
+        # Get project crs, and see if it is ok
+        project_crs = project.crs()
+        if project_crs == QgsCoordinateReferenceSystem("EPSG:3857"):  # Web Mercator
+            QgsProject.instance().setCrs(
+                QgsCoordinateReferenceSystem("EPSG:4326")
+            )  # WGS84
+
         # Check if project crs changed
-        project_crs_changed = False
         prev_project_crs_desc, _ = project.readEntry("QGIS2FDS", "project_crs", None)
-        project_crs_desc = QgsProject.instance().crs().description()
-        if prev_project_crs_desc != project_crs_desc:
+        project_crs_changed = False
+        if prev_project_crs_desc != project_crs.description():
             project_crs_changed = True
 
         defaultValue, _ = project.readEntry("QGIS2FDS", "chid", "terrain")
