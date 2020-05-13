@@ -1,7 +1,3 @@
-# qgis2fds
-
-Export terrain elevation, landuse, and georeferencing from QGIS to NIST FDS for computational fluid dynamics (CFD) wild fire simulation and atmospheric fire pollutants dispersion
-
 # Welcome to the QGIS2FDS Plugin repository!
 
 The open source plugin to export terrains and landuse from the [QGIS](http://www.qgis.org) geographic information system to the [NIST Fire Dynamics Simulator (FDS)](https://pages.nist.gov/fds-smv/) for wildfire simulation and atmospheric dispersion of fire pollutants.
