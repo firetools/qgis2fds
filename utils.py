@@ -68,85 +68,10 @@ def write_image(destination_crs, extent, filepath, imagetype):
         raise QgsProcessingException(f"Image not writable at <{filepath}>")
 
 
-def clip_raster(raster, column_count, row_count, output_extent):
-    """Clip raster to specified extent, width and height.
- 
-    Note there is similar utility in safe_qgis.utilities.clipper, but it uses
-    gdal whereas this one uses native QGIS.
- 
-    :param raster: Raster
-    :type raster: QgsRasterLayer
- 
-    :param column_count: Desired width in pixels of new raster
-    :type column_count: Int
- 
-    :param row_count: Desired height in pixels of new raster
-    :type row_count: Int
- 
-    :param output_extent: Extent of the clipped region
-    :type output_extent: QgsRectangle
- 
-    :returns: Clipped region of the raster
-    :rtype: QgsRasterLayer
-    """
-    provider = raster.dataProvider()
-    pipe = QgsRasterPipe()
-    pipe.set(provider.clone())
-
-    base_name = unique_filename()
-    file_name = base_name + ".tif"
-    file_writer = QgsRasterFileWriter(file_name)
-    file_writer.writeRaster(pipe, column_count, row_count, output_extent, raster.crs())
-
-    return QgsRasterLayer(file_name, "clipped_raster")
-
-
-def write_raster_layer(rlayer):  # FIXME ?
-
-    # Save raster
-    provider = rlayer.dataProvider()
-    crs = rlayer.crs()
-
-    if not crs:
-        raise Exception  # FIXME
-
-    if not provider.crs():
-        raise Exception  # FIXME
-
-    pipe = QgsRasterPipe()
-    projector = QgsRasterProjector()
-    projector.setCrs(provider.crs(), provider.crs())
-
-    if not pipe.set(provider.clone()):
-        raise Exception("Cannot set pipe provider")
-
-    if not pipe.insert(2, projector):
-        raise Exception("Cannot set pipe projector")
-
-    out_file = "D:/temp/temporal.tif"
-    file_writer = QgsRasterFileWriter(out_file)
-    file_writer.Mode(1)
-
-    print("Saving")
-
-    extent = mask_layer.extent()
-
-    opts = ["COMPRESS=LZW"]
-    file_writer.setCreateOptions(opts)
-    error = file_writer.writeRaster(pipe, extent.width(), extent.height(), extent, crs)
-
-    if error == QgsRasterFileWriter.NoError:
-        print("Raster was saved successfully!")
-        layer = QgsRasterLayer(out_file, "result")
-        QgsProject.instance().addMapLayer(layer)
-    else:
-        print("Raster was not saved!")
-
-
 # Geographic operations
 
 
-def get_utm_str(utm_point, utm_crs):
+def get_utm_str(utm_point, utm_crs):  # FIXME not used anymore
     return f"{utm_point.x()}m E {utm_point.y()}m N ({utm_crs.description()})"
 
 

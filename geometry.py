@@ -91,7 +91,7 @@ def _get_matrix(layer, utm_origin):
             a[5] - ox,  # x, relative to origin
             a[6] - oy,  # y, relative to origin
             a[7],  # z absolute
-            a[8],  # landuse
+            a[8] or 0,  # landuse, protect from None
         )
         if first_point is None:
             # point is the first point of the matrix
