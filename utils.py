@@ -49,7 +49,7 @@ def write_image(destination_crs, extent, filepath, imagetype):
     layers = iface.mapCanvas().layers()  # get visible layers
     settings.setLayers(layers)
 
-    w = 1920 * 2
+    w = 1920 * 2  # TODO improve!
     h = int(
         (extent.yMaximum() - extent.yMinimum())
         / (extent.xMaximum() - extent.xMinimum())
