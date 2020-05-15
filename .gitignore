@@ -127,3 +127,22 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# QGIS
+*.qgs~
+
+# FDS calculations
+*.s3d
+*.s3d.sz
+*_cpu.csv
+*_git.txt
+*_hrr.csv
+*_steps.csv
+*_devc.csv
+*.binfo
+*.end
+*.out
+*.sinfo
+*.smv
+*.ge
+*.bingeom
