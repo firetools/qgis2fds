@@ -41,14 +41,18 @@ def get_geometry(layer, utm_origin):
 # Prepare the matrix of quad faces center points with landuse
 
 # The layer is a flat list of quad faces center points (z, x, y, landuse)
-# ordered by row. The returned matrix is a topological 2D representation of them.
-# The original flat list is cut in rows, when three consecutive points
-# form an angle < 180°
+# ordered by column. The original flat list is cut in columns, when three consecutive points
+# form an angle < 180°.
+# The returned matrix is a topological 2D representation of them by row (transposed).
 
-# Same row:              Following row:
-# first   prev                   first        prev
-# ·------->·-->·                 ·----------->·
-#             current    current ·<-----------
+# Same column:  following column:
+#      first ·            first · · current
+#            |                  | ^
+#            |                  | |
+#       prev ·                  | |
+#            |                  |/
+#    current ·             prev ·
+
 
 # matrix:    j
 #      o   o   o   o   o
@@ -95,27 +99,27 @@ def _get_matrix(layer, utm_origin):
         )
         if first_point is None:
             # point is the first point of the matrix
-            matrix = [[point,]]
+            m = [[point,]]
             first_point = point
             continue
         elif prev_point is None:
-            # point is the second point of the matrix row
-            matrix[-1].append(point)
+            # point is the second point of the matrix column
+            m[-1].append(point)
             prev_point = point
             continue
         # current point is another point, check alignment in 2D
         if abs(_dot_product(first_point, prev_point, point)) > 0.1:
-            # point is on the same matrix row
-            matrix[-1].append(point)
+            # point is on the same matrix column
+            m[-1].append(point)
             prev_point = point
             continue
-        # point is on the next row
-        matrix.append(
+        # point is on the next column
+        m.append(
             [point,]
         )
         first_point = point
         prev_point = None
-    return matrix
+    return list(map(list, zip(*m)))  # transpose
 
 
 # Getting face connectivity and landuse

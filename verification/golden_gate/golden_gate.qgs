@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis saveUser="egissi" saveUserFull="Emanuele Gissi" version="3.12.2-București" projectname="">
+<qgis version="3.12.2-București" projectname="" saveUserFull="Emanuele Gissi" saveUser="egissi">
   <homePath path=""/>
   <title></title>
   <autotransaction active="0"/>
@@ -20,16 +20,16 @@
   </projectCrs>
   <layer-tree-group>
     <customproperties/>
-    <layer-tree-layer source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" expanded="1" legend_exp="" checked="Qt::Unchecked" id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" name="OpenStreetMap" providerKey="wms">
+    <layer-tree-layer id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" name="OpenStreetMap" providerKey="wms" checked="Qt::Unchecked" legend_exp="" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" expanded="1">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer" expanded="0" legend_exp="" checked="Qt::Checked" id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" name="US_200FBFM13" providerKey="wcs">
+    <layer-tree-layer id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" name="US_200FBFM13" providerKey="wcs" checked="Qt::Checked" legend_exp="" source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer" expanded="0">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer" expanded="0" legend_exp="" checked="Qt::Checked" id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" name="US_DEM2016" providerKey="wcs">
+    <layer-tree-layer id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" name="US_DEM2016" providerKey="wcs" checked="Qt::Checked" legend_exp="" source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer" expanded="0">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" expanded="1" legend_exp="" checked="Qt::Unchecked" id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" name="Google Satellite" providerKey="wms">
+    <layer-tree-layer id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" name="Google Satellite" providerKey="wms" checked="Qt::Unchecked" legend_exp="" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" expanded="1">
       <customproperties/>
     </layer-tree-layer>
     <custom-order enabled="0">
@@ -39,7 +39,7 @@
       <item>Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f</item>
     </custom-order>
   </layer-tree-group>
-  <snapping-settings tolerance="12" unit="1" enabled="0" mode="2" type="1" intersection-snapping="0">
+  <snapping-settings type="1" intersection-snapping="0" mode="2" enabled="0" tolerance="12" unit="1">
     <individual-layer-settings/>
   </snapping-settings>
   <relations/>
@@ -49,7 +49,7 @@
       <xmin>-122.56151458799999432</xmin>
       <ymin>37.77279692700000169</ymin>
       <xmax>-122.43286229800000342</xmax>
-      <ymax>37.88459133099999576</ymax>
+      <ymax>37.88459133100000287</ymax>
     </extent>
     <rotation>0</rotation>
     <destinationsrs>
@@ -70,31 +70,31 @@
   </mapcanvas>
   <projectModels/>
   <legend updateDrawingOrder="true">
-    <legendlayer checked="Qt::Unchecked" showFeatureCount="0" name="OpenStreetMap" open="true" drawingOrder="-1">
-      <filegroup hidden="false" open="true">
-        <legendlayerfile isInOverview="0" layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" visible="0"/>
+    <legendlayer open="true" name="OpenStreetMap" checked="Qt::Unchecked" drawingOrder="-1" showFeatureCount="0">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" isInOverview="0" visible="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer checked="Qt::Checked" showFeatureCount="0" name="US_200FBFM13" open="false" drawingOrder="-1">
-      <filegroup hidden="false" open="false">
-        <legendlayerfile isInOverview="0" layerid="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" visible="1"/>
+    <legendlayer open="false" name="US_200FBFM13" checked="Qt::Checked" drawingOrder="-1" showFeatureCount="0">
+      <filegroup open="false" hidden="false">
+        <legendlayerfile layerid="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" isInOverview="0" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer checked="Qt::Checked" showFeatureCount="0" name="US_DEM2016" open="false" drawingOrder="-1">
-      <filegroup hidden="false" open="false">
-        <legendlayerfile isInOverview="0" layerid="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" visible="1"/>
+    <legendlayer open="false" name="US_DEM2016" checked="Qt::Checked" drawingOrder="-1" showFeatureCount="0">
+      <filegroup open="false" hidden="false">
+        <legendlayerfile layerid="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" isInOverview="0" visible="1"/>
       </filegroup>
     </legendlayer>
-    <legendlayer checked="Qt::Unchecked" showFeatureCount="0" name="Google Satellite" open="true" drawingOrder="-1">
-      <filegroup hidden="false" open="true">
-        <legendlayerfile isInOverview="0" layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" visible="0"/>
+    <legendlayer open="true" name="Google Satellite" checked="Qt::Unchecked" drawingOrder="-1" showFeatureCount="0">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" isInOverview="0" visible="0"/>
       </filegroup>
     </legendlayer>
   </legend>
   <mapViewDocks/>
   <mapViewDocks3D/>
   <projectlayers>
-    <maplayer autoRefreshEnabled="0" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" type="raster" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" autoRefreshTime="0" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -140,14 +140,14 @@
             <description></description>
             <projectionacronym></projectionacronym>
             <ellipsoidacronym></ellipsoidacronym>
-            <geographicflag>false</geographicflag>
+            <geographicflag>true</geographicflag>
           </spatialrefsys>
         </crs>
         <extent/>
       </resourceMetadata>
       <provider>wms</provider>
       <noData>
-        <noDataList bandNo="1" useSrcNoData="0"/>
+        <noDataList useSrcNoData="0" bandNo="1"/>
       </noData>
       <map-layer-style-manager current="default">
         <map-layer-style name="default"/>
@@ -161,7 +161,7 @@
         <property key="identify/format" value="Undefined"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" opacity="1" type="singlebandcolordata" nodataColor="" band="1">
+        <rasterrenderer type="singlebandcolordata" opacity="1" nodataColor="" band="1" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -173,12 +173,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" colorizeOn="0" colorizeGreen="128" colorizeStrength="100" saturation="0" colorizeRed="255" colorizeBlue="128"/>
+        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" type="raster" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" autoRefreshTime="0" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -233,11 +233,11 @@
             <description></description>
             <projectionacronym></projectionacronym>
             <ellipsoidacronym></ellipsoidacronym>
-            <geographicflag>false</geographicflag>
+            <geographicflag>true</geographicflag>
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial minx="0" maxy="0" crs="" maxx="0" miny="0" maxz="0" dimensions="2" minz="0"/>
+          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -248,7 +248,7 @@
       </resourceMetadata>
       <provider>wms</provider>
       <noData>
-        <noDataList bandNo="1" useSrcNoData="0"/>
+        <noDataList useSrcNoData="0" bandNo="1"/>
       </noData>
       <map-layer-style-manager current="default">
         <map-layer-style name="default"/>
@@ -265,7 +265,7 @@
         <property key="identify/format" value="Undefined"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" opacity="1" type="singlebandcolordata" nodataColor="" band="1">
+        <rasterrenderer type="singlebandcolordata" opacity="1" nodataColor="" band="1" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -277,12 +277,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" colorizeOn="0" colorizeGreen="128" colorizeStrength="100" saturation="0" colorizeRed="255" colorizeBlue="128"/>
+        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
         <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" type="raster" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" autoRefreshTime="0" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -337,11 +337,11 @@
             <description></description>
             <projectionacronym></projectionacronym>
             <ellipsoidacronym></ellipsoidacronym>
-            <geographicflag>false</geographicflag>
+            <geographicflag>true</geographicflag>
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial minx="0" maxy="0" crs="" maxx="0" miny="0" maxz="0" dimensions="2" minz="0"/>
+          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -352,7 +352,7 @@
       </resourceMetadata>
       <provider>wcs</provider>
       <noData>
-        <noDataList bandNo="1" useSrcNoData="1"/>
+        <noDataList useSrcNoData="1" bandNo="1"/>
       </noData>
       <map-layer-style-manager current="default">
         <map-layer-style name="default"/>
@@ -369,7 +369,7 @@
         <property key="identify/format" value="Value"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" opacity="1" type="paletted" nodataColor="" band="1">
+        <rasterrenderer type="paletted" opacity="1" nodataColor="" band="1" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -380,26 +380,26 @@
             <stdDevFactor>2</stdDevFactor>
           </minMaxOrigin>
           <colorPalette>
-            <paletteEntry alpha="255" color="#ffffff" value="0" label="NO_DATA"/>
-            <paletteEntry alpha="255" color="#fffed4" value="1" label="FBFM01"/>
-            <paletteEntry alpha="255" color="#fffd66" value="2" label="FBFM02"/>
-            <paletteEntry alpha="255" color="#ecd463" value="3" label="FBFM03"/>
-            <paletteEntry alpha="255" color="#fec177" value="4" label="FBFM04"/>
-            <paletteEntry alpha="255" color="#f9c55c" value="5" label="FBFM05"/>
-            <paletteEntry alpha="255" color="#d9c498" value="6" label="FBFM06"/>
-            <paletteEntry alpha="255" color="#aa9b7f" value="7" label="FBFM07"/>
-            <paletteEntry alpha="255" color="#e5fdd6" value="8" label="FBFM08"/>
-            <paletteEntry alpha="255" color="#a2bf5a" value="9" label="FBFM09"/>
-            <paletteEntry alpha="255" color="#729a55" value="10" label="FBFM10"/>
-            <paletteEntry alpha="255" color="#ebd4fd" value="11" label="FBFM11"/>
-            <paletteEntry alpha="255" color="#a3b1f3" value="12" label="FBFM12"/>
-            <paletteEntry alpha="255" color="#ba7750" value="91" label="Urban"/>
-            <paletteEntry alpha="255" color="#eaeaea" value="92" label="Snow/Ice"/>
-            <paletteEntry alpha="255" color="#fdf2f2" value="93" label="Agricolture"/>
-            <paletteEntry alpha="255" color="#89b7dd" value="98" label="Water"/>
-            <paletteEntry alpha="255" color="#85999c" value="99" label="Barren"/>
+            <paletteEntry color="#ffffff" value="0" label="NO_DATA" alpha="255"/>
+            <paletteEntry color="#fffed4" value="1" label="FBFM01" alpha="255"/>
+            <paletteEntry color="#fffd66" value="2" label="FBFM02" alpha="255"/>
+            <paletteEntry color="#ecd463" value="3" label="FBFM03" alpha="255"/>
+            <paletteEntry color="#fec177" value="4" label="FBFM04" alpha="255"/>
+            <paletteEntry color="#f9c55c" value="5" label="FBFM05" alpha="255"/>
+            <paletteEntry color="#d9c498" value="6" label="FBFM06" alpha="255"/>
+            <paletteEntry color="#aa9b7f" value="7" label="FBFM07" alpha="255"/>
+            <paletteEntry color="#e5fdd6" value="8" label="FBFM08" alpha="255"/>
+            <paletteEntry color="#a2bf5a" value="9" label="FBFM09" alpha="255"/>
+            <paletteEntry color="#729a55" value="10" label="FBFM10" alpha="255"/>
+            <paletteEntry color="#ebd4fd" value="11" label="FBFM11" alpha="255"/>
+            <paletteEntry color="#a3b1f3" value="12" label="FBFM12" alpha="255"/>
+            <paletteEntry color="#ba7750" value="91" label="Urban" alpha="255"/>
+            <paletteEntry color="#eaeaea" value="92" label="Snow/Ice" alpha="255"/>
+            <paletteEntry color="#fdf2f2" value="93" label="Agricolture" alpha="255"/>
+            <paletteEntry color="#89b7dd" value="98" label="Water" alpha="255"/>
+            <paletteEntry color="#85999c" value="99" label="Barren" alpha="255"/>
           </colorPalette>
-          <colorramp type="gradient" name="[source]">
+          <colorramp name="[source]" type="gradient">
             <prop v="215,25,28,255" k="color1"/>
             <prop v="43,131,186,255" k="color2"/>
             <prop v="0" k="discrete"/>
@@ -408,12 +408,12 @@
           </colorramp>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" colorizeOn="0" colorizeGreen="128" colorizeStrength="100" saturation="0" colorizeRed="255" colorizeBlue="128"/>
+        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" type="raster" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" autoRefreshTime="0" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -468,11 +468,11 @@
             <description></description>
             <projectionacronym></projectionacronym>
             <ellipsoidacronym></ellipsoidacronym>
-            <geographicflag>false</geographicflag>
+            <geographicflag>true</geographicflag>
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial minx="0" maxy="0" crs="" maxx="0" miny="0" maxz="0" dimensions="2" minz="0"/>
+          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -483,7 +483,7 @@
       </resourceMetadata>
       <provider>wcs</provider>
       <noData>
-        <noDataList bandNo="1" useSrcNoData="1"/>
+        <noDataList useSrcNoData="1" bandNo="1"/>
       </noData>
       <map-layer-style-manager current="default">
         <map-layer-style name="default"/>
@@ -500,7 +500,7 @@
         <property key="identify/format" value="Value"/>
       </customproperties>
       <pipe>
-        <rasterrenderer azimuth="315" zfactor="1" alphaBand="-1" opacity="1" type="hillshade" nodataColor="" band="1" angle="45" multidirection="0">
+        <rasterrenderer multidirection="0" type="hillshade" opacity="1" nodataColor="" angle="45" zfactor="1" band="1" azimuth="315" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -512,7 +512,7 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" colorizeOn="0" colorizeGreen="128" colorizeStrength="100" saturation="0" colorizeRed="255" colorizeBlue="128"/>
+        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
         <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
       </pipe>
       <blendMode>0</blendMode>
@@ -580,10 +580,10 @@
       <chid type="QString">golden_gate</chid>
       <dem_layer type="QString">US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e</dem_layer>
       <extent type="QString">-122.51064391189972,-122.46992736288728,37.8191902662084,37.84500075673717 [EPSG:4326]</extent>
-      <fire_origin type="QString">-122.494028,37.833646 [EPSG:4326]</fire_origin>
+      <fire_origin type="QString">-122.489645,37.832712 [EPSG:4326]</fire_origin>
       <landuse_layer type="QString">US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2</landuse_layer>
       <landuse_type type="int">0</landuse_type>
-      <origin type="QString">-122.489692,37.835184 [EPSG:4326]</origin>
+      <origin type="QString">-122.489693,37.835173 [EPSG:4326]</origin>
       <path type="QString">/home/egissi/github/firetools/qgis2fds/verification/golden_gate</path>
       <project_crs type="QString">WGS 84</project_crs>
     </QGIS2FDS>
@@ -705,14 +705,14 @@
   <ProjectDisplaySettings>
     <BearingFormat id="bearing">
       <Option type="Map">
-        <Option type="QChar" name="decimal_separator" value=""/>
-        <Option type="int" name="decimals" value="6"/>
-        <Option type="int" name="direction_format" value="0"/>
-        <Option type="int" name="rounding_type" value="0"/>
-        <Option type="bool" name="show_plus" value="false"/>
-        <Option type="bool" name="show_thousand_separator" value="true"/>
-        <Option type="bool" name="show_trailing_zeros" value="false"/>
-        <Option type="QChar" name="thousand_separator" value=""/>
+        <Option name="decimal_separator" type="QChar" value=""/>
+        <Option name="decimals" type="int" value="6"/>
+        <Option name="direction_format" type="int" value="0"/>
+        <Option name="rounding_type" type="int" value="0"/>
+        <Option name="show_plus" type="bool" value="false"/>
+        <Option name="show_thousand_separator" type="bool" value="true"/>
+        <Option name="show_trailing_zeros" type="bool" value="false"/>
+        <Option name="thousand_separator" type="QChar" value=""/>
       </Option>
     </BearingFormat>
   </ProjectDisplaySettings>
