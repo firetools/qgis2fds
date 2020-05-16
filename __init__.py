@@ -1,26 +1,21 @@
 # -*- coding: utf-8 -*-
-"""
- QGIS2FDS
-                                 A QGIS plugin
- Export terrain in NIST FDS notation
-                              -------------------
-        begin                : 2020-05-04
-        copyright            : (C) 2020 by Emanuele Gissi
-        email                : emanuele.gissi@gmail.com
-"""
 
-__author__ = 'Emanuele Gissi'
-__date__ = '2020-05-04'
-__copyright__ = '(C) 2020 by Emanuele Gissi'
+"""qgis2fds"""
+
+__author__ = "Emanuele Gissi, Ruggero Poletto"
+__date__ = "2020-05-04"
+__copyright__ = "(C) 2020 by Emanuele Gissi"
+__revision__ = "$Format:%H$"  # replaced with git SHA1
 
 
-# noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
-    """Load QGIS2FDS class from file QGIS2FDS.
+def classFactory(iface):
+    """!
+    Load qgis2fds class from file qgis2fds.
 
-    :param iface: A QGIS interface instance.
-    :type iface: QgsInterface
+    @param iface: A QGIS interface instance.
+    @type iface: QgsInterface
     """
     #
-    from .QGIS2FDS import QGIS2FDSPlugin
-    return QGIS2FDSPlugin()
+    from .qgis2fds import qgis2fdsPlugin
+
+    return qgis2fdsPlugin()

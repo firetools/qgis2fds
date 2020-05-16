@@ -1,22 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""
- QGIS2FDS
-                                 A QGIS plugin
- Export terrain in NIST FDS notation
-                              -------------------
-        begin                : 2020-05-04
-        copyright            : (C) 2020 by Emanuele Gissi
-        email                : emanuele.gissi@gmail.com
-"""
+"""qgis2fds"""
 
-__author__ = "Emanuele Gissi"
+__author__ = "Emanuele Gissi, Ruggero Poletto"
 __date__ = "2020-05-04"
-__copyright__ = "(C) 2020 by Emanuele Gissi and Ruggero Poletto"
-
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = "$Format:%H$"
+__copyright__ = "(C) 2020 by Emanuele Gissi"
+__revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import math
 

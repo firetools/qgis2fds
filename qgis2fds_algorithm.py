@@ -1,23 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""
- QGIS2FDS
-                                 A QGIS plugin
- Export terrain in NIST FDS notation
-                              -------------------
-        begin                : 2020-05-04
-        copyright            : (C) 2020 by Emanuele Gissi
-        email                : emanuele.gissi@gmail.com
-"""
+"""qgis2fds"""
 
-__author__ = "Emanuele Gissi"
+__author__ = "Emanuele Gissi, Ruggero Poletto"
 __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
-
-# This will get replaced with a git SHA1 when you do a git archive
-# For logging: QgsMessageLog.logMessage('My message', 'MyPlugin')
-
-__revision__ = "$Format:%H$"
+__revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import (
     QgsProject,
@@ -49,9 +37,9 @@ import processing
 from . import utils, fds, geometry
 
 
-class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
+class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
     """
-    QGIS2FDS algorithm.
+    qgis2fds algorithm.
     """
 
     OUTPUT = "OUTPUT"
@@ -71,12 +59,12 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             )  # WGS84
 
         # Check if project crs changed
-        prev_project_crs_desc, _ = project.readEntry("QGIS2FDS", "project_crs", None)
+        prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         project_crs_changed = False
         if prev_project_crs_desc != project_crs.description():
             project_crs_changed = True
 
-        defaultValue, _ = project.readEntry("QGIS2FDS", "chid", "terrain")
+        defaultValue, _ = project.readEntry("qgis2fds", "chid", "terrain")
         self.addParameter(
             QgsProcessingParameterString(
                 "chid",
@@ -87,7 +75,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         )
 
         defaultValue, _ = project.readEntry(
-            "QGIS2FDS", "path", QgsProject.instance().readPath("./")
+            "qgis2fds", "path", QgsProject.instance().readPath("./")
         )
         self.addParameter(
             QgsProcessingParameterFile(
@@ -99,14 +87,14 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("QGIS2FDS", "extent", None,)
+        defaultValue, _ = project.readEntry("qgis2fds", "extent", None,)
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent", "Terrain Extent", defaultValue=defaultValue,
             )
         )
 
-        defaultValue, _ = project.readEntry("QGIS2FDS", "dem_layer", None,)
+        defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None,)
         if defaultValue is None:
             try:  # first layer name containing "dem"
                 defaultValue = [
@@ -122,7 +110,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("QGIS2FDS", "landuse_layer", None,)
+        defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None,)
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 "landuse_layer",
@@ -132,7 +120,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readNumEntry("QGIS2FDS", "landuse_type", 0)
+        defaultValue, _ = project.readNumEntry("qgis2fds", "landuse_type", 0)
         self.addParameter(
             QgsProcessingParameterEnum(
                 "landuse_type",
@@ -146,7 +134,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         if project_crs_changed:
             defaultValue = None
         else:
-            defaultValue, _ = project.readEntry("QGIS2FDS", "origin", None)
+            defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
         self.addParameter(
             QgsProcessingParameterPoint(
                 "origin",
@@ -159,7 +147,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         if project_crs_changed:
             defaultValue = None
         else:
-            defaultValue, _ = project.readEntry("QGIS2FDS", "fire_origin", None)
+            defaultValue, _ = project.readEntry("qgis2fds", "fire_origin", None)
         self.addParameter(
             QgsProcessingParameterPoint(
                 "fire_origin",
@@ -196,27 +184,27 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
 
         # Get some parameters
         chid = self.parameterAsString(parameters, "chid", context)
-        project.writeEntry("QGIS2FDS", "chid", parameters["chid"])
+        project.writeEntry("qgis2fds", "chid", parameters["chid"])
         path = self.parameterAsFile(parameters, "path", context)
-        project.writeEntry("QGIS2FDS", "path", parameters["path"])
+        project.writeEntry("qgis2fds", "path", parameters["path"])
         landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
-        project.writeEntry("QGIS2FDS", "landuse_type", parameters["landuse_type"])
+        project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
 
         # Get layers in their respective crs
         dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
-        project.writeEntry("QGIS2FDS", "dem_layer", parameters["dem_layer"])
+        project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
         if parameters["landuse_layer"] is None:  # it is optional
             landuse_layer = None
         else:
             landuse_layer = self.parameterAsRasterLayer(
                 parameters, "landuse_layer", context
             )
-        project.writeEntry("QGIS2FDS", "landuse_layer", parameters["landuse_layer"])
+        project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
 
         # Prepare CRS and their transformations
         project_crs = QgsProject.instance().crs()
         project.writeEntry(
-            "QGIS2FDS", "project_crs", project_crs.description()
+            "qgis2fds", "project_crs", project_crs.description()
         )  # save to check if changed
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         dem_crs = dem_layer.crs()
@@ -229,7 +217,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         wgs84_extent = self.parameterAsExtent(
             parameters, "extent", context, crs=wgs84_crs
         )
-        project.writeEntry("QGIS2FDS", "extent", parameters["extent"])
+        project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
         # Get origin in WGS84 CRS
         if parameters["origin"] is not None:
@@ -246,7 +234,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             feedback.pushInfo(
                 f"Using terrain extent centroid as origin: <{wgs84_origin}> WGS84"
             )
-        project.writeEntry("QGIS2FDS", "origin", parameters["origin"])
+        project.writeEntry("qgis2fds", "origin", parameters["origin"])
 
         # Get fire origin in WGS84 CRS
         if parameters["fire_origin"] is not None:
@@ -260,7 +248,7 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
             feedback.pushInfo(
                 f"Using origin as fire origin: <{wgs84_fire_origin}> WGS84"
             )
-        project.writeEntry("QGIS2FDS", "fire_origin", parameters["fire_origin"])
+        project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
 
         # Get UTM CRS from origin
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
@@ -508,4 +496,4 @@ class QGIS2FDSAlgorithm(QgsProcessingAlgorithm):
         return ""
 
     def createInstance(self):
-        return QGIS2FDSAlgorithm()
+        return qgis2fdsAlgorithm()

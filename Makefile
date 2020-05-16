@@ -1,5 +1,5 @@
 #/***************************************************************************
-# QGIS2FDS
+# qgis2fds
 #
 # Export terrain in NIST FDS notation
 #							 -------------------
@@ -38,13 +38,13 @@ LOCALES =
 # translation
 SOURCES = \
 	__init__.py \
-	QGIS2FDS.py 
+	qgis2fds.py 
 
-PLUGINNAME = QGIS2FDS
+PLUGINNAME = qgis2fds
 
 PY_FILES = \
 	__init__.py \
-	QGIS2FDS.py 
+	qgis2fds.py 
 
 UI_FILES = 
 

@@ -1,28 +1,17 @@
 # -*- coding: utf-8 -*-
 
-"""
- QGIS2FDS
-                                 A QGIS plugin
- Export terrain in NIST FDS notation
-                              -------------------
-        begin                : 2020-05-04
-        copyright            : (C) 2020 by Emanuele Gissi
-        email                : emanuele.gissi@gmail.com
-"""
+"""qgis2fds"""
 
-__author__ = "Emanuele Gissi"
+__author__ = "Emanuele Gissi, Ruggero Poletto"
 __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
-
-# This will get replaced with a git SHA1 when you do a git archive
-
-__revision__ = "$Format:%H$"
+__revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import QgsProcessingProvider
-from .QGIS2FDS_algorithm import QGIS2FDSAlgorithm
+from .qgis2fds_algorithm import qgis2fdsAlgorithm
 
 
-class QGIS2FDSProvider(QgsProcessingProvider):
+class qgis2fdsProvider(QgsProcessingProvider):
     def __init__(self):
         """
         Default constructor.
@@ -39,7 +28,7 @@ class QGIS2FDSProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        self.addAlgorithm(QGIS2FDSAlgorithm())
+        self.addAlgorithm(qgis2fdsAlgorithm())
 
     def id(self):
         """

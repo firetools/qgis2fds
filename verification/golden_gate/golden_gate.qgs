@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="3.12.2-București" projectname="" saveUserFull="Emanuele Gissi" saveUser="egissi">
+<qgis projectname="" saveUser="egissi" version="3.12.2-București" saveUserFull="Emanuele Gissi">
   <homePath path=""/>
   <title></title>
   <autotransaction active="0"/>
@@ -20,16 +20,16 @@
   </projectCrs>
   <layer-tree-group>
     <customproperties/>
-    <layer-tree-layer id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" name="OpenStreetMap" providerKey="wms" checked="Qt::Unchecked" legend_exp="" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" expanded="1">
+    <layer-tree-layer checked="Qt::Unchecked" expanded="1" providerKey="wms" name="OpenStreetMap" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" legend_exp="">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" name="US_200FBFM13" providerKey="wcs" checked="Qt::Checked" legend_exp="" source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer" expanded="0">
+    <layer-tree-layer checked="Qt::Checked" expanded="0" providerKey="wcs" name="US_200FBFM13" source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer" id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" legend_exp="">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" name="US_DEM2016" providerKey="wcs" checked="Qt::Checked" legend_exp="" source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer" expanded="0">
+    <layer-tree-layer checked="Qt::Checked" expanded="0" providerKey="wcs" name="US_DEM2016" source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer" id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" legend_exp="">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" name="Google Satellite" providerKey="wms" checked="Qt::Unchecked" legend_exp="" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" expanded="1">
+    <layer-tree-layer checked="Qt::Unchecked" expanded="1" providerKey="wms" name="Google Satellite" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" legend_exp="">
       <customproperties/>
     </layer-tree-layer>
     <custom-order enabled="0">
@@ -39,11 +39,11 @@
       <item>Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f</item>
     </custom-order>
   </layer-tree-group>
-  <snapping-settings type="1" intersection-snapping="0" mode="2" enabled="0" tolerance="12" unit="1">
+  <snapping-settings mode="2" unit="1" intersection-snapping="0" enabled="0" tolerance="12" type="1">
     <individual-layer-settings/>
   </snapping-settings>
   <relations/>
-  <mapcanvas name="theMapCanvas" annotationsVisible="1">
+  <mapcanvas annotationsVisible="1" name="theMapCanvas">
     <units>degrees</units>
     <extent>
       <xmin>-122.56151458799999432</xmin>
@@ -70,31 +70,31 @@
   </mapcanvas>
   <projectModels/>
   <legend updateDrawingOrder="true">
-    <legendlayer open="true" name="OpenStreetMap" checked="Qt::Unchecked" drawingOrder="-1" showFeatureCount="0">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" isInOverview="0" visible="0"/>
+    <legendlayer drawingOrder="-1" checked="Qt::Unchecked" name="OpenStreetMap" showFeatureCount="0" open="true">
+      <filegroup hidden="false" open="true">
+        <legendlayerfile isInOverview="0" visible="0" layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="false" name="US_200FBFM13" checked="Qt::Checked" drawingOrder="-1" showFeatureCount="0">
-      <filegroup open="false" hidden="false">
-        <legendlayerfile layerid="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" isInOverview="0" visible="1"/>
+    <legendlayer drawingOrder="-1" checked="Qt::Checked" name="US_200FBFM13" showFeatureCount="0" open="false">
+      <filegroup hidden="false" open="false">
+        <legendlayerfile isInOverview="0" visible="1" layerid="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="false" name="US_DEM2016" checked="Qt::Checked" drawingOrder="-1" showFeatureCount="0">
-      <filegroup open="false" hidden="false">
-        <legendlayerfile layerid="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" isInOverview="0" visible="1"/>
+    <legendlayer drawingOrder="-1" checked="Qt::Checked" name="US_DEM2016" showFeatureCount="0" open="false">
+      <filegroup hidden="false" open="false">
+        <legendlayerfile isInOverview="0" visible="1" layerid="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="true" name="Google Satellite" checked="Qt::Unchecked" drawingOrder="-1" showFeatureCount="0">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" isInOverview="0" visible="0"/>
+    <legendlayer drawingOrder="-1" checked="Qt::Unchecked" name="Google Satellite" showFeatureCount="0" open="true">
+      <filegroup hidden="false" open="true">
+        <legendlayerfile isInOverview="0" visible="0" layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f"/>
       </filegroup>
     </legendlayer>
   </legend>
   <mapViewDocks/>
   <mapViewDocks3D/>
   <projectlayers>
-    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" refreshOnNotifyEnabled="0" autoRefreshTime="0" autoRefreshEnabled="0" type="raster">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -158,10 +158,10 @@
         <Searchable>0</Searchable>
       </flags>
       <customproperties>
-        <property key="identify/format" value="Undefined"/>
+        <property value="Undefined" key="identify/format"/>
       </customproperties>
       <pipe>
-        <rasterrenderer type="singlebandcolordata" opacity="1" nodataColor="" band="1" alphaBand="-1">
+        <rasterrenderer nodataColor="" opacity="1" band="1" alphaBand="-1" type="singlebandcolordata">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -173,12 +173,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
+        <huesaturation colorizeGreen="128" colorizeBlue="128" saturation="0" grayscaleMode="0" colorizeRed="255" colorizeOn="0" colorizeStrength="100"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
-    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" refreshOnNotifyEnabled="0" autoRefreshTime="0" autoRefreshEnabled="0" type="raster">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -237,7 +237,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
+          <spatial minz="0" maxz="0" minx="0" maxx="0" dimensions="2" maxy="0" crs="" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -259,13 +259,13 @@
         <Searchable>0</Searchable>
       </flags>
       <customproperties>
-        <property key="WMSBackgroundLayer" value="false"/>
-        <property key="WMSPublishDataSourceUrl" value="false"/>
-        <property key="embeddedWidgets/count" value="0"/>
-        <property key="identify/format" value="Undefined"/>
+        <property value="false" key="WMSBackgroundLayer"/>
+        <property value="false" key="WMSPublishDataSourceUrl"/>
+        <property value="0" key="embeddedWidgets/count"/>
+        <property value="Undefined" key="identify/format"/>
       </customproperties>
       <pipe>
-        <rasterrenderer type="singlebandcolordata" opacity="1" nodataColor="" band="1" alphaBand="-1">
+        <rasterrenderer nodataColor="" opacity="1" band="1" alphaBand="-1" type="singlebandcolordata">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -277,12 +277,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
-        <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
+        <huesaturation colorizeGreen="128" colorizeBlue="128" saturation="0" grayscaleMode="0" colorizeRed="255" colorizeOn="0" colorizeStrength="100"/>
+        <rasterresampler zoomedInResampler="bilinear" maxOversampling="2"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" refreshOnNotifyEnabled="0" autoRefreshTime="0" autoRefreshEnabled="0" type="raster">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -341,7 +341,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
+          <spatial minz="0" maxz="0" minx="0" maxx="0" dimensions="2" maxy="0" crs="" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -363,13 +363,13 @@
         <Searchable>0</Searchable>
       </flags>
       <customproperties>
-        <property key="WMSBackgroundLayer" value="false"/>
-        <property key="WMSPublishDataSourceUrl" value="false"/>
-        <property key="embeddedWidgets/count" value="0"/>
-        <property key="identify/format" value="Value"/>
+        <property value="false" key="WMSBackgroundLayer"/>
+        <property value="false" key="WMSPublishDataSourceUrl"/>
+        <property value="0" key="embeddedWidgets/count"/>
+        <property value="Value" key="identify/format"/>
       </customproperties>
       <pipe>
-        <rasterrenderer type="paletted" opacity="1" nodataColor="" band="1" alphaBand="-1">
+        <rasterrenderer nodataColor="" opacity="1" band="1" alphaBand="-1" type="paletted">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -408,12 +408,12 @@
           </colorramp>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
+        <huesaturation colorizeGreen="128" colorizeBlue="128" saturation="0" grayscaleMode="0" colorizeRed="255" colorizeOn="0" colorizeStrength="100"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" autoRefreshEnabled="0" type="raster" maxScale="0" styleCategories="AllStyleCategories" autoRefreshTime="0" refreshOnNotifyMessage="" minScale="1e+08">
+    <maplayer hasScaleBasedVisibilityFlag="0" minScale="1e+08" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" refreshOnNotifyEnabled="0" autoRefreshTime="0" autoRefreshEnabled="0" type="raster">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -472,7 +472,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial maxy="0" dimensions="2" miny="0" minz="0" crs="" maxz="0" minx="0" maxx="0"/>
+          <spatial minz="0" maxz="0" minx="0" maxx="0" dimensions="2" maxy="0" crs="" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -494,13 +494,13 @@
         <Searchable>0</Searchable>
       </flags>
       <customproperties>
-        <property key="WMSBackgroundLayer" value="false"/>
-        <property key="WMSPublishDataSourceUrl" value="false"/>
-        <property key="embeddedWidgets/count" value="0"/>
-        <property key="identify/format" value="Value"/>
+        <property value="false" key="WMSBackgroundLayer"/>
+        <property value="false" key="WMSPublishDataSourceUrl"/>
+        <property value="0" key="embeddedWidgets/count"/>
+        <property value="Value" key="identify/format"/>
       </customproperties>
       <pipe>
-        <rasterrenderer multidirection="0" type="hillshade" opacity="1" nodataColor="" angle="45" zfactor="1" band="1" azimuth="315" alphaBand="-1">
+        <rasterrenderer nodataColor="" opacity="1" zfactor="1" azimuth="315" band="1" alphaBand="-1" angle="45" multidirection="0" type="hillshade">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -512,8 +512,8 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation colorizeOn="0" colorizeGreen="128" saturation="0" colorizeStrength="100" grayscaleMode="0" colorizeBlue="128" colorizeRed="255"/>
-        <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
+        <huesaturation colorizeGreen="128" colorizeBlue="128" saturation="0" grayscaleMode="0" colorizeRed="255" colorizeOn="0" colorizeStrength="100"/>
+        <rasterresampler zoomedInResampler="bilinear" maxOversampling="2"/>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
@@ -576,17 +576,6 @@
       <DecimalPlaces type="int">2</DecimalPlaces>
       <DegreeFormat type="QString">MU</DegreeFormat>
     </PositionPrecision>
-    <QGIS2FDS>
-      <chid type="QString">golden_gate</chid>
-      <dem_layer type="QString">US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e</dem_layer>
-      <extent type="QString">-122.51064391189972,-122.46992736288728,37.8191902662084,37.84500075673717 [EPSG:4326]</extent>
-      <fire_origin type="QString">-122.489645,37.832712 [EPSG:4326]</fire_origin>
-      <landuse_layer type="QString">US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2</landuse_layer>
-      <landuse_type type="int">0</landuse_type>
-      <origin type="QString">-122.489693,37.835173 [EPSG:4326]</origin>
-      <path type="QString">/home/egissi/github/firetools/qgis2fds/verification/golden_gate</path>
-      <project_crs type="QString">WGS 84</project_crs>
-    </QGIS2FDS>
     <SpatialRefSys>
       <ProjectionsEnabled type="int">1</ProjectionsEnabled>
     </SpatialRefSys>
@@ -644,6 +633,17 @@
       <Project type="bool">false</Project>
     </WMTSPngLayers>
     <WMTSUrl type="QString"></WMTSUrl>
+    <qgis2fds>
+      <chid type="QString">golden_gate</chid>
+      <dem_layer type="QString">US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e</dem_layer>
+      <extent type="QString">-122.51064391189972,-122.46992736288728,37.8191902662084,37.84500075673717 [EPSG:4326]</extent>
+      <fire_origin type="QString">-122.489645,37.832712 [EPSG:4326]</fire_origin>
+      <landuse_layer type="QString">US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2</landuse_layer>
+      <landuse_type type="int">0</landuse_type>
+      <origin type="QString">-122.489693,37.835173 [EPSG:4326]</origin>
+      <path type="QString">/home/egissi/github/firetools/qgis2fds/verification/golden_gate</path>
+      <project_crs type="QString">WGS 84</project_crs>
+    </qgis2fds>
   </properties>
   <visibility-presets/>
   <transformContext>
@@ -705,14 +705,14 @@
   <ProjectDisplaySettings>
     <BearingFormat id="bearing">
       <Option type="Map">
-        <Option name="decimal_separator" type="QChar" value=""/>
-        <Option name="decimals" type="int" value="6"/>
-        <Option name="direction_format" type="int" value="0"/>
-        <Option name="rounding_type" type="int" value="0"/>
-        <Option name="show_plus" type="bool" value="false"/>
-        <Option name="show_thousand_separator" type="bool" value="true"/>
-        <Option name="show_trailing_zeros" type="bool" value="false"/>
-        <Option name="thousand_separator" type="QChar" value=""/>
+        <Option value="" name="decimal_separator" type="QChar"/>
+        <Option value="6" name="decimals" type="int"/>
+        <Option value="0" name="direction_format" type="int"/>
+        <Option value="0" name="rounding_type" type="int"/>
+        <Option value="false" name="show_plus" type="bool"/>
+        <Option value="true" name="show_thousand_separator" type="bool"/>
+        <Option value="false" name="show_trailing_zeros" type="bool"/>
+        <Option value="" name="thousand_separator" type="QChar"/>
       </Option>
     </BearingFormat>
   </ProjectDisplaySettings>
