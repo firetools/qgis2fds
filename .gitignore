@@ -145,4 +145,15 @@ dmypy.json
 *.sinfo
 *.smv
 *.ge
+*.ge2
+*.ter
+*.csv
+*.ini
 *.bingeom
+*.sf
+*.sf.bnd
+*.be
+*.be.bnd
+*.bf
+*.bf.bnd
+*.gbf
