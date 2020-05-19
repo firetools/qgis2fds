@@ -312,6 +312,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
+        feedback.pushInfo(
+            f"Estimated number of vertices: {int((x1-x0)/xspacing * (y1-y0)/xspacing)}"
+        )
+
         alg_params = {
             "CRS": dem_crs,
             "EXTENT": dem_extent,
@@ -380,34 +384,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
 
         # QGIS geographic transformations
-        # Adding geom attributes (x, y, z) to sampling grid in UTM CRS
-
-        feedback.pushInfo("Adding geometry attributes to sampling grid layer...")
-        alg_params = {
-            "CALC_METHOD": 0,  # Layer CRS
-            "INPUT": outputs["ReprojectLayer"]["OUTPUT"],
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["AddGeometryAttributes"] = processing.run(
-            "qgis:exportaddgeometrycolumns",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-
-        feedback.setCurrentStep(6)
-        if feedback.isCanceled():
-            return {}
-
-        # QGIS geographic transformations
         # Sampling landuse layer with sampling grid in UTM CRS
 
         if landuse_layer:
             feedback.pushInfo("Sampling landuse...")
             alg_params = {
                 "COLUMN_PREFIX": "landuse",
-                "INPUT": outputs["AddGeometryAttributes"]["OUTPUT"],
+                "INPUT": outputs["ReprojectLayer"]["OUTPUT"],
                 "RASTERCOPY": parameters["landuse_layer"],
                 "OUTPUT": parameters["sampling_layer"],
             }
@@ -423,7 +406,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             point_layer = context.getMapLayer(results["sampling_layer"])
         else:
             feedback.pushInfo("No landuse sampling.")
-            results["sampling_layer"] = outputs["AddGeometryAttributes"]["OUTPUT"]
+            results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
             point_layer = context.getMapLayer(results["sampling_layer"])
             # add fake landuse
             point_layer.dataProvider().addAttributes(
@@ -431,7 +414,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
             point_layer.updateFields()
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
@@ -443,7 +426,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             layer=point_layer, utm_origin=utm_origin,
         )
 
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 

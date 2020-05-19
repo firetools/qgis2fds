@@ -79,12 +79,13 @@ def _get_matrix(layer, utm_origin):
     # Loop on points
     ox, oy = utm_origin.x(), utm_origin.y()
     for f in features:
-        a = f.attributes()  # order: z, x, y, landuse
+        g = f.geometry().get()  # QgsPoint
+        a = f.attributes()  # landuse
         point = (
-            a[5] - ox,  # x, relative to origin
-            a[6] - oy,  # y, relative to origin
-            a[7],  # z absolute
-            a[8] or 0,  # landuse, protect from None
+            g.x() - ox,  # x, relative to origin
+            g.y() - oy,  # y, relative to origin
+            g.z(),  # z absolute
+            a[5] or 0,  # landuse, protect from None
         )
         if first_point is None:
             # point is the first point of the matrix
