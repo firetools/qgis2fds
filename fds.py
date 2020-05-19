@@ -199,8 +199,17 @@ def get_case(
     if len(filepath) > 60:
         filepath = "..." + filepath[-57:]
 
+    # Calc MESH XB
+    mesh_xb = (
+        utm_extent.xMinimum() - utm_origin.x(),
+        utm_extent.xMaximum() - utm_origin.x(),
+        utm_extent.yMinimum() - utm_origin.y(),
+        utm_extent.yMaximum() - utm_origin.y(),
+        min(v[2] for v in verts) - 1.0,
+        max(v[2] for v in verts) + 100.0,
+    )
     # Calc center of VENT patch
-    x, y = (
+    fire_x, fire_y = (
         utm_fire_origin.x() - utm_origin.x(),  # relative to origin
         utm_fire_origin.y() - utm_origin.y(),
     )
@@ -232,7 +241,7 @@ def get_case(
             f"&REAC ID='Wood' FUEL='PROPANE', SOOT_YIELD=0.015 /",
             f" ",
             f"! Domain and its boundary conditions",
-            f"&MESH IJK=50,50,50 XB=-500.000,500.000,-500.000,500.000,-10.000,1000.000 /",
+            f"&MESH IJK=50,50,50 XB={mesh_xb[0]:.3f},{mesh_xb[1]:.3f},{mesh_xb[2]:.3f},{mesh_xb[3]:.3f},{mesh_xb[4]:.3f},{mesh_xb[5]:.3f} /",
             f"&TRNZ MESH_NUMBER=0 IDERIV=1 CC=0 PC=0.5 /",
             f"&VENT MB='XMIN' SURF_ID='OPEN' /",
             f"&VENT MB='XMAX' SURF_ID='OPEN' /",
@@ -242,7 +251,7 @@ def get_case(
             f" ",
             f"! Fire origin",
             f"&SURF ID='Ignition' VEG_LSET_IGNITE_TIME=1800. COLOR='RED' /",
-            f"&VENT XB={x-5:.3f},{x+5:.3f},{y-5:.3f},{y+5:.3f},-10.000,-10.000 SURF_ID='Ignition' GEOM=T /",
+            f"&VENT XB={fire_x-5:.3f},{fire_x+5:.3f},{fire_y-5:.3f},{fire_y+5:.3f},-10.000,-10.000 SURF_ID='Ignition' GEOM=T /",
             f" ",
             f"! Output quantities",
             f"&BNDF QUANTITY='BURNING RATE' /",
