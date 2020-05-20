@@ -59,9 +59,9 @@ def write_image(
     tex_extent = tr.transformBoundingBox(QgsRectangle(destination_extent))
     w = int((tex_extent.xMaximum() - tex_extent.xMinimum()) / xspacing)
     h = int((tex_extent.yMaximum() - tex_extent.yMinimum()) / yspacing)
-    if w > 5000:  # image too large
+    if w > 10000:  # image too large
         h = int(10000 / w * h)
-        w = 5000
+        w = 10000
     settings.setOutputSize(QSize(w, h))
     settings.setLayers(layers)
 
