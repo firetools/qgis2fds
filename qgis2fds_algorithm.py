@@ -203,14 +203,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Get layers in their respective crs
         dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
         project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
-        if parameters["landuse_layer"] is None:  # it is optional
+        if not parameters["landuse_layer"]:  # it is optional
             landuse_layer = None
         else:
             landuse_layer = self.parameterAsRasterLayer(
                 parameters, "landuse_layer", context
             )
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
-        tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
+        if not parameters["tex_layer"]:  # it is optional
+            tex_layer = None
+        else:
+            tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
         project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
 
         # Prepare CRS and their transformations
