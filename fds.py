@@ -207,7 +207,7 @@ def get_case(
         utm_extent.yMinimum() - utm_origin.y(),
         utm_extent.yMaximum() - utm_origin.y(),
         min(v[2] for v in verts) - 1.0,
-        max(v[2] for v in verts) + 100.0,
+        max(v[2] for v in verts) + 50.0,
     )
     # Calc center of VENT patch
     fire_x, fire_y = (
@@ -234,8 +234,8 @@ def get_case(
             f"&TIME T_END=1. /",
             f"&RADI RADIATION=F /",
             f" ",
-            f" MISC ORIGIN_LAT={wgs84_origin.y():.7f} ORIGIN_LON={wgs84_origin.x():.7f} NORTH_BEARING=0. / ! New",
-            f"&MISC TERRAIN_CASE=T SIMULATION_MODE='SVLES' TERRAIN_IMAGE='{chid}_texture.png' /",
+            f"&MISC ORIGIN_LAT={wgs84_origin.y():.7f} ORIGIN_LON={wgs84_origin.x():.7f} NORTH_BEARING=0.",
+            f"      TERRAIN_CASE=T TERRAIN_IMAGE='{chid}_tex.png' SIMULATION_MODE='SVLES' /",
             f" ",
             f"! Reaction",
             f"! from Karlsson, Quintiere 'Enclosure Fire Dyn', CRC Press, 2000",

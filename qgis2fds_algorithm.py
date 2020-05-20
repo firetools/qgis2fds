@@ -299,7 +299,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             tex_layer=tex_layer,
             destination_crs=utm_crs,
             destination_extent=utm_extent,
-            filepath=f"{path}/{chid}_texture.png",
+            filepath=f"{path}/{chid}_tex.png",
             imagetype="png",
         )
 
