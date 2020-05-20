@@ -13,7 +13,7 @@ import math
 # Get verts, faces, landuses
 
 
-def get_geometry(layer, utm_origin):
+def get_geometry(feedback, layer, utm_origin):
     """!
     Get verts, faces, and landuses from sampling point layer.
     @param layer: QGIS vector layer of quad faces center points with landuse.

@@ -173,6 +173,7 @@ def _get_geom_str(verts, faces, landuses, landuse_type):
 
 
 def get_case(
+    feedback,
     dem_layer,
     landuse_layer,
     chid,

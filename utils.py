@@ -7,7 +7,14 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-from qgis.core import QgsProcessingException, QgsMapSettings, QgsMapRendererParallelJob
+from qgis.core import (
+    QgsProcessingException,
+    QgsMapSettings,
+    QgsMapRendererParallelJob,
+    QgsCoordinateTransform,
+    QgsRectangle,
+    QgsProject,
+)
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
 from qgis.PyQt.QtCore import QSize
@@ -16,7 +23,7 @@ from qgis.PyQt.QtCore import QSize
 # Write to file
 
 
-def write_file(filepath, content):
+def write_file(feedback, filepath, content):
     """
     Write a text to filepath.
     """
@@ -27,25 +34,35 @@ def write_file(filepath, content):
         raise QgsProcessingException(f"File not writable at <{filepath}>")
 
 
-def write_image(destination_crs, extent, filepath, imagetype):
+def write_image(
+    feedback, tex_layer, destination_crs, destination_extent, filepath, imagetype
+):
     """
     Save current QGIS canvas to image file.
     """
+    project = QgsProject.instance()
     settings = QgsMapSettings()  # build settings
     settings.setDestinationCrs(destination_crs)  # set output crs
-    settings.setExtent(extent)  # in destination_crs
-    layers = iface.mapCanvas().layers()  # get visible layers
+    settings.setExtent(destination_extent)  # in destination_crs
+
+    # Texture layer choice
+    if tex_layer:
+        layers = (tex_layer,)  # chosen texture layer
+        xspacing = tex_layer.rasterUnitsPerPixelX()
+        yspacing = tex_layer.rasterUnitsPerPixelY()
+        tr = QgsCoordinateTransform(destination_crs, tex_layer.crs(), project)
+    else:
+        canvas = iface.mapCanvas()
+        layers = canvas.layers()  # get visible layers
+        xspacing = yspacing = canvas.mapUnitsPerPixel()
+        tr = QgsCoordinateTransform(destination_crs, project.crs(), project)
+    tex_extent = tr.transformBoundingBox(QgsRectangle(destination_extent))
+    w = int((tex_extent.xMaximum() - tex_extent.xMinimum()) / xspacing)
+    h = int((tex_extent.yMaximum() - tex_extent.yMinimum()) / yspacing)
+    settings.setOutputSize(QSize(w, h))
     settings.setLayers(layers)
 
-    w = 1920 * 2  # TODO improve!
-    h = int(
-        (extent.yMaximum() - extent.yMinimum())
-        / (extent.xMaximum() - extent.xMinimum())
-        * w
-    )
-    settings.setOutputSize(QSize(w, h))
-    settings.setOutputDpi(200)
-
+    # Render and save image
     render = QgsMapRendererParallelJob(settings)
     render.start()
     render.waitForFinished()
@@ -54,13 +71,10 @@ def write_image(destination_crs, extent, filepath, imagetype):
         image.save(filepath, imagetype)
     except IOError:
         raise QgsProcessingException(f"Image not writable at <{filepath}>")
+    feedback.pushInfo(f"Texture saved, {w}x{h} pixels.")
 
 
 # Geographic operations
-
-
-def get_utm_str(utm_point, utm_crs):  # FIXME not used anymore
-    return f"{utm_point.x()}m E {utm_point.y()}m N ({utm_crs.description()})"
 
 
 def get_lonlat_url(wgs84_point):

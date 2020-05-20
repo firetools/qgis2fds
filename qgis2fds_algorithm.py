@@ -87,15 +87,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "extent", None,)
+        defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent", "Terrain Extent", defaultValue=defaultValue,
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None,)
-        if defaultValue is None:
+        defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None)
+        if not defaultValue:
             try:  # first layer name containing "dem"
                 defaultValue = [
                     layer.name()
@@ -110,7 +110,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None,)
+        defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None)
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 "landuse_layer",
@@ -152,6 +152,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterPoint(
                 "fire_origin",
                 "Fire Origin (if not set, use Domain Origin)",
+                optional=True,
+                defaultValue=defaultValue,
+            )
+        )
+
+        defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                "tex_layer",
+                "Texture Layer (if not set, current view is exported)",
                 optional=True,
                 defaultValue=defaultValue,
             )
@@ -200,6 +210,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 parameters, "landuse_layer", context
             )
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
+        tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
+        project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
 
         # Prepare CRS and their transformations
         project_crs = QgsProject.instance().crs()
@@ -280,8 +292,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo("Saving texture image...")
 
         utils.write_image(
+            feedback=feedback,
+            tex_layer=tex_layer,
             destination_crs=utm_crs,
-            extent=utm_extent,
+            destination_extent=utm_extent,
             filepath=f"{path}/{chid}_texture.png",
             imagetype="png",
         )
@@ -423,7 +437,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo("Building lists of vertices and faces with landuses...")
 
         verts, faces, landuses, landuses_set = geometry.get_geometry(
-            layer=point_layer, utm_origin=utm_origin,
+            feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
 
         feedback.setCurrentStep(7)
@@ -435,6 +449,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo("Writing the FDS case file...")
 
         content = fds.get_case(
+            feedback=feedback,
             dem_layer=dem_layer,
             landuse_layer=landuse_layer,
             chid=chid,
@@ -450,7 +465,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuses_set=landuses_set,
             utm_extent=utm_extent,
         )
-        utils.write_file(filepath=f"{path}/{chid}.fds", content=content)
+        utils.write_file(
+            feedback=feedback, filepath=f"{path}/{chid}.fds", content=content
+        )
 
         return results
 
