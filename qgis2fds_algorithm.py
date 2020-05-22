@@ -28,6 +28,7 @@ from qgis.core import (
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterPoint,
+    QgsProcessingParameterNumber,
 )
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QVariant
@@ -107,6 +108,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 "dem_layer", "DEM Layer", defaultValue=defaultValue,
+            )
+        )
+
+        defaultValue, _ = project.readEntry("qgis2fds", "dem_sampling", "1")
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                "dem_sampling",
+                "DEM Layer sampling rate",
+                defaultValue=defaultValue,
+                minValue=1,
             )
         )
 
@@ -199,6 +210,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "path", parameters["path"])
         landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
         project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
+        dem_sampling = self.parameterAsInt(parameters, "dem_sampling", context)
+        project.writeEntry("qgis2fds", "dem_sampling", parameters["dem_sampling"])
 
         # Get layers in their respective crs
         dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
@@ -312,8 +325,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Creating sampling grid layer from DEM...")
 
-        xspacing = dem_layer.rasterUnitsPerPixelX()
-        yspacing = dem_layer.rasterUnitsPerPixelY()
+        xspacing = dem_layer.rasterUnitsPerPixelX() * dem_sampling
+        yspacing = dem_layer.rasterUnitsPerPixelY() * dem_sampling
         x0, y0, x1, y1 = (  # terrain extent in DEM CRS
             dem_extent.xMinimum(),
             dem_extent.yMinimum(),
