@@ -217,8 +217,6 @@ def _inject_ghost_centers(matrix):
         gc = tuple(map(fadd, zip(row[-1], dx)))
         row.append(gc)
 
-    return matrix
-
 
 def _get_neighbour_centers(prev_row, row, j):
     return (
@@ -243,9 +241,7 @@ def _get_verts(matrix):
     @param matrix: matrix of quad faces center points with landuse.
     @return verts
     """
-
-    matrix = _inject_ghost_centers(matrix)  # FIXME modification in place
-
+    _inject_ghost_centers(matrix)  # modification in place
     verts = list()
     prev_row = matrix[0]
     for row in matrix[1:]:  # matrix[0] is prev_row
