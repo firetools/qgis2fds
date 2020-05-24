@@ -399,7 +399,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         alg_params = {
             "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
             "TARGET_CRS": utm_crs,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            "OUTPUT": landuse_layer
+            and QgsProcessing.TEMPORARY_OUTPUT
+            or parameters["sampling_layer"],
         }
         outputs["ReprojectLayer"] = processing.run(
             "native:reprojectlayer",

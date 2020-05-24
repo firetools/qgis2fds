@@ -40,23 +40,35 @@ def write_image(
     """
     Save current QGIS canvas to image file.
     """
+    # Image settings and texture layer choice
     project = QgsProject.instance()
     settings = QgsMapSettings()  # build settings
-    settings.setDestinationCrs(destination_crs)  # set output crs
-    settings.setExtent(destination_extent)  # in destination_crs
-
-    # Texture layer choice
     if tex_layer:
         layers = (tex_layer,)  # chosen texture layer
-        xspacing = tex_layer.rasterUnitsPerPixelX()
+        xspacing = tex_layer.rasterUnitsPerPixelX()  # in tex_crs
         yspacing = tex_layer.rasterUnitsPerPixelY()
-        tr = QgsCoordinateTransform(destination_crs, tex_layer.crs(), project)
+        dest_to_tex_tr = QgsCoordinateTransform(
+            destination_crs, tex_layer.crs(), project
+        )
+        tex_extent = dest_to_tex_tr.transformBoundingBox(
+            QgsRectangle(destination_extent)
+        )
+        settings.setDestinationCrs(destination_crs)  # set output crs
+        settings.setExtent(destination_extent)  # in destination_crs
+        feedback.pushInfo(f"Spacing: {xspacing}x{yspacing}")
     else:
         canvas = iface.mapCanvas()
         layers = canvas.layers()  # get visible layers
         xspacing = yspacing = canvas.mapUnitsPerPixel()
-        tr = QgsCoordinateTransform(destination_crs, project.crs(), project)
-    tex_extent = tr.transformBoundingBox(QgsRectangle(destination_extent))
+        dest_to_project_tr = QgsCoordinateTransform(
+            destination_crs, project.crs(), project
+        )
+        tex_extent = dest_to_project_tr.transformBoundingBox(
+            QgsRectangle(destination_extent)
+        )
+        settings.setDestinationCrs(destination_crs)  # set output crs
+        settings.setExtent(destination_extent)  # in tex_crs
+        feedback.pushInfo(f"Spacing: {xspacing}x{yspacing}")
     w = int((tex_extent.xMaximum() - tex_extent.xMinimum()) / xspacing)
     h = int((tex_extent.yMaximum() - tex_extent.yMinimum()) / yspacing)
     if w > 10000:  # image too large
