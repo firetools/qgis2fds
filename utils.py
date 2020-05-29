@@ -14,6 +14,8 @@ from qgis.core import (
     QgsCoordinateTransform,
     QgsRectangle,
     QgsProject,
+    QgsDistanceArea,
+    QgsPointXY,
 )
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
@@ -35,46 +37,45 @@ def write_file(feedback, filepath, content):
 
 
 def write_image(
-    feedback, tex_layer, destination_crs, destination_extent, filepath, imagetype
+    feedback,
+    tex_layer,
+    tex_layer_dpm,
+    destination_crs,
+    destination_extent,
+    filepath,
+    imagetype,
 ):
     """
     Save current QGIS canvas to image file.
     """
-    # Image settings and texture layer choice
     project = QgsProject.instance()
+
+    # Get extent size in meters
+    d = QgsDistanceArea()
+    d.setSourceCrs(
+        crs=destination_crs, context=QgsProject.instance().transformContext()
+    )
+    p00, p10, p01 = (
+        QgsPointXY(destination_extent.xMinimum(), destination_extent.yMinimum()),
+        QgsPointXY(destination_extent.xMaximum(), destination_extent.yMinimum()),
+        QgsPointXY(destination_extent.xMinimum(), destination_extent.yMaximum()),
+    )
+    wm = d.measureLine(p00, p10)  # euclidean distance
+    hm = d.measureLine(p00, p01)  # euclidean distance
+    feedback.pushInfo(f"Extent size: {wm:.2f}x{hm:.2f} m")
+
+    # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
+    settings.setDestinationCrs(destination_crs)  # set output crs
+    settings.setExtent(destination_extent)  # in destination_crs
     if tex_layer:
         layers = (tex_layer,)  # chosen texture layer
-        xspacing = tex_layer.rasterUnitsPerPixelX()  # in tex_crs
-        yspacing = tex_layer.rasterUnitsPerPixelY()
-        dest_to_tex_tr = QgsCoordinateTransform(
-            destination_crs, tex_layer.crs(), project
-        )
-        tex_extent = dest_to_tex_tr.transformBoundingBox(
-            QgsRectangle(destination_extent)
-        )
-        settings.setDestinationCrs(destination_crs)  # set output crs
-        settings.setExtent(destination_extent)  # in destination_crs
-        feedback.pushInfo(f"Spacing: {xspacing}x{yspacing}")
     else:
         canvas = iface.mapCanvas()
         layers = canvas.layers()  # get visible layers
-        xspacing = yspacing = canvas.mapUnitsPerPixel()
-        dest_to_project_tr = QgsCoordinateTransform(
-            destination_crs, project.crs(), project
-        )
-        tex_extent = dest_to_project_tr.transformBoundingBox(
-            QgsRectangle(destination_extent)
-        )
-        settings.setDestinationCrs(destination_crs)  # set output crs
-        settings.setExtent(destination_extent)  # in tex_crs
-        feedback.pushInfo(f"Spacing: {xspacing}x{yspacing}")
-    w = int((tex_extent.xMaximum() - tex_extent.xMinimum()) / xspacing)
-    h = int((tex_extent.yMaximum() - tex_extent.yMinimum()) / yspacing)
-    if w > 10000:  # image too large
-        h = int(10000 / w * h)
-        w = 10000
-    settings.setOutputSize(QSize(w, h))
+    wpix = int(wm) * tex_layer_dpm
+    hpix = int(hm) * tex_layer_dpm
+    settings.setOutputSize(QSize(wpix, hpix))
     settings.setLayers(layers)
 
     # Render and save image
@@ -86,7 +87,7 @@ def write_image(
         image.save(filepath, imagetype)
     except IOError:
         raise QgsProcessingException(f"Image not writable at <{filepath}>")
-    feedback.pushInfo(f"Texture saved, {w}x{h} pixels.")
+    feedback.pushInfo(f"Texture saved, {wpix}x{hpix} pixels.")
 
 
 # Geographic operations

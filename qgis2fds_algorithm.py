@@ -9,6 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import (
     QgsProject,
+    QgsGeometry,
     QgsPoint,
     QgsRectangle,
     QgsField,
@@ -178,6 +179,18 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        defaultValue, _ = project.readNumEntry("qgis2fds", "tex_layer_dpm", 1.0)
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                "tex_layer_dpm",
+                "Texture Layer pixels per meter",
+                type=QgsProcessingParameterNumber.Double,
+                defaultValue=defaultValue,
+                minValue=0.01,
+                maxValue=100,
+            )
+        )
+
         self.addParameter(
             QgsProcessingParameterFeatureSink(
                 "sampling_layer",
@@ -228,6 +241,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         else:
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
         project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
+        tex_layer_dpm = self.parameterAsDouble(parameters, "tex_layer_dpm", context)
+        project.writeEntryDouble(
+            "qgis2fds", "tex_layer_dpm", parameters["tex_layer_dpm"]
+        )
 
         # Prepare CRS and their transformations
         project_crs = QgsProject.instance().crs()
@@ -310,7 +327,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utils.write_image(
             feedback=feedback,
             tex_layer=tex_layer,
-            destination_crs=dem_crs,  # FIXME using DEM crs
+            tex_layer_dpm=tex_layer_dpm,
+            destination_crs=dem_crs,  # using DEM crs
             destination_extent=dem_extent,  # and extent for less distorsion
             filepath=f"{path}/{chid}_tex.png",
             imagetype="png",
