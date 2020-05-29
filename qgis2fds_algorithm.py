@@ -310,8 +310,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utils.write_image(
             feedback=feedback,
             tex_layer=tex_layer,
-            destination_crs=utm_crs,
-            destination_extent=utm_extent,
+            destination_crs=dem_crs,  # FIXME using DEM crs
+            destination_extent=dem_extent,  # and extent for less distorsion
             filepath=f"{path}/{chid}_tex.png",
             imagetype="png",
         )
