@@ -327,7 +327,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utils.write_image(
             feedback=feedback,
             tex_layer=tex_layer,
-            tex_layer_dpm=tex_layer_dpm,
+            tex_layer_dpm=tex_layer_dpm,  # pixels per meter
             destination_crs=dem_crs,  # using DEM crs
             destination_extent=dem_extent,  # and extent for less distorsion
             filepath=f"{path}/{chid}_tex.png",
