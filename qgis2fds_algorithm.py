@@ -30,6 +30,7 @@ from qgis.core import (
     QgsProcessingParameterString,
     QgsProcessingParameterPoint,
     QgsProcessingParameterNumber,
+    QgsProcessingParameterDefinition,
 )
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QVariant
@@ -113,14 +114,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         defaultValue, _ = project.readEntry("qgis2fds", "dem_sampling", "1")
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                "dem_sampling",
-                "DEM Layer sampling rate",
-                defaultValue=defaultValue,
-                minValue=1,
-            )
+        param = QgsProcessingParameterNumber(
+            "dem_sampling",
+            "DEM Layer sampling rate",
+            defaultValue=defaultValue,
+            minValue=1,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None)
         self.addParameter(
@@ -147,59 +148,59 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             defaultValue = None
         else:
             defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
-        self.addParameter(
-            QgsProcessingParameterPoint(
-                "origin",
-                "Domain Origin (if not set, use Terrain Extent centroid)",
-                optional=True,
-                defaultValue=defaultValue,
-            )
+        param = QgsProcessingParameterPoint(
+            "origin",
+            "Domain Origin (if not set, use Terrain Extent centroid)",
+            optional=True,
+            defaultValue=defaultValue,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         if project_crs_changed:
             defaultValue = None
         else:
             defaultValue, _ = project.readEntry("qgis2fds", "fire_origin", None)
-        self.addParameter(
-            QgsProcessingParameterPoint(
-                "fire_origin",
-                "Fire Origin (if not set, use Domain Origin)",
-                optional=True,
-                defaultValue=defaultValue,
-            )
+        param = QgsProcessingParameterPoint(
+            "fire_origin",
+            "Fire Origin (if not set, use Domain Origin)",
+            optional=True,
+            defaultValue=defaultValue,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                "tex_layer",
-                "Texture Layer (if not set, current view is exported)",
-                optional=True,
-                defaultValue=defaultValue,
-            )
+        param = QgsProcessingParameterRasterLayer(
+            "tex_layer",
+            "Texture Layer (if not set, current view is exported)",
+            optional=True,
+            defaultValue=defaultValue,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readNumEntry("qgis2fds", "tex_layer_dpm", 1.0)
-        self.addParameter(
-            QgsProcessingParameterNumber(
-                "tex_layer_dpm",
-                "Texture Layer pixels per meter",
-                type=QgsProcessingParameterNumber.Double,
-                defaultValue=defaultValue,
-                minValue=0.01,
-                maxValue=100,
-            )
+        defaultValue, _ = project.readNumEntry("qgis2fds", "tex_pixel_size", 5)
+        param = QgsProcessingParameterNumber(
+            "tex_pixel_size",
+            "Texture Layer Pixels Size (in meters)",
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=defaultValue,
+            minValue=0.01,
+            maxValue=100,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                "sampling_layer",
-                "Sampling grid output layer",
-                type=QgsProcessing.TypeVectorAnyGeometry,
-                createByDefault=True,
-                defaultValue=None,
-            )
+        param = QgsProcessingParameterFeatureSink(
+            "sampling_layer",
+            "Sampling grid output layer",
+            type=QgsProcessing.TypeVectorAnyGeometry,
+            createByDefault=True,
+            defaultValue=None,
         )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
     def processAlgorithm(self, parameters, context, model_feedback):
         """
@@ -241,9 +242,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         else:
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
         project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
-        tex_layer_dpm = self.parameterAsDouble(parameters, "tex_layer_dpm", context)
+        tex_pixel_size = self.parameterAsDouble(parameters, "tex_pixel_size", context)
         project.writeEntryDouble(
-            "qgis2fds", "tex_layer_dpm", parameters["tex_layer_dpm"]
+            "qgis2fds", "tex_pixel_size", parameters["tex_pixel_size"]
         )
 
         # Prepare CRS and their transformations
@@ -322,12 +323,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         # Save texture
 
-        feedback.pushInfo("Saving texture image...")
+        feedback.pushInfo("Rendering texture image...")
 
         utils.write_image(
             feedback=feedback,
             tex_layer=tex_layer,
-            tex_layer_dpm=tex_layer_dpm,  # pixels per meter
+            tex_pixel_size=tex_pixel_size,  # pixel size in meters
             destination_crs=dem_crs,  # using DEM crs
             destination_extent=dem_extent,  # and extent for less distorsion
             filepath=f"{path}/{chid}_tex.png",

@@ -7,10 +7,13 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+import time
+
 from qgis.core import (
     QgsProcessingException,
     QgsMapSettings,
     QgsMapRendererParallelJob,
+    QgsMapRendererSequentialJob,
     QgsCoordinateTransform,
     QgsRectangle,
     QgsProject,
@@ -19,7 +22,7 @@ from qgis.core import (
 )
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtCore import QSize, QCoreApplication
 
 
 # Write to file
@@ -39,7 +42,7 @@ def write_file(feedback, filepath, content):
 def write_image(
     feedback,
     tex_layer,
-    tex_layer_dpm,
+    tex_pixel_size,
     destination_crs,
     destination_extent,
     filepath,
@@ -60,9 +63,9 @@ def write_image(
         QgsPointXY(destination_extent.xMaximum(), destination_extent.yMinimum()),
         QgsPointXY(destination_extent.xMinimum(), destination_extent.yMaximum()),
     )
-    wm = d.measureLine(p00, p10)  # euclidean distance
-    hm = d.measureLine(p00, p01)  # euclidean distance
-    feedback.pushInfo(f"Extent size: {wm:.2f}x{hm:.2f} m")
+    wm = d.measureLine(p00, p10)  # euclidean dist, extent width in m
+    hm = d.measureLine(p00, p01)  # euclidean dist, extent height in m
+    feedback.pushInfo(f"Texture extent size: {wm:.2f}x{hm:.2f} m")
 
     # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
@@ -73,21 +76,34 @@ def write_image(
     else:
         canvas = iface.mapCanvas()
         layers = canvas.layers()  # get visible layers
-    wpix = int(wm) * tex_layer_dpm
-    hpix = int(hm) * tex_layer_dpm
+    wpix = int(wm / tex_pixel_size)
+    hpix = int(hm / tex_pixel_size)
     settings.setOutputSize(QSize(wpix, hpix))
     settings.setLayers(layers)
 
     # Render and save image
-    render = QgsMapRendererParallelJob(settings)
+    render = QgsMapRendererSequentialJob(settings)
     render.start()
-    render.waitForFinished()
+    t0 = time.time()
+    while render.isActive():
+        if feedback.isCanceled():
+            return
+        time.sleep(2)
+        QCoreApplication.processEvents()
+        dt = int(time.time() - t0)
+        feedback.pushInfo(f"Rendering texture ({dt} s)...")
+        if dt > 60:
+            render.cancelWithoutBlocking()
+            feedback.pushInfo(
+                "No texture saved, server currently not available or pixel size too small."
+            )
+            return
     image = render.renderedImage()
     try:
         image.save(filepath, imagetype)
     except IOError:
-        raise QgsProcessingException(f"Image not writable at <{filepath}>")
-    feedback.pushInfo(f"Texture saved, {wpix}x{hpix} pixels.")
+        raise QgsProcessingException(f"Texture not writable in <{filepath}>")
+    feedback.pushInfo(f"Texture saved {wpix}x{hpix} pixels.")
 
 
 # The FDS bingeom file is written from Fortran90 like this:
