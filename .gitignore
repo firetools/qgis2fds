@@ -157,3 +157,4 @@ dmypy.json
 *.bf
 *.bf.bnd
 *.gbf
+*.fds
