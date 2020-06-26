@@ -92,7 +92,9 @@ def write_image(
         time.sleep(2)
         if feedback.isCanceled() or dt > 60:
             render.cancelWithoutBlocking()
-            feedback.pushInfo("No texture saved, cancelled or timed out.")
+            feedback.pushInfo(
+                "No texture saved: render cancelled or timed out due to unavailable server at this pixel size."
+            )
             return
     image = render.renderedImage()
     try:

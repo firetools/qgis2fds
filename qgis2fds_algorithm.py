@@ -90,7 +90,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
+        if project_crs_changed:
+            defaultValue = None
+        else:
+            defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent", "Terrain extent", defaultValue=defaultValue,
@@ -321,24 +324,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utm_fire_origin = QgsPoint(wgs84_fire_origin.x(), wgs84_fire_origin.y())
         utm_fire_origin.transform(wgs84_to_utm_tr)
 
-        # Save texture
-
-        feedback.pushInfo("Rendering texture image...")
-
-        utils.write_image(
-            feedback=feedback,
-            tex_layer=tex_layer,
-            tex_pixel_size=tex_pixel_size,  # pixel size in meters
-            destination_crs=dem_crs,  # using DEM crs
-            destination_extent=dem_extent,  # and extent for less distorsion
-            filepath=f"{path}/{chid}_tex.png",
-            imagetype="png",
-        )
-
-        feedback.setCurrentStep(2)
-        if feedback.isCanceled():
-            return {}
-
         # QGIS geographic transformations
         # Creating sampling grid in DEM crs
 
@@ -361,6 +346,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
+        # FIXME The right DEM extent is available only here!
+
         feedback.pushInfo(
             f"Estimated number of vertices: {int((x1-x0)/xspacing * (y1-y0)/xspacing)}"
         )
@@ -381,6 +368,27 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             context=context,
             feedback=feedback,
             is_child_algorithm=True,
+        )
+
+        feedback.setCurrentStep(2)
+        if feedback.isCanceled():
+            return {}
+
+        # Save texture
+
+        feedback.pushInfo("Rendering texture image...")
+
+        dem_to_utm_tr = QgsCoordinateTransform(dem_crs, utm_crs, QgsProject.instance())
+        texture_utm_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
+
+        utils.write_image(
+            feedback=feedback,
+            tex_layer=tex_layer,
+            tex_pixel_size=tex_pixel_size,  # pixel size in meters
+            destination_crs=utm_crs,  # using UTM crs, texture aligned to axis in Smokeview
+            destination_extent=texture_utm_extent,  # and UTM extent, size from dem FIXME
+            filepath=f"{path}/{chid}_tex.png",
+            imagetype="png",
         )
 
         feedback.setCurrentStep(3)
