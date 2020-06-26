@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis saveUserFull="Emanuele Gissi" saveUser="egissi" version="3.12.3-București" projectname="">
+<qgis projectname="" saveUser="egissi" saveDateTime="2020-06-26T19:49:56" version="3.14.0-Pi" saveUserFull="Emanuele Gissi">
   <homePath path=""/>
   <title></title>
   <autotransaction active="0"/>
@@ -20,16 +20,19 @@
   </projectCrs>
   <layer-tree-group>
     <customproperties/>
-    <layer-tree-layer expanded="1" legend_exp="" checked="Qt::Unchecked" id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" providerKey="wms" name="OpenStreetMap">
+    <layer-tree-layer checked="Qt::Checked" legend_split_behavior="0" providerKey="ogr" legend_exp="" name="Extent" patch_size="-1,-1" id="extent_c47fb780_eca1_4846_ad45_0edf908cf3ed" expanded="1" source="./extent.shp">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="0" legend_exp="" checked="Qt::Checked" id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer" providerKey="wcs" name="US_200FBFM13">
+    <layer-tree-layer checked="Qt::Unchecked" legend_split_behavior="0" providerKey="wms" legend_exp="" name="Google Satellite" patch_size="0,0" id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" expanded="1" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="0" legend_exp="" checked="Qt::Checked" id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer" providerKey="wcs" name="US_DEM2016">
+    <layer-tree-layer checked="Qt::Checked" legend_split_behavior="0" providerKey="wms" legend_exp="" name="OpenStreetMap" patch_size="0,0" id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" expanded="1" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0">
       <customproperties/>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" legend_exp="" checked="Qt::Unchecked" id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" providerKey="wms" name="Google Satellite">
+    <layer-tree-layer checked="Qt::Checked" legend_split_behavior="0" providerKey="wcs" legend_exp="" name="US_200FBFM13" patch_size="0,0" id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" expanded="0" source="dpiMode=7&amp;identifier=US_200FBFM13&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_200/MapServer/WCSServer">
+      <customproperties/>
+    </layer-tree-layer>
+    <layer-tree-layer checked="Qt::Checked" legend_split_behavior="0" providerKey="wcs" legend_exp="" name="US_DEM2016" patch_size="0,0" id="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" expanded="0" source="dpiMode=7&amp;identifier=US_DEM2016&amp;url=https://landfire.cr.usgs.gov/arcgis/services/Landfire/US_other/MapServer/WCSServer">
       <customproperties/>
     </layer-tree-layer>
     <custom-order enabled="0">
@@ -37,19 +40,22 @@
       <item>US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2</item>
       <item>OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2</item>
       <item>Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f</item>
+      <item>extent_c47fb780_eca1_4846_ad45_0edf908cf3ed</item>
     </custom-order>
   </layer-tree-group>
-  <snapping-settings unit="1" enabled="0" tolerance="12" type="1" intersection-snapping="0" mode="2">
-    <individual-layer-settings/>
+  <snapping-settings enabled="0" maxScale="0" intersection-snapping="0" minScale="0" self-snapping="0" mode="2" type="1" tolerance="12" unit="1" scaleDependencyMode="0">
+    <individual-layer-settings>
+      <layer-setting enabled="0" units="1" maxScale="0" minScale="0" type="1" tolerance="12" id="extent_c47fb780_eca1_4846_ad45_0edf908cf3ed"/>
+    </individual-layer-settings>
   </snapping-settings>
   <relations/>
   <mapcanvas annotationsVisible="1" name="theMapCanvas">
     <units>degrees</units>
     <extent>
-      <xmin>-122.57077271829376741</xmin>
-      <ymin>37.79320181632419917</ymin>
-      <xmax>-122.39687031229377112</xmax>
-      <ymax>37.84909901832419621</ymax>
+      <xmin>-122.51009880560246756</xmin>
+      <ymin>37.82548458654515855</ymin>
+      <xmax>-122.46662320410229086</xmax>
+      <ymax>37.83945888704535321</ymax>
     </extent>
     <rotation>0</rotation>
     <destinationsrs>
@@ -70,31 +76,36 @@
   </mapcanvas>
   <projectModels/>
   <legend updateDrawingOrder="true">
-    <legendlayer drawingOrder="-1" showFeatureCount="0" checked="Qt::Unchecked" open="true" name="OpenStreetMap">
+    <legendlayer open="true" checked="Qt::Checked" showFeatureCount="0" name="Extent" drawingOrder="-1">
       <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" visible="0" isInOverview="0"/>
+        <legendlayerfile layerid="extent_c47fb780_eca1_4846_ad45_0edf908cf3ed" visible="1" isInOverview="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" showFeatureCount="0" checked="Qt::Checked" open="false" name="US_200FBFM13">
+    <legendlayer open="true" checked="Qt::Unchecked" showFeatureCount="0" name="Google Satellite" drawingOrder="-1">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" visible="0" isInOverview="0"/>
+      </filegroup>
+    </legendlayer>
+    <legendlayer open="true" checked="Qt::Checked" showFeatureCount="0" name="OpenStreetMap" drawingOrder="-1">
+      <filegroup open="true" hidden="false">
+        <legendlayerfile layerid="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2" visible="1" isInOverview="0"/>
+      </filegroup>
+    </legendlayer>
+    <legendlayer open="false" checked="Qt::Checked" showFeatureCount="0" name="US_200FBFM13" drawingOrder="-1">
       <filegroup open="false" hidden="false">
         <legendlayerfile layerid="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2" visible="1" isInOverview="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer drawingOrder="-1" showFeatureCount="0" checked="Qt::Checked" open="false" name="US_DEM2016">
+    <legendlayer open="false" checked="Qt::Checked" showFeatureCount="0" name="US_DEM2016" drawingOrder="-1">
       <filegroup open="false" hidden="false">
         <legendlayerfile layerid="US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e" visible="1" isInOverview="0"/>
-      </filegroup>
-    </legendlayer>
-    <legendlayer drawingOrder="-1" showFeatureCount="0" checked="Qt::Unchecked" open="true" name="Google Satellite">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f" visible="0" isInOverview="0"/>
       </filegroup>
     </legendlayer>
   </legend>
   <mapViewDocks/>
   <mapViewDocks3D/>
   <projectlayers>
-    <maplayer autoRefreshEnabled="0" refreshOnNotifyEnabled="0" autoRefreshTime="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" styleCategories="AllStyleCategories" type="raster" maxScale="0" minScale="1e+08">
+    <maplayer maxScale="0" minScale="1e+08" autoRefreshEnabled="0" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" type="raster" refreshOnNotifyMessage="" styleCategories="AllStyleCategories">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -157,11 +168,17 @@
         <Removable>1</Removable>
         <Searchable>0</Searchable>
       </flags>
+      <temporal enabled="0" mode="0" fetchMode="0">
+        <fixedRange>
+          <start></start>
+          <end></end>
+        </fixedRange>
+      </temporal>
       <customproperties>
-        <property value="Undefined" key="identify/format"/>
+        <property key="identify/format" value="Undefined"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" band="1" opacity="1" nodataColor="" type="singlebandcolordata">
+        <rasterrenderer band="1" nodataColor="" opacity="1" type="singlebandcolordata" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -173,12 +190,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100"/>
+        <huesaturation saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100" grayscaleMode="0"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" refreshOnNotifyEnabled="0" autoRefreshTime="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" styleCategories="AllStyleCategories" type="raster" maxScale="0" minScale="1e+08">
+    <maplayer maxScale="0" minScale="1e+08" autoRefreshEnabled="0" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" type="raster" refreshOnNotifyMessage="" styleCategories="AllStyleCategories">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
@@ -237,7 +254,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial crs="" minx="0" maxy="0" miny="0" minz="0" dimensions="2" maxx="0" maxz="0"/>
+          <spatial dimensions="2" minx="0" minz="0" maxz="0" crs="" miny="0" maxy="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -258,14 +275,20 @@
         <Removable>1</Removable>
         <Searchable>0</Searchable>
       </flags>
+      <temporal enabled="0" mode="0" fetchMode="0">
+        <fixedRange>
+          <start></start>
+          <end></end>
+        </fixedRange>
+      </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Undefined" key="identify/format"/>
+        <property key="WMSBackgroundLayer" value="false"/>
+        <property key="WMSPublishDataSourceUrl" value="false"/>
+        <property key="embeddedWidgets/count" value="0"/>
+        <property key="identify/format" value="Undefined"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" band="1" opacity="1" nodataColor="" type="singlebandcolordata">
+        <rasterrenderer band="1" nodataColor="" opacity="1" type="singlebandcolordata" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -277,12 +300,12 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100"/>
+        <huesaturation saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100" grayscaleMode="0"/>
         <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" refreshOnNotifyEnabled="0" autoRefreshTime="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" styleCategories="AllStyleCategories" type="raster" maxScale="0" minScale="1e+08">
+    <maplayer maxScale="0" minScale="1e+08" autoRefreshEnabled="0" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" type="raster" refreshOnNotifyMessage="" styleCategories="AllStyleCategories">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -341,7 +364,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial crs="" minx="0" maxy="0" miny="0" minz="0" dimensions="2" maxx="0" maxz="0"/>
+          <spatial dimensions="2" minx="0" minz="0" maxz="0" crs="" miny="0" maxy="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -362,14 +385,20 @@
         <Removable>1</Removable>
         <Searchable>0</Searchable>
       </flags>
+      <temporal enabled="0" mode="0" fetchMode="0">
+        <fixedRange>
+          <start></start>
+          <end></end>
+        </fixedRange>
+      </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Value" key="identify/format"/>
+        <property key="WMSBackgroundLayer" value="false"/>
+        <property key="WMSPublishDataSourceUrl" value="false"/>
+        <property key="embeddedWidgets/count" value="0"/>
+        <property key="identify/format" value="Value"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" band="1" opacity="1" nodataColor="" type="paletted">
+        <rasterrenderer band="1" nodataColor="" opacity="1" type="paletted" alphaBand="-1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -380,40 +409,40 @@
             <stdDevFactor>2</stdDevFactor>
           </minMaxOrigin>
           <colorPalette>
-            <paletteEntry value="0" alpha="255" color="#ffffff" label="NO_DATA"/>
-            <paletteEntry value="1" alpha="255" color="#fffed4" label="FBFM01"/>
-            <paletteEntry value="2" alpha="255" color="#fffd66" label="FBFM02"/>
-            <paletteEntry value="3" alpha="255" color="#ecd463" label="FBFM03"/>
-            <paletteEntry value="4" alpha="255" color="#fec177" label="FBFM04"/>
-            <paletteEntry value="5" alpha="255" color="#f9c55c" label="FBFM05"/>
-            <paletteEntry value="6" alpha="255" color="#d9c498" label="FBFM06"/>
-            <paletteEntry value="7" alpha="255" color="#aa9b7f" label="FBFM07"/>
-            <paletteEntry value="8" alpha="255" color="#e5fdd6" label="FBFM08"/>
-            <paletteEntry value="9" alpha="255" color="#a2bf5a" label="FBFM09"/>
-            <paletteEntry value="10" alpha="255" color="#729a55" label="FBFM10"/>
-            <paletteEntry value="11" alpha="255" color="#ebd4fd" label="FBFM11"/>
-            <paletteEntry value="12" alpha="255" color="#a3b1f3" label="FBFM12"/>
-            <paletteEntry value="91" alpha="255" color="#ba7750" label="Urban"/>
-            <paletteEntry value="92" alpha="255" color="#eaeaea" label="Snow/Ice"/>
-            <paletteEntry value="93" alpha="255" color="#fdf2f2" label="Agricolture"/>
-            <paletteEntry value="98" alpha="255" color="#89b7dd" label="Water"/>
-            <paletteEntry value="99" alpha="255" color="#85999c" label="Barren"/>
+            <paletteEntry label="NO_DATA" alpha="255" value="0" color="#ffffff"/>
+            <paletteEntry label="FBFM01" alpha="255" value="1" color="#fffed4"/>
+            <paletteEntry label="FBFM02" alpha="255" value="2" color="#fffd66"/>
+            <paletteEntry label="FBFM03" alpha="255" value="3" color="#ecd463"/>
+            <paletteEntry label="FBFM04" alpha="255" value="4" color="#fec177"/>
+            <paletteEntry label="FBFM05" alpha="255" value="5" color="#f9c55c"/>
+            <paletteEntry label="FBFM06" alpha="255" value="6" color="#d9c498"/>
+            <paletteEntry label="FBFM07" alpha="255" value="7" color="#aa9b7f"/>
+            <paletteEntry label="FBFM08" alpha="255" value="8" color="#e5fdd6"/>
+            <paletteEntry label="FBFM09" alpha="255" value="9" color="#a2bf5a"/>
+            <paletteEntry label="FBFM10" alpha="255" value="10" color="#729a55"/>
+            <paletteEntry label="FBFM11" alpha="255" value="11" color="#ebd4fd"/>
+            <paletteEntry label="FBFM12" alpha="255" value="12" color="#a3b1f3"/>
+            <paletteEntry label="Urban" alpha="255" value="91" color="#ba7750"/>
+            <paletteEntry label="Snow/Ice" alpha="255" value="92" color="#eaeaea"/>
+            <paletteEntry label="Agricolture" alpha="255" value="93" color="#fdf2f2"/>
+            <paletteEntry label="Water" alpha="255" value="98" color="#89b7dd"/>
+            <paletteEntry label="Barren" alpha="255" value="99" color="#85999c"/>
           </colorPalette>
           <colorramp type="gradient" name="[source]">
-            <prop v="215,25,28,255" k="color1"/>
-            <prop v="43,131,186,255" k="color2"/>
-            <prop v="0" k="discrete"/>
-            <prop v="gradient" k="rampType"/>
-            <prop v="0.25;253,174,97,255:0.5;255,255,191,255:0.75;171,221,164,255" k="stops"/>
+            <prop k="color1" v="215,25,28,255"/>
+            <prop k="color2" v="43,131,186,255"/>
+            <prop k="discrete" v="0"/>
+            <prop k="rampType" v="gradient"/>
+            <prop k="stops" v="0.25;253,174,97,255:0.5;255,255,191,255:0.75;171,221,164,255"/>
           </colorramp>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100"/>
+        <huesaturation saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100" grayscaleMode="0"/>
         <rasterresampler maxOversampling="2"/>
       </pipe>
       <blendMode>6</blendMode>
     </maplayer>
-    <maplayer autoRefreshEnabled="0" refreshOnNotifyEnabled="0" autoRefreshTime="0" refreshOnNotifyMessage="" hasScaleBasedVisibilityFlag="0" styleCategories="AllStyleCategories" type="raster" maxScale="0" minScale="1e+08">
+    <maplayer maxScale="0" minScale="1e+08" autoRefreshEnabled="0" autoRefreshTime="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyEnabled="0" type="raster" refreshOnNotifyMessage="" styleCategories="AllStyleCategories">
       <extent>
         <xmin>-2362425</xmin>
         <ymin>258945</ymin>
@@ -472,7 +501,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial crs="" minx="0" maxy="0" miny="0" minz="0" dimensions="2" maxx="0" maxz="0"/>
+          <spatial dimensions="2" minx="0" minz="0" maxz="0" crs="" miny="0" maxy="0" maxx="0"/>
           <temporal>
             <period>
               <start></start>
@@ -493,14 +522,20 @@
         <Removable>1</Removable>
         <Searchable>0</Searchable>
       </flags>
+      <temporal enabled="0" mode="0" fetchMode="0">
+        <fixedRange>
+          <start></start>
+          <end></end>
+        </fixedRange>
+      </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Value" key="identify/format"/>
+        <property key="WMSBackgroundLayer" value="false"/>
+        <property key="WMSPublishDataSourceUrl" value="false"/>
+        <property key="embeddedWidgets/count" value="0"/>
+        <property key="identify/format" value="Value"/>
       </customproperties>
       <pipe>
-        <rasterrenderer alphaBand="-1" multidirection="0" band="1" opacity="1" nodataColor="" azimuth="315" type="hillshade" angle="45" zfactor="1">
+        <rasterrenderer angle="45" multidirection="0" band="1" nodataColor="" opacity="1" type="hillshade" alphaBand="-1" azimuth="315" zfactor="1">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -512,10 +547,268 @@
           </minMaxOrigin>
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100"/>
+        <huesaturation saturation="0" colorizeGreen="128" colorizeBlue="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100" grayscaleMode="0"/>
         <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
       </pipe>
       <blendMode>0</blendMode>
+    </maplayer>
+    <maplayer simplifyAlgorithm="0" labelsEnabled="0" hasScaleBasedVisibilityFlag="0" geometry="Polygon" simplifyDrawingTol="1" autoRefreshTime="0" simplifyDrawingHints="1" styleCategories="AllStyleCategories" simplifyMaxScale="1" readOnly="0" maxScale="0" autoRefreshEnabled="0" refreshOnNotifyMessage="" wkbType="MultiPolygon" type="vector" minScale="100000000" simplifyLocal="1" refreshOnNotifyEnabled="0">
+      <extent>
+        <xmin>-122.50944860910168188</xmin>
+        <ymin>37.81723319756387269</ymin>
+        <xmax>-122.46782503683525078</xmax>
+        <ymax>37.84975357529239659</ymax>
+      </extent>
+      <id>extent_c47fb780_eca1_4846_ad45_0edf908cf3ed</id>
+      <datasource>./extent.shp</datasource>
+      <keywordList>
+        <value></value>
+      </keywordList>
+      <layername>Extent</layername>
+      <srs>
+        <spatialrefsys>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"],AREA["World"],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
+          <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
+          <srsid>3452</srsid>
+          <srid>4326</srid>
+          <authid>EPSG:4326</authid>
+          <description>WGS 84</description>
+          <projectionacronym>longlat</projectionacronym>
+          <ellipsoidacronym>EPSG:7030</ellipsoidacronym>
+          <geographicflag>true</geographicflag>
+        </spatialrefsys>
+      </srs>
+      <resourceMetadata>
+        <identifier></identifier>
+        <parentidentifier></parentidentifier>
+        <language></language>
+        <type>dataset</type>
+        <title></title>
+        <abstract></abstract>
+        <contact>
+          <name></name>
+          <organization></organization>
+          <position></position>
+          <voice></voice>
+          <fax></fax>
+          <email></email>
+          <role></role>
+        </contact>
+        <links/>
+        <fees></fees>
+        <encoding></encoding>
+        <crs>
+          <spatialrefsys>
+            <wkt></wkt>
+            <proj4></proj4>
+            <srsid>0</srsid>
+            <srid>0</srid>
+            <authid></authid>
+            <description></description>
+            <projectionacronym></projectionacronym>
+            <ellipsoidacronym></ellipsoidacronym>
+            <geographicflag>true</geographicflag>
+          </spatialrefsys>
+        </crs>
+        <extent>
+          <spatial dimensions="2" minx="0" minz="0" maxz="0" crs="" miny="0" maxy="0" maxx="0"/>
+          <temporal>
+            <period>
+              <start></start>
+              <end></end>
+            </period>
+          </temporal>
+        </extent>
+      </resourceMetadata>
+      <provider encoding="UTF-8">ogr</provider>
+      <vectorjoins/>
+      <layerDependencies/>
+      <dataDependencies/>
+      <legend type="default-vector"/>
+      <expressionfields/>
+      <map-layer-style-manager current="default">
+        <map-layer-style name="default"/>
+      </map-layer-style-manager>
+      <auxiliaryLayer/>
+      <flags>
+        <Identifiable>1</Identifiable>
+        <Removable>1</Removable>
+        <Searchable>1</Searchable>
+      </flags>
+      <temporal enabled="0" startField="" fixedDuration="0" durationUnit="min" mode="0" endExpression="" accumulate="0" startExpression="" endField="" durationField="">
+        <fixedRange>
+          <start></start>
+          <end></end>
+        </fixedRange>
+      </temporal>
+      <renderer-v2 symbollevels="0" enableorderby="0" type="singleSymbol" forceraster="0">
+        <symbols>
+          <symbol alpha="1" clip_to_extent="1" force_rhr="0" type="fill" name="0">
+            <layer enabled="1" class="SimpleLine" pass="0" locked="0">
+              <prop k="capstyle" v="square"/>
+              <prop k="customdash" v="5;2"/>
+              <prop k="customdash_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="customdash_unit" v="MM"/>
+              <prop k="draw_inside_polygon" v="0"/>
+              <prop k="joinstyle" v="bevel"/>
+              <prop k="line_color" v="77,175,74,255"/>
+              <prop k="line_style" v="solid"/>
+              <prop k="line_width" v="0.96"/>
+              <prop k="line_width_unit" v="MM"/>
+              <prop k="offset" v="0"/>
+              <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="offset_unit" v="MM"/>
+              <prop k="ring_filter" v="0"/>
+              <prop k="use_custom_dash" v="0"/>
+              <prop k="width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <data_defined_properties>
+                <Option type="Map">
+                  <Option value="" type="QString" name="name"/>
+                  <Option name="properties"/>
+                  <Option value="collection" type="QString" name="type"/>
+                </Option>
+              </data_defined_properties>
+            </layer>
+          </symbol>
+        </symbols>
+        <rotation/>
+        <sizescale/>
+      </renderer-v2>
+      <customproperties>
+        <property key="embeddedWidgets/count" value="0"/>
+        <property key="variableNames"/>
+        <property key="variableValues"/>
+      </customproperties>
+      <blendMode>0</blendMode>
+      <featureBlendMode>0</featureBlendMode>
+      <layerOpacity>1</layerOpacity>
+      <SingleCategoryDiagramRenderer diagramType="Histogram" attributeLegend="1">
+        <DiagramCategory spacing="5" barWidth="5" labelPlacementMethod="XHeight" height="15" spacingUnitScale="3x:0,0,0,0,0,0" diagramOrientation="Up" showAxis="1" backgroundAlpha="255" scaleBasedVisibility="0" sizeType="MM" rotationOffset="270" width="15" backgroundColor="#ffffff" penColor="#000000" penWidth="0" spacingUnit="MM" maxScaleDenominator="1e+08" sizeScale="3x:0,0,0,0,0,0" lineSizeType="MM" penAlpha="255" opacity="1" minScaleDenominator="0" scaleDependency="Area" lineSizeScale="3x:0,0,0,0,0,0" direction="0" minimumSize="0" enabled="0">
+          <fontProperties description="Cantarell,11,-1,5,50,0,0,0,0,0" style=""/>
+          <attribute label="" color="#000000" field=""/>
+          <axisSymbol>
+            <symbol alpha="1" clip_to_extent="1" force_rhr="0" type="line" name="">
+              <layer enabled="1" class="SimpleLine" pass="0" locked="0">
+                <prop k="capstyle" v="square"/>
+                <prop k="customdash" v="5;2"/>
+                <prop k="customdash_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="customdash_unit" v="MM"/>
+                <prop k="draw_inside_polygon" v="0"/>
+                <prop k="joinstyle" v="bevel"/>
+                <prop k="line_color" v="35,35,35,255"/>
+                <prop k="line_style" v="solid"/>
+                <prop k="line_width" v="0.26"/>
+                <prop k="line_width_unit" v="MM"/>
+                <prop k="offset" v="0"/>
+                <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="offset_unit" v="MM"/>
+                <prop k="ring_filter" v="0"/>
+                <prop k="use_custom_dash" v="0"/>
+                <prop k="width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <data_defined_properties>
+                  <Option type="Map">
+                    <Option value="" type="QString" name="name"/>
+                    <Option name="properties"/>
+                    <Option value="collection" type="QString" name="type"/>
+                  </Option>
+                </data_defined_properties>
+              </layer>
+            </symbol>
+          </axisSymbol>
+        </DiagramCategory>
+      </SingleCategoryDiagramRenderer>
+      <DiagramLayerSettings dist="0" zIndex="0" showAll="1" linePlacementFlags="18" obstacle="0" placement="1" priority="0">
+        <properties>
+          <Option type="Map">
+            <Option value="" type="QString" name="name"/>
+            <Option name="properties"/>
+            <Option value="collection" type="QString" name="type"/>
+          </Option>
+        </properties>
+      </DiagramLayerSettings>
+      <geometryOptions geometryPrecision="0" removeDuplicateNodes="0">
+        <activeChecks/>
+        <checkConfiguration type="Map">
+          <Option type="Map" name="QgsGeometryGapCheck">
+            <Option value="0" type="double" name="allowedGapsBuffer"/>
+            <Option value="false" type="bool" name="allowedGapsEnabled"/>
+            <Option value="" type="QString" name="allowedGapsLayer"/>
+          </Option>
+        </checkConfiguration>
+      </geometryOptions>
+      <referencedLayers/>
+      <referencingLayers/>
+      <fieldConfiguration>
+        <field name="id">
+          <editWidget type="TextEdit">
+            <config>
+              <Option/>
+            </config>
+          </editWidget>
+        </field>
+      </fieldConfiguration>
+      <aliases>
+        <alias index="0" name="" field="id"/>
+      </aliases>
+      <excludeAttributesWMS/>
+      <excludeAttributesWFS/>
+      <defaults>
+        <default expression="" field="id" applyOnUpdate="0"/>
+      </defaults>
+      <constraints>
+        <constraint notnull_strength="0" constraints="0" field="id" exp_strength="0" unique_strength="0"/>
+      </constraints>
+      <constraintExpressions>
+        <constraint exp="" field="id" desc=""/>
+      </constraintExpressions>
+      <expressionfields/>
+      <attributeactions>
+        <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
+      </attributeactions>
+      <attributetableconfig actionWidgetStyle="dropDown" sortOrder="0" sortExpression="">
+        <columns>
+          <column hidden="0" width="-1" type="field" name="id"/>
+          <column hidden="1" width="-1" type="actions"/>
+        </columns>
+      </attributetableconfig>
+      <conditionalstyles>
+        <rowstyles/>
+        <fieldstyles/>
+      </conditionalstyles>
+      <storedexpressions/>
+      <editform tolerant="1"></editform>
+      <editforminit/>
+      <editforminitcodesource>0</editforminitcodesource>
+      <editforminitfilepath></editforminitfilepath>
+      <editforminitcode><![CDATA[# -*- coding: utf-8 -*-
+"""
+QGIS forms can have a Python function that is called when the form is
+opened.
+
+Use this function to add extra logic to your forms.
+
+Enter the name of the function in the "Python Init function"
+field.
+An example follows:
+"""
+from qgis.PyQt.QtWidgets import QWidget
+
+def my_form_open(dialog, layer, feature):
+	geom = feature.geometry()
+	control = dialog.findChild(QWidget, "MyLineEdit")
+]]></editforminitcode>
+      <featformsuppress>0</featformsuppress>
+      <editorlayout>generatedlayout</editorlayout>
+      <editable>
+        <field editable="1" name="id"/>
+      </editable>
+      <labelOnTop>
+        <field labelOnTop="0" name="id"/>
+      </labelOnTop>
+      <dataDefinedFieldProperties/>
+      <widgets/>
+      <previewExpression>"id"</previewExpression>
+      <mapTip></mapTip>
     </maplayer>
   </projectlayers>
   <layerorder>
@@ -523,6 +816,7 @@
     <layer id="US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2"/>
     <layer id="OpenStreetMap_dbb00f42_b25f_4ad8_85b6_0c53337cace2"/>
     <layer id="Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f"/>
+    <layer id="extent_c47fb780_eca1_4846_ad45_0edf908cf3ed"/>
   </layerorder>
   <properties>
     <DefaultStyles>
@@ -533,6 +827,9 @@
       <Opacity type="double">1</Opacity>
       <RandomColors type="bool">true</RandomColors>
     </DefaultStyles>
+    <Digitizing>
+      <AvoidIntersectionsMode type="int">2</AvoidIntersectionsMode>
+    </Digitizing>
     <Gui>
       <CanvasColorBluePart type="int">255</CanvasColorBluePart>
       <CanvasColorGreenPart type="int">255</CanvasColorGreenPart>
@@ -636,16 +933,25 @@
     <qgis2fds>
       <chid type="QString">golden_gate</chid>
       <dem_layer type="QString">US_DEM2016_7f4e3268_2af5_44dd_83db_a9b2bbc7861e</dem_layer>
-      <extent type="QString">-122.51064391189972,-122.46992736288728,37.8191902662084,37.84500075673717 [EPSG:4326]</extent>
-      <fire_origin type="QString">-122.489645,37.832712 [EPSG:4326]</fire_origin>
+      <dem_sampling type="int">1</dem_sampling>
+      <extent type="QString">-122.509448609,-122.467825037,37.817233198,37.849753575 [EPSG:4326]</extent>
+      <fire_origin type="QString">-122.490034,37.828228 [EPSG:4326]</fire_origin>
       <landuse_layer type="QString">US_200FBFM13_f7b5bd36_bb14_4970_ab46_3f4bae95a1b2</landuse_layer>
       <landuse_type type="int">0</landuse_type>
-      <origin type="QString">-122.489693,37.835173 [EPSG:4326]</origin>
+      <origin type="QString">-122.489728,37.835126 [EPSG:4326]</origin>
       <path type="QString">/home/egissi/github/firetools/qgis2fds/verification/golden_gate</path>
       <project_crs type="QString">WGS 84</project_crs>
       <tex_layer type="QString">Google_Satellite_2cf6371c_065d_4040_824f_425e08e0e05f</tex_layer>
+      <tex_pixel_size type="double">4</tex_pixel_size>
     </qgis2fds>
   </properties>
+  <dataDefinedServerProperties>
+    <Option type="Map">
+      <Option value="" type="QString" name="name"/>
+      <Option name="properties"/>
+      <Option value="collection" type="QString" name="type"/>
+    </Option>
+  </dataDefinedServerProperties>
   <visibility-presets/>
   <transformContext>
     <srcDest allowFallback="1" coordinateOp="+proj=pipeline +step +inv +proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +ellps=GRS80 +step +proj=unitconvert +xy_in=rad +xy_out=deg">
@@ -703,6 +1009,7 @@
   <ProjectViewSettings UseProjectScales="0">
     <Scales/>
   </ProjectViewSettings>
+  <ProjectTimeSettings timeStepUnit="h" cumulativeTemporalRange="0" timeStep="1" frameRate="1"/>
   <ProjectDisplaySettings>
     <BearingFormat id="bearing">
       <Option type="Map">
