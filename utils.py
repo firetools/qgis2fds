@@ -82,21 +82,17 @@ def write_image(
     settings.setLayers(layers)
 
     # Render and save image
-    render = QgsMapRendererSequentialJob(settings)
+    render = QgsMapRendererParallelJob(settings)
     render.start()
     t0 = time.time()
     while render.isActive():
-        if feedback.isCanceled():
-            return
-        time.sleep(2)
-        QCoreApplication.processEvents()
         dt = int(time.time() - t0)
+        QCoreApplication.processEvents()
         feedback.pushInfo(f"Rendering texture ({dt} s)...")
-        if dt > 60:
+        time.sleep(2)
+        if feedback.isCanceled() or dt > 60:
             render.cancelWithoutBlocking()
-            feedback.pushInfo(
-                "No texture saved, server currently not available or pixel size too small."
-            )
+            feedback.pushInfo("No texture saved, cancelled or timed out.")
             return
     image = render.renderedImage()
     try:

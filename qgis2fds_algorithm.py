@@ -71,7 +71,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterString(
                 "chid",
-                "FDS Case identificator (CHID)",
+                "FDS case identificator (CHID)",
                 multiLine=False,
                 defaultValue=defaultValue,
             )
@@ -93,7 +93,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
         self.addParameter(
             QgsProcessingParameterExtent(
-                "extent", "Terrain Extent", defaultValue=defaultValue,
+                "extent", "Terrain extent", defaultValue=defaultValue,
             )
         )
 
@@ -109,14 +109,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 pass
         self.addParameter(
             QgsProcessingParameterRasterLayer(
-                "dem_layer", "DEM Layer", defaultValue=defaultValue,
+                "dem_layer", "DEM layer", defaultValue=defaultValue,
             )
         )
 
         defaultValue, _ = project.readEntry("qgis2fds", "dem_sampling", "1")
         param = QgsProcessingParameterNumber(
             "dem_sampling",
-            "DEM Layer sampling rate",
+            "DEM layer sampling rate",
             defaultValue=defaultValue,
             minValue=1,
         )
@@ -127,7 +127,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 "landuse_layer",
-                "Landuse Layer (if not set, landuse is not exported)",
+                "Landuse layer (if not set, landuse is not exported)",
                 optional=True,
                 defaultValue=defaultValue,
             )
@@ -137,7 +137,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterEnum(
                 "landuse_type",
-                "Landuse Layer Type",
+                "Landuse layer type",
                 options=fds.landuse_types,
                 allowMultiple=False,
                 defaultValue=defaultValue,
@@ -150,7 +150,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
         param = QgsProcessingParameterPoint(
             "origin",
-            "Domain Origin (if not set, use Terrain Extent centroid)",
+            "Domain origin (if not set, use Terrain Extent centroid)",
             optional=True,
             defaultValue=defaultValue,
         )
@@ -163,7 +163,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             defaultValue, _ = project.readEntry("qgis2fds", "fire_origin", None)
         param = QgsProcessingParameterPoint(
             "fire_origin",
-            "Fire Origin (if not set, use Domain Origin)",
+            "Fire origin (if not set, use Domain Origin)",
             optional=True,
             defaultValue=defaultValue,
         )
@@ -173,7 +173,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
         param = QgsProcessingParameterRasterLayer(
             "tex_layer",
-            "Texture Layer (if not set, current view is exported)",
+            "Texture layer (if not set, current view is exported)",
             optional=True,
             defaultValue=defaultValue,
         )
@@ -183,7 +183,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readNumEntry("qgis2fds", "tex_pixel_size", 5)
         param = QgsProcessingParameterNumber(
             "tex_pixel_size",
-            "Texture Layer Pixels Size (in meters)",
+            "Texture layer pixels size (in meters)",
             type=QgsProcessingParameterNumber.Double,
             defaultValue=defaultValue,
             minValue=0.01,
@@ -200,13 +200,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             defaultValue=None,
         )
         self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        # param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
     def processAlgorithm(self, parameters, context, model_feedback):
         """
         Process algorithm.
         """
-        feedback = QgsProcessingMultiStepFeedback(8, model_feedback)
+        feedback = QgsProcessingMultiStepFeedback(11, model_feedback)
         results = {}
         outputs = {}
         project = QgsProject.instance()
@@ -477,7 +477,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(11)
         if feedback.isCanceled():
             return {}
 
