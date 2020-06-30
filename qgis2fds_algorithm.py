@@ -91,7 +91,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # defaultValue, _ = project.readEntry("qgis2fds", "extent", None)  # FIXME
-        defaultValue = None  # FIXME there is a bug in QGIS, issue #37447
+        defaultValue = None  # FIXME QGIS issue #37447, solved in QGIS 3.14.1
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent", "Terrain extent", defaultValue=defaultValue,
@@ -207,7 +207,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-        feedback = QgsProcessingMultiStepFeedback(11, model_feedback)
+        feedback = QgsProcessingMultiStepFeedback(13, model_feedback)
         results = {}
         outputs = {}
         project = QgsProject.instance()
@@ -298,15 +298,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 self.parameterAsPoint(parameters, "origin", context)
             )
             wgs84_origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"Using user origin: <{wgs84_origin}> WGS84")
+            feedback.pushInfo("Using user origin.")
         else:  # no origin
             wgs84_origin = QgsPoint(
                 (wgs84_extent.xMinimum() + wgs84_extent.xMaximum()) / 2.0,
                 (wgs84_extent.yMinimum() + wgs84_extent.yMaximum()) / 2.0,
             )  # TODO QgsRectangle.center()
-            feedback.pushInfo(
-                f"Using terrain extent center as origin: <{wgs84_origin}> WGS84"
-            )
+            feedback.pushInfo("Using terrain extent center as origin.")
         project.writeEntry("qgis2fds", "origin", parameters["origin"])
 
         # Get fire origin in WGS84 CRS
@@ -315,12 +313,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 self.parameterAsPoint(parameters, "fire_origin", context)
             )
             wgs84_fire_origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"Using user fire origin: <{wgs84_fire_origin}> WGS84")
+            feedback.pushInfo("Using user fire origin.")
         else:
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
-            feedback.pushInfo(
-                f"Using origin as fire origin: <{wgs84_fire_origin}> WGS84"
-            )
+            feedback.pushInfo("Using origin as fire origin.")
         project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
 
         # Calc UTM CRS from wgs84_origin
@@ -352,6 +348,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_crs, QgsProject.instance())
         dem_extent = utm_to_dem_tr.transformBoundingBox(mesh_extent)
 
+        feedback.setCurrentStep(2)
+        if feedback.isCanceled():
+            return {}
+
         # QGIS geographic transformations
         # Creating sampling grid in DEM crs
 
@@ -375,7 +375,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
         feedback.pushInfo(
-            f"Estimated number of vertices: {int((x1-x0) * (y1-y0) / xspacing^2 / dem_sampling^2)}"
+            f"Estimated number of vertices: {int((x1-x0) * (y1-y0) / xspacing**2 / dem_sampling**2)}"
         )
 
         alg_params = {
@@ -396,7 +396,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(2)
+        feedback.setCurrentStep(3)
         if feedback.isCanceled():
             return {}
 
@@ -417,14 +417,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             imagetype="png",
         )
 
-        feedback.setCurrentStep(3)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
 
         # QGIS geographic transformations
         # Draping Z values to sampling grid in DEM crs
 
-        feedback.pushInfo("Setting Z values from DEM...")
+        feedback.pushInfo("Draping Z values from DEM...")
         alg_params = {
             "BAND": 1,
             "INPUT": outputs["CreateGrid"]["OUTPUT"],
@@ -441,7 +441,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(4)
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -464,7 +464,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(5)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
@@ -490,7 +490,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
             point_layer = context.getMapLayer(results["sampling_layer"])
         else:
-            feedback.pushInfo("No landuse sampling.")
+            feedback.pushInfo("No landuse, no sampling.")
             results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
             point_layer = context.getMapLayer(results["sampling_layer"])
             # add fake landuse
@@ -499,19 +499,19 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
             point_layer.updateFields()
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
         # Prepare geometry
 
-        feedback.pushInfo("Building lists of vertices and faces with landuses...")
+        feedback.pushInfo("Building lists of vertices and faces...")
 
         verts, faces, landuses, landuses_set = geometry.get_geometry(
             feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
 
-        feedback.setCurrentStep(11)
+        feedback.setCurrentStep(12)
         if feedback.isCanceled():
             return {}
 

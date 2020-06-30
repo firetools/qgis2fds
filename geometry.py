@@ -20,21 +20,21 @@ def get_geometry(feedback, layer, utm_origin):
     @param utm_origin: domain origin in UTM CRS.
     @return verts, faces, landuses
     """
-    feedback.setCurrentStep(7)
-    feedback.pushInfo("Building the point matrix...")
+    feedback.setCurrentStep(8)
+    feedback.pushInfo("Geometry: building the point matrix...")
     matrix = _get_matrix(layer=layer, utm_origin=utm_origin)
     if feedback.isCanceled():
         return {}
-    feedback.setCurrentStep(8)
-    feedback.pushInfo("Getting quad faces...")
+    feedback.setCurrentStep(9)
+    feedback.pushInfo("Geometry: getting quad faces...")
     faces, landuses = _get_faces(matrix=matrix)
     if feedback.isCanceled():
         return {}
-    feedback.setCurrentStep(9)
-    feedback.pushInfo("Getting verts...")
+    feedback.setCurrentStep(10)
+    feedback.pushInfo("Geometry: getting verts...")
     landuses_set = set(landuses)
     verts = _get_verts(matrix=matrix)
-    feedback.setCurrentStep(10)
+    feedback.setCurrentStep(11)
     return verts, faces, landuses, landuses_set
 
 
