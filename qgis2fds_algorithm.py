@@ -375,7 +375,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
         feedback.pushInfo(
-            f"Estimated number of vertices: {int((x1-x0)/xspacing * (y1-y0)/xspacing)}"
+            f"Estimated number of vertices: {int((x1-x0) * (y1-y0) / xspacing^2 / dem_sampling^2)}"
         )
 
         alg_params = {
@@ -519,7 +519,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Writing the FDS case file...")
 
-        content = fds.get_case(
+        fds.write_case(
             feedback=feedback,
             dem_layer=dem_layer,
             landuse_layer=landuse_layer,
@@ -536,9 +536,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type=landuse_type,
             landuses_set=landuses_set,
             mesh_extent=mesh_extent,
-        )
-        utils.write_file(
-            feedback=feedback, filepath=f"{path}/{chid}.fds", content=content
         )
 
         return results
