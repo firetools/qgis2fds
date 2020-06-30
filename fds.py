@@ -110,19 +110,17 @@ def _get_geom_str(verts, faces, landuses, landuse_type):
 
 # FIXME
 def _write_terrain_bingeom(feedback, path, chid, verts, faces, landuses, landuse_type):
-    # Prepare fds_surfs
     landuse_select = landuse_types_selections[landuse_type]
     fds_surfs = list(
         landuse_select.get(landuses[i], landuses[0]) for i, _ in enumerate(faces)
     )
-    # Write bingeom
     n_surf_id = max(fds_surfs)
     fds_verts = list(v for vs in verts for v in vs)
     fds_faces = list(f for fs in faces for f in fs)
-    feedback.pushInfo(f"n_surf_id: {n_surf_id}")
-    feedback.pushInfo(f"fds_verts: {fds_verts}")
-    feedback.pushInfo(f"fds_faces: {fds_faces}")
-    feedback.pushInfo(f"fds_surfs: {fds_surfs}")
+    # feedback.pushInfo(f"n_surf_id: {n_surf_id}")
+    # feedback.pushInfo(f"fds_verts: {fds_verts}")
+    # feedback.pushInfo(f"fds_faces: {fds_faces}")
+    # feedback.pushInfo(f"fds_surfs: {fds_surfs}")
     utils.write_bingeom(
         geom_type=2,
         n_surf_id=n_surf_id,
