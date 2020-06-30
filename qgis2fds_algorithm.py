@@ -357,7 +357,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Creating sampling grid layer from DEM...")
 
-        xspacing = dem_layer.rasterUnitsPerPixelX() * dem_sampling
+        xspacing = (
+            dem_layer.rasterUnitsPerPixelX() * dem_sampling
+        )  # FIXME dem_sampling is wrong!
         yspacing = dem_layer.rasterUnitsPerPixelY() * dem_sampling
         x0, y0, x1, y1 = (  # terrain extent in DEM CRS
             dem_extent.xMinimum(),
@@ -523,6 +525,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback=feedback,
             dem_layer=dem_layer,
             landuse_layer=landuse_layer,
+            path=path,
             chid=chid,
             wgs84_origin=wgs84_origin,
             utm_origin=utm_origin,
