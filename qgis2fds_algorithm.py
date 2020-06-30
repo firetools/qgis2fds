@@ -357,10 +357,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Creating sampling grid layer from DEM...")
 
-        xspacing = (
-            dem_layer.rasterUnitsPerPixelX() * dem_sampling
-        )  # FIXME dem_sampling is wrong!
-        yspacing = dem_layer.rasterUnitsPerPixelY() * dem_sampling
+        xspacing = dem_layer.rasterUnitsPerPixelX()
+        yspacing = dem_layer.rasterUnitsPerPixelY()
         x0, y0, x1, y1 = (  # terrain extent in DEM CRS
             dem_extent.xMinimum(),
             dem_extent.yMinimum(),
@@ -384,10 +382,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             "CRS": dem_crs,
             "EXTENT": dem_extent,
             "HOVERLAY": 0,
-            "HSPACING": xspacing,
+            "HSPACING": xspacing * dem_sampling,  # reduce sampling, if requested
             "TYPE": 0,  # Points
             "VOVERLAY": 0,
-            "VSPACING": yspacing,
+            "VSPACING": yspacing * dem_sampling,  # reduce sampling, if requested
             "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
         outputs["CreateGrid"] = processing.run(
