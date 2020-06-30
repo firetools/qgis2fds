@@ -259,5 +259,4 @@ def _get_verts(matrix):
         for j, _ in enumerate(row[:-1]):
             verts.append(_get_vert(_get_neighbour_centers(prev_row, row, j)))
         prev_row = row
-
     return verts
