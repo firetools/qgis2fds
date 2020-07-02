@@ -88,9 +88,9 @@ def write_image(
     while render.isActive():
         dt = int(time.time() - t0)
         QCoreApplication.processEvents()
-        feedback.pushInfo(f"Rendering texture ({dt} s)...")
+        feedback.pushInfo(f"Rendering texture ({dt} s/60 s)...")
         time.sleep(2)
-        if feedback.isCanceled() or dt > 60:
+        if feedback.isCanceled() or dt >= 60:
             render.cancelWithoutBlocking()
             feedback.pushInfo(
                 "No texture saved: render cancelled or timed out due to unavailable server at this pixel size."
