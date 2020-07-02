@@ -187,8 +187,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             "Texture layer pixels size (in meters)",
             type=QgsProcessingParameterNumber.Double,
             defaultValue=defaultValue,
-            minValue=0.01,
-            maxValue=100,
+            minValue=0.1,
         )
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -294,25 +293,20 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project_crs, wgs84_crs, QgsProject.instance()
         )
         if parameters["origin"] is not None:
-            wgs84_origin = QgsPoint(
-                self.parameterAsPoint(parameters, "origin", context)
+            wgs84_origin = self.parameterAsPoint(
+                parameters, "origin", context, crs=wgs84_crs
             )
-            wgs84_origin.transform(project_to_wgs84_tr)
             feedback.pushInfo("Using user origin.")
+            project.writeEntry("qgis2fds", "origin", parameters["origin"])
         else:  # no origin
-            wgs84_origin = QgsPoint(
-                (wgs84_extent.xMinimum() + wgs84_extent.xMaximum()) / 2.0,
-                (wgs84_extent.yMinimum() + wgs84_extent.yMaximum()) / 2.0,
-            )  # TODO QgsRectangle.center()
-            feedback.pushInfo("Using terrain extent center as origin.")
-        project.writeEntry("qgis2fds", "origin", parameters["origin"])
+            wgs84_origin = wgs84_extent.center()
+            feedback.pushInfo(f"Using terrain extent center as origin.")
 
         # Get fire origin in WGS84 CRS
         if parameters["fire_origin"] is not None:
-            wgs84_fire_origin = QgsPoint(
-                self.parameterAsPoint(parameters, "fire_origin", context)
+            wgs84_fire_origin = self.parameterAsPoint(
+                parameters, "fire_origin", context, crs=wgs84_crs
             )
-            wgs84_fire_origin.transform(project_to_wgs84_tr)
             feedback.pushInfo("Using user fire origin.")
         else:
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
