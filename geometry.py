@@ -86,40 +86,42 @@ def _get_matrix(layer, utm_origin):
     """
 
     features = layer.getFeatures()  # get the points
-    first_point, prev_point = None, None
-    # Loop on points
+    # Find matrix column length
+    first_point, second_point = None, None
     ox, oy = utm_origin.x(), utm_origin.y()
     for f in features:
         g = f.geometry().get()  # QgsPoint
-        a = f.attributes()  # landuse
+        point = (
+            g.x() - ox,  # x, relative to origin
+            g.y() - oy,  # y, relative to origin
+        )
+        if first_point is None:
+            column_len, first_point = 1, point
+        elif second_point is None:
+            column_len, second_point = 2, point
+        elif abs(_dot_product(first_point, second_point, point)) > 0.1:
+            column_len += 1  # point on the same column
+        else:
+            break  # end of column
+    # Prepare matrix by splitting features
+    i, m = 0, []
+    for f in features:
+        g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
         point = (
             g.x() - ox,  # x, relative to origin
             g.y() - oy,  # y, relative to origin
             g.z(),  # z absolute
             a[5] or 0,  # landuse, protect from None
         )
-        if first_point is None:
-            # point is the first point of the matrix
-            m = [[point,]]
-            first_point = point
-            continue
-        elif prev_point is None:
-            # point is the second point of the matrix column
+        i += 1
+        if i == 1:  # first point of the m column
+            m.append(
+                [point,]
+            )
+        elif i == column_len:  # last point
+            i = 0
+        else:  # following point
             m[-1].append(point)
-            prev_point = point
-            continue
-        # current point is another point, check alignment in 2D
-        if abs(_dot_product(first_point, prev_point, point)) > 0.1:
-            # point is on the same matrix column
-            m[-1].append(point)
-            prev_point = point
-            continue
-        # point is on the next column
-        m.append(
-            [point,]
-        )
-        first_point = point
-        prev_point = None
     return list(map(list, zip(*m)))  # transpose
 
 
