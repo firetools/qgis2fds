@@ -51,6 +51,8 @@ def write_image(
     """
     Save current QGIS canvas to image file.
     """
+
+    feedback.pushInfo("Rendering texture image (timeout in 30s)...")
     project = QgsProject.instance()
 
     # Get extent size in meters
@@ -65,7 +67,6 @@ def write_image(
     )
     wm = d.measureLine(p00, p10)  # euclidean dist, extent width in m
     hm = d.measureLine(p00, p01)  # euclidean dist, extent height in m
-    feedback.pushInfo(f"Texture extent size: {wm:.2f}x{hm:.2f} m")
 
     # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
@@ -80,28 +81,27 @@ def write_image(
     hpix = int(hm / tex_pixel_size)
     settings.setOutputSize(QSize(wpix, hpix))
     settings.setLayers(layers)
+    feedback.pushInfo(
+        f"Requested texture size: {wm:.2f}x{hm:.2f} m, {wpix}x{hpix} pixels."
+    )
 
     # Render and save image
     render = QgsMapRendererParallelJob(settings)
     render.start()
     t0 = time.time()
     while render.isActive():
-        dt = int(time.time() - t0)
+        dt = time.time() - t0
         QCoreApplication.processEvents()
-        feedback.pushInfo(f"Rendering texture ({dt} s/60 s)...")
-        time.sleep(2)
-        if feedback.isCanceled() or dt >= 60:
+        if feedback.isCanceled() or dt >= 30.0:
             render.cancelWithoutBlocking()
-            feedback.pushInfo(
-                "No texture saved: render cancelled or timed out due to unavailable server at this pixel size."
-            )
+            feedback.pushInfo("Render cancelled or timed out, no texture saved.")
             return
     image = render.renderedImage()
     try:
         image.save(filepath, imagetype)
     except IOError:
-        raise QgsProcessingException(f"Texture not writable in <{filepath}>")
-    feedback.pushInfo(f"Texture saved {wpix}x{hpix} pixels.")
+        raise QgsProcessingException(f"Texture not writable to <{filepath}>")
+    feedback.pushInfo(f"Texture saved in {dt:.2f} seconds.")
 
 
 # The FDS bingeom file is written from Fortran90 like this:
