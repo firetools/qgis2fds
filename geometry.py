@@ -8,6 +8,7 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import math
+import numpy as np
 
 
 # Get verts, faces, landuses
@@ -22,20 +23,19 @@ def get_geometry(feedback, layer, utm_origin):
     """
     feedback.setCurrentStep(8)
     feedback.pushInfo("Geometry: building the point matrix...")
-    matrix = _get_matrix(layer=layer, utm_origin=utm_origin)
+    matrix = _get_matrix(feedback, layer=layer, utm_origin=utm_origin)
     if feedback.isCanceled():
         return {}
     feedback.setCurrentStep(9)
     feedback.pushInfo("Geometry: getting quad faces...")
-    faces, landuses = _get_faces(matrix=matrix)
+    faces, landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
     feedback.setCurrentStep(10)
     feedback.pushInfo("Geometry: getting verts...")
-    landuses_set = set(landuses)
-    verts = _get_verts(matrix=matrix)
+    verts = _get_verts(feedback=feedback, m=matrix)
     feedback.setCurrentStep(11)
-    return verts, faces, landuses, landuses_set
+    return verts, faces, landuses
 
 
 # Prepare the matrix of quad faces center points with landuse
@@ -67,62 +67,38 @@ def get_geometry(feedback, layer, utm_origin):
 # o verts
 
 
-def _norm(vector):
-    return math.sqrt(vector[0] ** 2 + vector[1] ** 2)
-
-
-def _dot_product(p0, p1, p2):
-    v0 = [p1[0] - p0[0], p1[1] - p0[1]]
-    v1 = [p2[0] - p0[0], p2[1] - p0[1]]
-    return (v0[0] * v1[0] + v0[1] * v1[1]) / (_norm(v0) * _norm(v1))
-
-
-def _get_matrix(layer, utm_origin):
+def _get_matrix(feedback, layer, utm_origin):
     """
     Return the matrix of quad faces center points with landuse.
     @param layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
     @return matrix of quad faces center points with landuse.
     """
-
-    features = layer.getFeatures()  # get the points
-    # Find matrix column length
-    first_point, second_point = None, None
-    ox, oy = utm_origin.x(), utm_origin.y()
-    for f in features:
-        g = f.geometry().get()  # QgsPoint
-        point = (
-            g.x() - ox,  # x, relative to origin
-            g.y() - oy,  # y, relative to origin
-        )
-        if first_point is None:
-            column_len, first_point = 1, point
-        elif second_point is None:
-            column_len, second_point = 2, point
-        elif abs(_dot_product(first_point, second_point, point)) > 0.1:
-            column_len += 1  # point on the same column
-        else:
-            break  # end of column
-    # Prepare matrix by splitting features
-    i, m = 0, []
-    for f in features:
+    # Allocate and fill np array, points are listed by column
+    ox, oy = utm_origin.x(), utm_origin.y()  # get origin
+    features = tuple(layer.getFeatures())  # get the points
+    npoints = len(features)
+    m = np.empty((len(features), 4))  # allocate array
+    for i, f in enumerate(features):
         g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
-        point = (
+        m[i] = (  # fill array
             g.x() - ox,  # x, relative to origin
             g.y() - oy,  # y, relative to origin
             g.z(),  # z absolute
             a[5] or 0,  # landuse, protect from None
         )
-        i += 1
-        if i == 1:  # first point of the m column
-            m.append(
-                [point,]
-            )
-        elif i == column_len:  # last point
-            i = 0
-        else:  # following point
-            m[-1].append(point)
-    return list(map(list, zip(*m)))  # transpose
+    # Get point column length and split matrix
+    column_len = 2
+    p0, p1 = m[0, :2], m[1, :2]
+    v0 = p1 - p0
+    for p2 in m[2:, :2]:
+        v1 = p2 - p1
+        if abs(np.dot(v0, v1) / np.linalg.norm(v0) / np.linalg.norm(v1)) < 0.9:
+            break  # end of point column
+        column_len += 1
+    # Split into columns list, get np array, and transpose
+    # Now points are by row
+    return np.array(np.split(m, npoints // column_len)).transpose(1, 0, 2)
 
 
 # Getting face connectivity and landuse
@@ -135,39 +111,39 @@ def _get_matrix(layer, utm_origin):
 #        *------>* i+1
 
 
-def _get_vert_index(i, j, len_vrow):
-    # F90 indexes start from 1, so +1
-    return i * len_vrow + j + 1
+def _get_vert_index(i, j, len_vcol):
+    """
+    Get vert index in fds_vert vector notation.
+    """
+    return i * len_vcol + j + 1  # F90 indexes start from 1
 
 
-def _get_f1(i, j, len_vrow):
-    return (
-        _get_vert_index(i, j, len_vrow),
-        _get_vert_index(i + 1, j, len_vrow),
-        _get_vert_index(i, j + 1, len_vrow),
-    )
-
-
-def _get_f2(i, j, len_vrow):
-    return (
-        _get_vert_index(i + 1, j + 1, len_vrow),
-        _get_vert_index(i, j + 1, len_vrow),
-        _get_vert_index(i + 1, j, len_vrow),
-    )
-
-
-def _get_faces(matrix):
+def _get_faces(feedback, m):
     """
     Get face connectivity and landuses.
-    @param matrix: matrix of quad faces center points with landuse.
+    @param m: matrix of quad faces center points with landuse.
     @return faces and landuses
     """
     faces, landuses = list(), list()
-    len_vrow = len(matrix[0]) + 1
-    for i, row in enumerate(matrix):
+    len_vcol = m.shape[1] + 1  # vert matrix is larger
+    for i, row in enumerate(m):
         for j, p in enumerate(row):
-            faces.extend((_get_f1(i, j, len_vrow), _get_f2(i, j, len_vrow)))
-            landuses.extend((p[3], p[3]))
+            faces.extend(
+                (
+                    (
+                        _get_vert_index(i, j, len_vcol),  # 1st face
+                        _get_vert_index(i + 1, j, len_vcol),
+                        _get_vert_index(i, j + 1, len_vcol),
+                    ),
+                    (
+                        _get_vert_index(i + 1, j + 1, len_vcol),  # 2nd tri face
+                        _get_vert_index(i, j + 1, len_vcol),
+                        _get_vert_index(i + 1, j, len_vcol),
+                    ),
+                )
+            )
+            lu = int(p[3])  # landuse idx
+            landuses.extend((lu, lu))
     return faces, landuses
 
 
@@ -179,86 +155,45 @@ def _get_faces(matrix):
 # · centers of quad faces  + ghost centers
 # o verts  * cs  x vert
 #
-#           dx     j  j+1
-#          + > +   +   +   +   +
-#       dy v o   o   o   o   o
-#          +   *   *   ·   ·   +
-#            o   x   o   o   o
-# pres_row +   *   *   ·   ·   +  i-1
-#            o   o---o   o   o
-#      row +   · | · | ·   ·   +  i
-#            o   o---o   o   o
-#          +   +   +   +   +   +
-
-#              j      j+1
-# prev_row     *       * i-1
-#
-#          o-------x
-#          |       |
-#      row |   *   |   * i
-#          |       |
-#          o-------o
+#           dx       j
+#          + > +   +   +   +   +  first ghost row
+#       dy v o---o---o---o---o
+#          + | · | · | · | · | +  i center
+#            o---o---x---o---o    i vert
+#          + | · | · | · | · | +  i+1 center
+#            o---o---o---o---o
+#          +   +   +   +   +   +  last ghost row (skipped)
 
 
-def _inject_ghost_centers(matrix):
-    """
-    Inject ghost centers into the matrix.
-    """
-
-    # Calc displacements for ghost centers
-    fsub = lambda a: a[0] - a[1]
-    fadd = lambda a: a[0] + a[1]
-    dx = list(map(fsub, zip(matrix[0][1], matrix[0][0])))
-    dy = list(map(fsub, zip(matrix[1][0], matrix[0][0])))
-    # no vertical displacement for ghost centers (smoother)
-    dx[2], dy[2] = 0.0, 0.0
-
-    # Insert new first ghost row
-    row = list(tuple(map(fsub, zip(c, dy))) for c in matrix[0])
-    matrix.insert(0, row)
-
-    # Append new last ghost row
-    row = list(tuple(map(fadd, zip(c, dy))) for c in matrix[-1])
-    matrix.append(row)
-
-    # Insert new first and last ghost col
-    for row in matrix:
-        # new first ghost col
-        gc = tuple(map(fsub, zip(row[0], dx)))
-        row.insert(0, gc)
-        # new last ghost col
-        gc = tuple(map(fadd, zip(row[-1], dx)))
-        row.append(gc)
-
-
-def _get_neighbour_centers(prev_row, row, j):
-    return (
-        prev_row[j][:-1],  # rm landuse from center (its last value)
-        prev_row[j + 1][:-1],
-        row[j][:-1],
-        row[j + 1][:-1],
-    )
-
-
-def _avg(l):
-    return sum(l) / len(l)
-
-
-def _get_vert(neighbour_centers):
-    return tuple(map(_avg, zip(*neighbour_centers)))  # avg of centers coordinates
-
-
-def _get_verts(matrix):
+def _get_verts(feedback, m):
     """
     Get vertices from the center matrix.
-    @param matrix: matrix of quad faces center points with landuse.
+    @param m: matrix of quad faces center points with landuse, and ghost cells.
     @return verts
     """
-    _inject_ghost_centers(matrix)  # modification in place
+    # Inject ghost centers
+    dx, dy = m[0, 1] - m[0, 0], m[1, 0] - m[0, 0]  # displacements
+    dx[2], dy[2] = 0.0, 0.0  # no z displacement
+    dx[3], dy[3] = 0.0, 0.0  # no landuse change
+
+    row = tuple(c - dy for c in m[0, :])  # first ghost center row
+    m = np.insert(m, 0, row, axis=0)
+
+    row = tuple((tuple(c + dy for c in m[-1, :]),))  # last ghost center row
+    m = np.append(m, row, axis=0)
+
+    col = tuple(c - dx for c in m[:, 0])  # new first ghost center col
+    m = np.insert(m, 0, col, axis=1)
+
+    col = tuple(tuple((c + dx,) for c in m[:, -1]),)  # last ghost center col
+    m = np.append(m, col, axis=1)
+
+    # Average center coordinates to obtain verts
     verts = list()
-    prev_row = matrix[0]
-    for row in matrix[1:]:  # matrix[0] is prev_row
-        for j, _ in enumerate(row[:-1]):
-            verts.append(_get_vert(_get_neighbour_centers(prev_row, row, j)))
-        prev_row = row
+    for idxs in np.ndindex(m.shape[0] - 1, m.shape[1] - 1):  # skip last row and col
+        i, j = idxs
+        verts.append(
+            (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
+            / 4.0
+        )
     return verts

@@ -57,7 +57,6 @@ def write_case(
     faces,
     landuses,
     landuse_type,
-    landuses_set,
     mesh_extent,
 ):
     """
@@ -170,12 +169,12 @@ def write_case(
 
     # Write bingeom file
     landuse_select = landuse_choices[landuse_type]
-    fds_surfs = list(
+    fds_surfs = tuple(
         landuse_select.get(landuses[i], landuses[0]) for i, _ in enumerate(faces)
     )
     n_surf_id = max(fds_surfs)
-    fds_verts = list(v for vs in verts for v in vs)
-    fds_faces = list(f for fs in faces for f in fs)
+    fds_verts = tuple(v for vs in verts for v in vs)
+    fds_faces = tuple(f for fs in faces for f in fs)
     utils.write_bingeom(
         geom_type=2,
         n_surf_id=n_surf_id,

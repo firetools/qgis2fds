@@ -368,6 +368,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
+        # feedback.pushInfo(f"{x0, x1, y0, y1, xspacing, dem_sampling}")
+
         feedback.pushInfo(
             f"Estimated number of vertices: {int((x1-x0) * (y1-y0) / xspacing**2 / dem_sampling**2)}"
         )
@@ -501,7 +503,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         feedback.pushInfo("Building lists of vertices and faces...")
 
-        verts, faces, landuses, landuses_set = geometry.get_geometry(
+        verts, faces, landuses = geometry.get_geometry(
             feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
 
@@ -528,7 +530,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             faces=faces,
             landuses=landuses,
             landuse_type=landuse_type,
-            landuses_set=landuses_set,
             mesh_extent=mesh_extent,
         )
 
