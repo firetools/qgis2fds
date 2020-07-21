@@ -22,19 +22,20 @@ def get_geometry(feedback, layer, utm_origin):
     @return verts, faces, landuses
     """
     feedback.setCurrentStep(8)
-    feedback.pushInfo("Geometry: building the point matrix...")
+    feedback.pushInfo("Building the point matrix...")
     matrix = _get_matrix(feedback, layer=layer, utm_origin=utm_origin)
     if feedback.isCanceled():
         return {}
     feedback.setCurrentStep(9)
-    feedback.pushInfo("Geometry: getting quad faces...")
+    feedback.pushInfo("Getting faces and landuses...")
     faces, landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
     feedback.setCurrentStep(10)
-    feedback.pushInfo("Geometry: getting verts...")
+    feedback.pushInfo("Getting verts...")
     verts = _get_verts(feedback=feedback, m=matrix)
     feedback.setCurrentStep(11)
+    feedback.pushInfo(f"Geometry ready: {len(verts)} verts, {len(faces)} faces.")
     return verts, faces, landuses
 
 

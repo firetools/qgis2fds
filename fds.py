@@ -63,6 +63,8 @@ def write_case(
     Get FDS case.
     """
 
+    feedback.pushInfo("Writing the FDS case file...")
+
     # Calc header
     pv = pluginMetadata("qgis2fds", "version")
     qv = QgsExpressionContextUtils.globalScope().variable("qgis_version")

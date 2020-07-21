@@ -211,8 +211,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         outputs = {}
         project = QgsProject.instance()
 
-        feedback.pushInfo("Starting...")
-
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
             return {}
@@ -368,10 +366,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
-        # feedback.pushInfo(f"{x0, x1, y0, y1, xspacing, dem_sampling}")
-
         feedback.pushInfo(
-            f"Estimated number of vertices: {int((x1-x0) * (y1-y0) / xspacing**2 / dem_sampling**2)}"
+            f"Estimated number of sampling points: {int((x1-x0) * (y1-y0) / xspacing**2 / dem_sampling**2)}"
         )
 
         alg_params = {
@@ -397,8 +393,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
 
         # Save texture
-
-        feedback.pushInfo("Rendering texture image...")
 
         dem_to_utm_tr = QgsCoordinateTransform(dem_crs, utm_crs, QgsProject.instance())
         tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
@@ -501,8 +495,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         # Prepare geometry
 
-        feedback.pushInfo("Building lists of vertices and faces...")
-
         verts, faces, landuses = geometry.get_geometry(
             feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
@@ -512,8 +504,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
 
         # Write the FDS case file
-
-        feedback.pushInfo("Writing the FDS case file...")
 
         fds.write_case(
             feedback=feedback,
