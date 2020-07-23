@@ -90,8 +90,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # defaultValue, _ = project.readEntry("qgis2fds", "extent", None)  # FIXME
-        defaultValue = None  # FIXME QGIS issue #37447, solved in QGIS 3.14.1
+        # QGIS issue #37447, solved in QGIS 3.14.1
+        defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent", "Terrain extent", defaultValue=defaultValue,
