@@ -7,10 +7,13 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+import time
+
 from qgis.core import (
     QgsProcessingException,
     QgsMapSettings,
     QgsMapRendererParallelJob,
+    QgsMapRendererSequentialJob,
     QgsCoordinateTransform,
     QgsRectangle,
     QgsProject,
@@ -19,7 +22,7 @@ from qgis.core import (
 )
 from qgis.utils import iface
 from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtCore import QSize, QCoreApplication
 
 
 # Write to file
@@ -39,7 +42,7 @@ def write_file(feedback, filepath, content):
 def write_image(
     feedback,
     tex_layer,
-    tex_layer_dpm,
+    tex_pixel_size,
     destination_crs,
     destination_extent,
     filepath,
@@ -48,6 +51,8 @@ def write_image(
     """
     Save current QGIS canvas to image file.
     """
+
+    feedback.pushInfo("Rendering texture image (timeout in 30s)...")
     project = QgsProject.instance()
 
     # Get extent size in meters
@@ -60,9 +65,8 @@ def write_image(
         QgsPointXY(destination_extent.xMaximum(), destination_extent.yMinimum()),
         QgsPointXY(destination_extent.xMinimum(), destination_extent.yMaximum()),
     )
-    wm = d.measureLine(p00, p10)  # euclidean distance
-    hm = d.measureLine(p00, p01)  # euclidean distance
-    feedback.pushInfo(f"Extent size: {wm:.2f}x{hm:.2f} m")
+    wm = d.measureLine(p00, p10)  # euclidean dist, extent width in m
+    hm = d.measureLine(p00, p01)  # euclidean dist, extent height in m
 
     # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
@@ -73,21 +77,92 @@ def write_image(
     else:
         canvas = iface.mapCanvas()
         layers = canvas.layers()  # get visible layers
-    wpix = int(wm) * tex_layer_dpm
-    hpix = int(hm) * tex_layer_dpm
+    wpix = int(wm / tex_pixel_size)
+    hpix = int(hm / tex_pixel_size)
     settings.setOutputSize(QSize(wpix, hpix))
     settings.setLayers(layers)
+    feedback.pushInfo(
+        f"Requested texture size: {wm:.2f}x{hm:.2f} m, {wpix}x{hpix} pixels."
+    )
 
     # Render and save image
     render = QgsMapRendererParallelJob(settings)
     render.start()
-    render.waitForFinished()
+    t0 = time.time()
+    while render.isActive():
+        dt = time.time() - t0
+        QCoreApplication.processEvents()
+        if feedback.isCanceled() or dt >= 30.0:
+            render.cancelWithoutBlocking()
+            feedback.pushInfo("Render cancelled or timed out, no texture saved.")
+            return
     image = render.renderedImage()
     try:
         image.save(filepath, imagetype)
     except IOError:
-        raise QgsProcessingException(f"Image not writable at <{filepath}>")
-    feedback.pushInfo(f"Texture saved, {wpix}x{hpix} pixels.")
+        raise QgsProcessingException(f"Texture not writable to <{filepath}>")
+    feedback.pushInfo(f"Texture saved in {dt:.2f} seconds.")
+
+
+# The FDS bingeom file is written from Fortran90 like this:
+#      WRITE(731) INTEGER_ONE
+#      WRITE(731) N_VERTS,N_FACES,N_SURF_ID,N_VOLUS
+#      WRITE(731) VERTS(1:3*N_VERTS)
+#      WRITE(731) FACES(1:3*N_FACES)
+#      WRITE(731) SURFS(1:N_FACES)
+#      WRITE(731) VOLUS(1:4*N_VOLUS)
+
+import struct
+import numpy as np
+
+
+def _write_record(f, data):
+    """!
+    Write a record to a binary unformatted sequential Fortran90 file.
+    @param f: open Python file object in 'wb' mode.
+    @param data: np.array() of data.
+    """
+    # Calc start and end record tag
+    tag = len(data) * data.dtype.itemsize
+    # print(f"Write: record tag: {tag} dlen: {len(data)}\ndata: {data}")  # TODO log debug
+    # Write start tag, data, and end tag
+    f.write(struct.pack("i", tag))
+    data.tofile(f)
+    f.write(struct.pack("i", tag))
+
+
+def write_bingeom(
+    geom_type, n_surf_id, fds_verts, fds_faces, fds_surfs, fds_volus, filepath
+):
+    """!
+    Write FDS bingeom file.
+    @param geom_type: GEOM type (eg. 1 is manifold, 2 is terrain)
+    @param n_surf_id: number of referred boundary conditions
+    @param fds_verts: vertices coordinates in FDS flat format, eg. (x0, y0, z0, x1, y1, ...)
+    @param fds_faces: faces connectivity in FDS flat format, eg. (i0, j0, k0, i1, ...)
+    @param fds_surfs: boundary condition indexes, eg. (i0, i1, ...)
+    @param fds_volus: volumes connectivity in FDS flat format, eg. (i0, j0, k0, w0, i1, ...)
+    @param filepath: destination filepath
+    """
+
+    with open(filepath, "wb") as f:
+        _write_record(f, np.array((geom_type,), dtype="int32"))  # was 1 only
+        _write_record(
+            f,
+            np.array(
+                (
+                    len(fds_verts) // 3,
+                    len(fds_faces) // 3,
+                    n_surf_id,
+                    len(fds_volus) // 4,
+                ),
+                dtype="int32",
+            ),
+        )
+        _write_record(f, np.array(fds_verts, dtype="float64"))
+        _write_record(f, np.array(fds_faces, dtype="int32"))
+        _write_record(f, np.array(fds_surfs, dtype="int32"))
+        _write_record(f, np.array(fds_volus, dtype="int32"))
 
 
 # Geographic operations
