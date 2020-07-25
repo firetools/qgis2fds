@@ -108,7 +108,7 @@ def write_case(
             f"&TIME T_END=1. /",
             f" ",
             f"&MISC ORIGIN_LAT={wgs84_origin.y():.7f}, ORIGIN_LON={wgs84_origin.x():.7f}, NORTH_BEARING=0.",
-            f"      TERRAIN_CASE=T, TERRAIN_IMAGE='{chid}_tex.png', LEVEL_SET_MODE=1 /",
+            f"      TERRAIN_IMAGE='{chid}_tex.png', LEVEL_SET_MODE=1 /",
             f" ",
             f"! Domain and its boundary conditions",
             f"&MESH IJK=50,50,50, XB={mesh_xb[0]:.3f},{mesh_xb[1]:.3f},{mesh_xb[2]:.3f},{mesh_xb[3]:.3f},{mesh_xb[4]:.3f},{mesh_xb[5]:.3f} /",
