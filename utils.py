@@ -36,7 +36,9 @@ def write_file(feedback, filepath, content):
         with open(filepath, "w") as f:
             f.write(content)
     except IOError:
-        raise QgsProcessingException(f"File not writable at <{filepath}>")
+        raise QgsProcessingException(
+            f"File not writable at <{filepath}>, cannot proceed."
+        )
 
 
 def write_image(
@@ -92,15 +94,20 @@ def write_image(
     while render.isActive():
         dt = time.time() - t0
         QCoreApplication.processEvents()
-        if feedback.isCanceled() or dt >= 30.0:
+        if feedback.isCanceled():
             render.cancelWithoutBlocking()
-            feedback.pushInfo("Render cancelled or timed out, no texture saved.")
+            return
+        if dt >= 30.0:
+            render.cancelWithoutBlocking()
+            feedback.reportError("Render timed out, no texture saved.")
             return
     image = render.renderedImage()
     try:
         image.save(filepath, imagetype)
     except IOError:
-        raise QgsProcessingException(f"Texture not writable to <{filepath}>")
+        raise QgsProcessingException(
+            f"Texture not writable to <{filepath}>, cannot proceed."
+        )
     feedback.pushInfo(f"Texture saved in {dt:.2f} seconds.")
 
 

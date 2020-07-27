@@ -276,24 +276,20 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "project_crs", project_crs.description())
         feedback.pushInfo(f"Project CRS: <{project_crs.description()}>")
         if not project_crs.isValid():
-            raise QgsProcessingException(
-                "Project CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
-            )
+            raise QgsProcessingException("Project CRS is not usable, cannot proceed.")
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
 
         dem_crs = dem_layer.crs()
         feedback.pushInfo(f"DEM layer CRS: <{dem_crs.description()}>")
         if not dem_crs.isValid():
-            raise QgsProcessingException(
-                "DEM layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
-            )
+            raise QgsProcessingException("DEM layer CRS is not usable, cannot proceed.")
 
         if landuse_layer:
             landuse_crs = landuse_layer.crs()
             feedback.pushInfo(f"Landuse layer CRS: <{landuse_crs.description()}>")
             if not landuse_crs.isValid():
                 raise QgsProcessingException(
-                    "Landuse layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+                    "Landuse layer CRS is not usable, cannot proceed."
                 )
 
         if tex_layer:
@@ -301,7 +297,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback.pushInfo(f"Texture layer CRS: <{tex_crs.description()}>")
             if not tex_crs.isValid():
                 raise QgsProcessingException(
-                    "Texture layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+                    "Texture layer CRS is not usable, cannot proceed."
                 )
 
         # Get extent in WGS84 CRS
@@ -349,7 +345,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Check for QGIS bug
         if utm_origin == wgs84_origin:
             raise QgsProcessingException(
-                f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> cannot be the same."
+                f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> are identical, cannot proceed."
             )
 
         # Get fire origin in UTM CRS
@@ -362,6 +358,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_crs, QgsProject.instance())
         dem_extent = utm_to_dem_tr.transformBoundingBox(mesh_extent)
+
+        # Check DEM contains dem_extent
+        if not dem_layer.extent().contains(dem_extent):
+            feedback.reportError("Terrain extent is larger than available DEM data.")
 
         feedback.setCurrentStep(2)
         if feedback.isCanceled():
@@ -389,9 +389,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
         npoints = int((x1 - x0) / xspacing * (y1 - y0) / yspacing / dem_sampling ** 2)
-        if npoints < 1:
+        if npoints < 9:
             raise QgsProcessingException(
-                f"Too few sampling points. (npoints: {npoints})"
+                f"Too few sampling points, cannot proceed. (npoints: {npoints})"
             )
         feedback.pushInfo(
             f"Sampling points: {npoints} (xspacing: {xspacing}, yspacing: {yspacing})"

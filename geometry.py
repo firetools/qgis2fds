@@ -79,7 +79,7 @@ def _get_matrix(feedback, layer, utm_origin):
     ox, oy = utm_origin.x(), utm_origin.y()  # get origin
     features = tuple(layer.getFeatures())  # get the points
     npoints = len(features)
-    if npoints < 1:
+    if npoints < 9:
         raise QgsProcessingException(f"Too few sampling points (features: {npoints})")
     m = np.empty((len(features), 4))  # allocate array
     for i, f in enumerate(features):
