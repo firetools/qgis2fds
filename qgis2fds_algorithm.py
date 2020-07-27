@@ -54,7 +54,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         project = QgsProject.instance()
 
-        # Get project crs FIXME
+        # Get project crs
         project_crs = project.crs()
 
         # Check if project crs changed
@@ -113,7 +113,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readEntry("qgis2fds", "dem_sampling", "1")
         param = QgsProcessingParameterNumber(
             "dem_sampling",
-            "DEM layer sampling rate",
+            "DEM layer sampling factor",
             defaultValue=defaultValue,
             minValue=1,
         )
@@ -282,6 +282,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
 
         dem_crs = dem_layer.crs()
+        feedback.pushInfo(f"DEM layer CRS: <{dem_crs.description()}>")
         if not dem_crs.isValid():
             raise QgsProcessingException(
                 "DEM layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
@@ -289,6 +290,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if landuse_layer:
             landuse_crs = landuse_layer.crs()
+            feedback.pushInfo(f"Landuse layer CRS: <{landuse_crs.description()}>")
             if not landuse_crs.isValid():
                 raise QgsProcessingException(
                     "Landuse layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
@@ -378,9 +380,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         x0 = xd0 + round((x0 - xd0) / xspacing) * xspacing + xspacing / 2.0
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
-
+        npoints = int((x1 - x0) / xspacing * (y1 - y0) / yspacing / dem_sampling ** 2)
+        if npoints < 1:
+            raise QgsProcessingException(
+                f"Too few sampling points. (npoints: {npoints})"
+            )
         feedback.pushInfo(
-            f"Sampling points: {int((x1-x0) / xspacing * (y1-y0) / yspacing / dem_sampling**2)} (xspacing: {xspacing}, yspacing: {yspacing})"
+            f"Sampling points: {npoints} (xspacing: {xspacing}, yspacing: {yspacing})"
         )
         alg_params = {
             "CRS": dem_crs,

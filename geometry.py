@@ -79,8 +79,8 @@ def _get_matrix(feedback, layer, utm_origin):
     ox, oy = utm_origin.x(), utm_origin.y()  # get origin
     features = tuple(layer.getFeatures())  # get the points
     npoints = len(features)
-    if not npoints:
-        raise QgsProcessingException(f"No feature available. (npoints: {npoints})")
+    if npoints < 1:
+        raise QgsProcessingException(f"Too few sampling points (features: {npoints})")
     m = np.empty((len(features), 4))  # allocate array
     for i, f in enumerate(features):
         g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
