@@ -296,6 +296,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     "Landuse layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
                 )
 
+        if tex_layer:
+            tex_crs = tex_layer.crs()
+            feedback.pushInfo(f"Texture layer CRS: <{tex_crs.description()}>")
+            if not tex_crs.isValid():
+                raise QgsProcessingException(
+                    "Texture layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+                )
+
         # Get extent in WGS84 CRS
         wgs84_extent = self.parameterAsExtent(
             parameters, "extent", context, crs=wgs84_crs
