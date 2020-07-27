@@ -54,12 +54,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         project = QgsProject.instance()
 
-        # Get project crs, and see if it is ok
+        # Get project crs FIXME
         project_crs = project.crs()
-        if project_crs == QgsCoordinateReferenceSystem("EPSG:3857"):  # Web Mercator
-            QgsProject.instance().setCrs(
-                QgsCoordinateReferenceSystem("EPSG:4326")
-            )  # WGS84
 
         # Check if project crs changed
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
@@ -275,11 +271,28 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             "qgis2fds", "tex_pixel_size", parameters["tex_pixel_size"]
         )
 
-        # Prepare CRSs
+        # Prepare CRSs and check their validity
         project_crs = QgsProject.instance().crs()
         project.writeEntry("qgis2fds", "project_crs", project_crs.description())
+        feedback.pushInfo(f"Project CRS: <{project_crs.description()}>")
+        if not project_crs.isValid():
+            raise QgsProcessingException(
+                "Project CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+            )
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+
         dem_crs = dem_layer.crs()
+        if not dem_crs.isValid():
+            raise QgsProcessingException(
+                "DEM layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+            )
+
+        if landuse_layer:
+            landuse_crs = landuse_layer.crs()
+            if not landuse_crs.isValid():
+                raise QgsProcessingException(
+                    "Landuse layer CRS is not usable, cannot proceed. See qgis2fds wiki pages for help."
+                )
 
         # Get extent in WGS84 CRS
         wgs84_extent = self.parameterAsExtent(
@@ -326,7 +339,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Check for QGIS bug
         if utm_origin == wgs84_origin:
             raise QgsProcessingException(
-                f"QGIS bug: UTM Origin <{utm_origin} and WGS84 Origin <{wgs84_origin}> cannot be the same!"
+                f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> cannot be the same."
             )
 
         # Get fire origin in UTM CRS
@@ -367,9 +380,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
 
         feedback.pushInfo(
-            f"Estimated number of sampling points: {int((x1-x0) * (y1-y0) / xspacing**2 / dem_sampling**2)}"
+            f"Sampling points: {int((x1-x0) / xspacing * (y1-y0) / yspacing / dem_sampling**2)} (xspacing: {xspacing}, yspacing: {yspacing})"
         )
-
         alg_params = {
             "CRS": dem_crs,
             "EXTENT": dem_extent,
@@ -480,7 +492,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
             point_layer = context.getMapLayer(results["sampling_layer"])
         else:
-            feedback.pushInfo("No landuse, no sampling.")
+            feedback.pushInfo("No landuse layer provided, no sampling.")
             results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
             point_layer = context.getMapLayer(results["sampling_layer"])
             # add fake landuse
