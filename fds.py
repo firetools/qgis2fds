@@ -151,7 +151,7 @@ def write_case(
             f"&SURF ID='A13', VEG_LSET_FUEL_INDEX=13 /",
             f"&SURF ID='Urban' RGB=186,119, 80 /",
             f"&SURF ID='Snow-Ice' RGB=234,234,234 /",
-            f"&SURF ID='Agricolture' RGB=253,242,242 /",
+            f"&SURF ID='Agriculture' RGB=253,242,242 /",
             f"&SURF ID='Water' RGB=137,183,221 /",
             f"&SURF ID='Barren' RGB=133,153,156 /",
             f"&SURF ID='NA' RGB=255,255,255 /",
@@ -161,7 +161,7 @@ def write_case(
             f"      READ_BINARY=T IS_TERRAIN=T EXTEND_TERRAIN=F",
             f"      SURF_ID='A01','A02','A03','A04','A05','A06','A07',",
             f"              'A08','A09','A10','A11','A12','A13','Urban',",
-            f"              'Snow-Ice','Agricolture','Water','Barren','NA' /",
+            f"              'Snow-Ice','Agriculture','Water','Barren','NA' /",
             f" ",
             f"&TAIL /\n",
         )
