@@ -9,7 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import QgsExpressionContextUtils, QgsProject
 from qgis.utils import pluginMetadata
-import time
+import time, os
 from . import utils
 
 # Config
@@ -158,10 +158,11 @@ def write_case(
             f" ",
             f"! Terrain",
             f"&GEOM ID='Terrain'",
-            f"      READ_BINARY=T IS_TERRAIN=T EXTEND_TERRAIN=F",
             f"      SURF_ID='A01','A02','A03','A04','A05','A06','A07',",
             f"              'A08','A09','A10','A11','A12','A13','Urban',",
-            f"              'Snow-Ice','Agriculture','Water','Barren','NA' /",
+            f"              'Snow-Ice','Agriculture','Water','Barren','NA'",
+            f"      BINARY_NAME='{chid}_terrain.bingeom'",
+            f"      IS_TERRAIN=T EXTEND_TERRAIN=F /",
             f" ",
             f"&TAIL /\n",
         )
@@ -170,6 +171,7 @@ def write_case(
     utils.write_file(feedback=feedback, filepath=f"{path}/{chid}.fds", content=content)
 
     # Write bingeom file
+    filepath = os.path.join(path, chid + "_terrain.bingeom")
     landuse_select = landuse_choices[landuse_type]
     fds_surfs = tuple(
         landuse_select.get(landuses[i], landuses[0]) for i, _ in enumerate(faces)
@@ -184,5 +186,5 @@ def write_case(
         fds_faces=fds_faces,
         fds_surfs=fds_surfs,
         fds_volus=list(),
-        filepath=f"{path}/{chid}_Terrain.bingeom",
+        filepath=filepath,
     )
