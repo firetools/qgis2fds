@@ -1,9 +1,9 @@
-# Welcome to the *qgis2fds* plugin repository!
+# *qgis2fds* plugin repository
 
-The open source plugin to export terrains and landuse from the [QGIS](http://www.qgis.org) geographic information system to the [NIST Fire Dynamics Simulator (FDS)](https://pages.nist.gov/fds-smv/) for wildfire simulation and atmospheric dispersion of fire pollutants.
+This is the open source plugin to export terrains and landuse from the [QGIS](http://www.qgis.org) geographic information system to the [NIST Fire Dynamics Simulator (FDS)](https://pages.nist.gov/fds-smv/) for wildfire simulation and atmospheric dispersion of fire pollutants.
 
- * **Learn** how to use qgis2fds on the [wiki pages](https://github.com/firetools/qgis2fds/wiki).
- * **Discuss** about its usage on the [qgis2fds discussion group](https://groups.google.com/g/qgis2fds).
+ * **Learn** how to use this tool on the [wiki pages](https://github.com/firetools/qgis2fds/wiki).
+ * **Discuss** about its usage on its [discussion group](https://groups.google.com/g/qgis2fds).
  * File **issues** on the [issue tracker](https://github.com/firetools/qgis2fds/issues). 
  
 ---
