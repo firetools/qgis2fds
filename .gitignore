@@ -39,3 +39,4 @@ deploy_qgis2fds
 *.bf.bnd
 *.gbf
 *.fds
+*.gsf
