@@ -86,9 +86,9 @@ def write_case(
     # Calc MESH IJK
     cell_size = 10.0
     mesh_ijk = (
-        (mesh_xb[1] - mesh_xb[0]) // cell_size,
-        (mesh_xb[3] - mesh_xb[2]) // cell_size,
-        (mesh_xb[5] - mesh_xb[4]) // cell_size,
+        int((mesh_xb[1] - mesh_xb[0]) / cell_size),
+        int((mesh_xb[3] - mesh_xb[2]) / cell_size),
+        int((mesh_xb[5] - mesh_xb[4]) / cell_size),
     )
 
     # Calc ignition point VENT XB
@@ -121,7 +121,7 @@ def write_case(
 ! Date: <{now}>
  
 &HEAD CHID='{chid}' TITLE='Description of {chid}' /
-&TIME T_END=600. /
+&TIME T_END=1200. /
 
 ! MISC LEVEL_SET_MODE parameter
 ! 1: Wind not affected by the terrain. No fire.
@@ -134,7 +134,7 @@ def write_case(
       LEVEL_SET_MODE=1 /
 
 ! Domain and its boundary conditions
-&MESH IJK={mesh_ijk[0]},{mesh_ijk[1]},{mesh_ijk[1]}
+&MESH IJK={mesh_ijk[0]:d},{mesh_ijk[1]:d},{mesh_ijk[2]:d}
       XB={mesh_xb[0]:.3f},{mesh_xb[1]:.3f},{mesh_xb[2]:.3f},{mesh_xb[3]:.3f},{mesh_xb[4]:.3f},{mesh_xb[5]:.3f} /
 &VENT ID='Domain BC XMIN' MB='XMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC XMAX' MB='XMAX' SURF_ID='OPEN' /
@@ -155,12 +155,12 @@ def write_case(
 
 ! Wind
 &WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
-&RAMP ID='ws', T=   0, F= 1. /
+&RAMP ID='ws', T=   0, F=10. /
 &RAMP ID='ws', T= 600, F=10. /
 &RAMP ID='ws', T=1200, F=20. /
 &RAMP ID='wd', T=   0, F=315. /
 &RAMP ID='wd', T= 600, F=270. /
-&RAMP ID='wd', T=1200, F=270. /
+&RAMP ID='wd', T=1200, F=360. /
  
 ! Boundary conditions
 ! 13 Anderson Fire Behavior Fuel Models
