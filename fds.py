@@ -161,7 +161,7 @@ def write_case(
             f"      SURF_ID='A01','A02','A03','A04','A05','A06','A07',",
             f"              'A08','A09','A10','A11','A12','A13','Urban',",
             f"              'Snow-Ice','Agriculture','Water','Barren','NA'",
-            f"      BINARY_NAME='{chid}_terrain.bingeom'",
+            f"      BINARY_FILE='{chid}_terrain.bingeom'",
             f"      IS_TERRAIN=T EXTEND_TERRAIN=F /",
             f" ",
             f"&TAIL /\n",
