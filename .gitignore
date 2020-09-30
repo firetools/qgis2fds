@@ -9,6 +9,9 @@ __pycache__/
 # QGIS
 *.qgs~
 
+# Deploy
+deploy_qgis2fds
+
 # FDS calculations
 *.s3d
 *.s3d.sz
