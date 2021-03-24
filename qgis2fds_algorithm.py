@@ -310,9 +310,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project_crs, wgs84_crs, QgsProject.instance()
         )
         if parameters["origin"] is not None:
-            wgs84_origin = self.parameterAsPoint(
-                parameters, "origin", context, crs=wgs84_crs
-            )
+            # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
+            origin = self.parameterAsPoint(parameters, "origin", context)
+            wgs84_origin = QgsPoint(origin.x(), origin.y())
+            wgs84_origin.transform(project_to_wgs84_tr)
             feedback.pushInfo(f"Using user origin: <{wgs84_origin}>")
             project.writeEntry("qgis2fds", "origin", parameters["origin"])
         else:  # no origin
@@ -321,9 +322,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         # Get fire origin in WGS84 CRS
         if parameters["fire_origin"] is not None:
-            wgs84_fire_origin = self.parameterAsPoint(
-                parameters, "fire_origin", context, crs=wgs84_crs
-            )
+            # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
+            fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
+            wgs84_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
+            wgs84_fire_origin.transform(project_to_wgs84_tr)
             feedback.pushInfo(f"Using user fire origin: <{wgs84_fire_origin}>")
         else:
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
