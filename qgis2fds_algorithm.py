@@ -313,21 +313,21 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             wgs84_origin = self.parameterAsPoint(
                 parameters, "origin", context, crs=wgs84_crs
             )
-            feedback.pushInfo("Using user origin.")
+            feedback.pushInfo(f"Using user origin: <{wgs84_origin}>")
             project.writeEntry("qgis2fds", "origin", parameters["origin"])
         else:  # no origin
             wgs84_origin = wgs84_extent.center()
-            feedback.pushInfo(f"Using terrain extent center as origin.")
+            feedback.pushInfo(f"Using terrain extent center as origin: <{wgs84_origin}>")
 
         # Get fire origin in WGS84 CRS
         if parameters["fire_origin"] is not None:
             wgs84_fire_origin = self.parameterAsPoint(
                 parameters, "fire_origin", context, crs=wgs84_crs
             )
-            feedback.pushInfo("Using user fire origin.")
+            feedback.pushInfo(f"Using user fire origin: <{wgs84_fire_origin}>")
         else:
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
-            feedback.pushInfo("Using origin as fire origin.")
+            feedback.pushInfo(f"Using origin as fire origin: <{wgs84_fire_origin}>")
         project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
 
         # Calc UTM CRS from wgs84_origin
