@@ -186,6 +186,10 @@ def lonlat_to_zn(lon, lat):
     @param lat: latitude in decimal degrees.
     @return the UTM zone number.
     """
+    if lat < -90. or lat > 90.:
+        raise Exception(f"Latitude <{lat}> out of bounds.") 
+    if lon < -180. or lon > 180.:
+        raise Exception(f"Longitude <{lon}> out of bounds.") 
     if 56 <= lat < 64 and 3 <= lon < 12:
         return 32
     if 72 <= lat <= 84 and lon >= 0:
@@ -206,6 +210,8 @@ def lat_to_ne(lat):
     @param lat: latitude in decimal degrees.
     @return True if UTM north hemisphere. False otherwise.
     """
+    if lat < -90. or lat > 90.:
+        raise Exception(f"Latitude <{lat}> out of bounds.") 
     if lat >= -1e-6:
         return True
     else:
@@ -219,6 +225,10 @@ def lonlat_to_epsg(lon, lat):
     @param lat: latitude in decimal degrees.
     @return the EPSG.
     """
+    if lat < -90. or lat > 90.:
+        raise Exception(f"Latitude <{lat}> out of bounds.") 
+    if lon < -180. or lon > 180.:
+        raise Exception(f"Longitude <{lon}> out of bounds.") 
     zn = lonlat_to_zn(lon=lon, lat=lat)
     if lat_to_ne(lat):
         return "EPSG:326" + str(zn).zfill(2)
