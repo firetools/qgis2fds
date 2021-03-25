@@ -63,8 +63,6 @@ def write_case(
     Get FDS case.
     """
 
-    feedback.pushInfo("Writing the FDS case file...")
-
     # Calc header
     pv = pluginMetadata("qgis2fds", "version")
     qv = QgsExpressionContextUtils.globalScope().variable("qgis_version")
@@ -206,6 +204,7 @@ def write_case(
     fds_verts = tuple(v for vs in verts for v in vs)
     fds_faces = tuple(f for fs in faces for f in fs)
     utils.write_bingeom(
+        feedback=feedback, 
         geom_type=2,
         n_surf_id=n_surf_id,
         fds_verts=fds_verts,

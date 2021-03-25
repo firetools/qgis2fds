@@ -39,12 +39,14 @@ def write_file(feedback, filepath, content):
         raise QgsProcessingException(
             f"File not writable at <{filepath}>, cannot proceed."
         )
-
+    feedback.pushInfo(f"Saved: <{filepath}>")
 
 def write_image(
     feedback,
     tex_layer,
     tex_pixel_size,
+    tex_extent_wm,
+    tex_extent_hm,
     destination_crs,
     destination_extent,
     filepath,
@@ -53,22 +55,6 @@ def write_image(
     """
     Save current QGIS canvas to image file.
     """
-
-    feedback.pushInfo("Rendering texture image (timeout in 30s)...")
-    project = QgsProject.instance()
-
-    # Get extent size in meters
-    d = QgsDistanceArea()
-    d.setSourceCrs(
-        crs=destination_crs, context=QgsProject.instance().transformContext()
-    )
-    p00, p10, p01 = (
-        QgsPointXY(destination_extent.xMinimum(), destination_extent.yMinimum()),
-        QgsPointXY(destination_extent.xMaximum(), destination_extent.yMinimum()),
-        QgsPointXY(destination_extent.xMinimum(), destination_extent.yMaximum()),
-    )
-    wm = d.measureLine(p00, p10)  # euclidean dist, extent width in m
-    hm = d.measureLine(p00, p01)  # euclidean dist, extent height in m
 
     # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
@@ -79,13 +65,11 @@ def write_image(
     else:
         canvas = iface.mapCanvas()
         layers = canvas.layers()  # get visible layers
-    wpix = int(wm / tex_pixel_size)
-    hpix = int(hm / tex_pixel_size)
+    wpix = int(tex_extent_wm / tex_pixel_size)
+    hpix = int(tex_extent_hm / tex_pixel_size)
     settings.setOutputSize(QSize(wpix, hpix))
     settings.setLayers(layers)
-    feedback.pushInfo(
-        f"Requested texture size: {wm:.2f}x{hm:.2f} m, {wpix}x{hpix} pixels."
-    )
+    feedback.pushInfo(f"Requested texture: {wpix} x {hpix} pixels")
 
     # Render and save image
     render = QgsMapRendererParallelJob(settings)
@@ -108,7 +92,7 @@ def write_image(
         raise QgsProcessingException(
             f"Texture not writable to <{filepath}>, cannot proceed."
         )
-    feedback.pushInfo(f"Texture saved in {dt:.2f} seconds.")
+    feedback.pushInfo(f"Saved ({dt:.2f} s): <{filepath}>")
 
 
 # The FDS bingeom file is written from Fortran90 like this:
@@ -139,10 +123,11 @@ def _write_record(f, data):
 
 
 def write_bingeom(
-    geom_type, n_surf_id, fds_verts, fds_faces, fds_surfs, fds_volus, filepath
+    feedback, geom_type, n_surf_id, fds_verts, fds_faces, fds_surfs, fds_volus, filepath
 ):
     """!
     Write FDS bingeom file.
+    @param feedback: FIXME
     @param geom_type: GEOM type (eg. 1 is manifold, 2 is terrain)
     @param n_surf_id: number of referred boundary conditions
     @param fds_verts: vertices coordinates in FDS flat format, eg. (x0, y0, z0, x1, y1, ...)
@@ -170,7 +155,7 @@ def write_bingeom(
         _write_record(f, np.array(fds_faces, dtype="int32"))
         _write_record(f, np.array(fds_surfs, dtype="int32"))
         _write_record(f, np.array(fds_volus, dtype="int32"))
-
+    feedback.pushInfo(f"Saved: <{filepath}>")
 
 # Geographic operations
 

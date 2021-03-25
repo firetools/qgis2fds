@@ -11,8 +11,10 @@ from qgis.core import (
     QgsProject,
     QgsGeometry,
     QgsPoint,
+    QgsPointXY,
     QgsRectangle,
     QgsField,
+    QgsDistanceArea,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsVectorLayer,
@@ -202,14 +204,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-        feedback = QgsProcessingMultiStepFeedback(13, model_feedback)
+        feedback = QgsProcessingMultiStepFeedback(7, model_feedback)
         results = {}
         outputs = {}
         project = QgsProject.instance()
-
-        feedback.setCurrentStep(1)
-        if feedback.isCanceled():
-            return {}
 
         # Points:
         #  origin:      user origin point in proj crs
@@ -274,30 +272,26 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Prepare CRSs and check their validity
         project_crs = QgsProject.instance().crs()
         project.writeEntry("qgis2fds", "project_crs", project_crs.description())
-        feedback.pushInfo(f"Project CRS: <{project_crs.description()}>")
         if not project_crs.isValid():
-            raise QgsProcessingException("Project CRS is not usable, cannot proceed.")
+            raise QgsProcessingException(f"Project CRS <{project_crs.description()}> is not usable, cannot proceed.")
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
 
         dem_crs = dem_layer.crs()
-        feedback.pushInfo(f"DEM layer CRS: <{dem_crs.description()}>")
         if not dem_crs.isValid():
-            raise QgsProcessingException("DEM layer CRS is not usable, cannot proceed.")
+            raise QgsProcessingException(f"DEM layer CRS <{dem_crs.description()}> is not usable, cannot proceed.")
 
         if landuse_layer:
             landuse_crs = landuse_layer.crs()
-            feedback.pushInfo(f"Landuse layer CRS: <{landuse_crs.description()}>")
             if not landuse_crs.isValid():
                 raise QgsProcessingException(
-                    "Landuse layer CRS is not usable, cannot proceed."
+                    f"Landuse layer CRS <{landuse_crs.description()}> is not usable, cannot proceed."
                 )
 
         if tex_layer:
             tex_crs = tex_layer.crs()
-            feedback.pushInfo(f"Texture layer CRS: <{tex_crs.description()}>")
             if not tex_crs.isValid():
                 raise QgsProcessingException(
-                    "Texture layer CRS is not usable, cannot proceed."
+                    f"Texture layer CRS <{tex_crs.description()}> is not usable, cannot proceed."
                 )
 
         # Get extent in WGS84 CRS
@@ -312,30 +306,35 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if parameters["origin"] is not None:
             # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             origin = self.parameterAsPoint(parameters, "origin", context)
+            project.writeEntry("qgis2fds", "origin", parameters["origin"])
             wgs84_origin = QgsPoint(origin.x(), origin.y())
             wgs84_origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"Using user origin: <{wgs84_origin}>")
-            project.writeEntry("qgis2fds", "origin", parameters["origin"])
         else:  # no origin
             wgs84_origin = wgs84_extent.center()
-            feedback.pushInfo(f"Using terrain extent center as origin: <{wgs84_origin}>")
+        feedback.pushInfo(f"Domain origin: {wgs84_origin.x():.6f}, {wgs84_origin.y():.6f} (WGS 84)")
+
 
         # Get fire origin in WGS84 CRS
         if parameters["fire_origin"] is not None:
             # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
+            project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
             wgs84_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
             wgs84_fire_origin.transform(project_to_wgs84_tr)
-            feedback.pushInfo(f"Using user fire origin: <{wgs84_fire_origin}>")
         else:
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
-            feedback.pushInfo(f"Using origin as fire origin: <{wgs84_fire_origin}>")
-        project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
+        feedback.pushInfo(f"Fire origin: {wgs84_fire_origin.x():.6f}, {wgs84_fire_origin.y():.6f} (WGS 84)")
 
         # Calc UTM CRS from wgs84_origin
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
-        feedback.pushInfo(f"Using UTM CRS: <{utm_crs.description()}>")
+
+        # Feedback on CRSs
+        feedback.pushInfo(f"\nProject CRS: <{project_crs.description()}>")
+        feedback.pushInfo(f"DEM layer CRS: <{dem_crs.description()}>")
+        feedback.pushInfo(f"Landuse layer CRS: <{landuse_layer and landuse_crs.description() or 'no landuse'}>")
+        feedback.pushInfo(f"Texture layer CRS: <{tex_layer and tex_crs.description() or 'no texture'}>")
+        feedback.pushInfo(f"FDS CRS: <{utm_crs.description()}>")
 
         # Get origin in UTM CRS
         wgs84_to_utm_tr = QgsCoordinateTransform(
@@ -347,7 +346,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Check for QGIS bug
         if utm_origin == wgs84_origin:
             raise QgsProcessingException(
-                f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> are identical, cannot proceed."
+                f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> are identical, cannot proceed.\n{wgs84_to_utm_tr}\n{wgs84_crs} {utm_crs}"
             )
 
         # Get fire origin in UTM CRS
@@ -363,19 +362,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         # Check DEM contains dem_extent
         if not dem_layer.extent().contains(dem_extent):
-            feedback.reportError("Terrain extent is larger than available DEM data.")
+            feedback.reportError("Terrain extent is larger than DEM data, unknown elevations will be set to zero.")
 
-        feedback.setCurrentStep(2)
-        if feedback.isCanceled():
-            return {}
-
-        # QGIS geographic transformations
-        # Creating sampling grid in DEM crs
-
-        feedback.pushInfo("Creating sampling grid layer from DEM...")
-
-        xspacing = dem_layer.rasterUnitsPerPixelX()
-        yspacing = dem_layer.rasterUnitsPerPixelY()
+        # Extent and grid calculations
+        # align terrain extent to DEM grid (gridding starts from top left corner)
         x0, y0, x1, y1 = (  # terrain extent in DEM CRS
             dem_extent.xMinimum(),
             dem_extent.yMinimum(),
@@ -386,26 +376,58 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             dem_layer.extent().xMinimum(),
             dem_layer.extent().yMaximum(),
         )
-        # align terrain extent to DEM grid (gridding starts from top left corner)
+        xspacing = dem_layer.rasterUnitsPerPixelX()
+        yspacing = dem_layer.rasterUnitsPerPixelY()
         x0 = xd0 + round((x0 - xd0) / xspacing) * xspacing + xspacing / 2.0
         y1 = yd1 + round((y1 - yd1) / yspacing) * yspacing - yspacing / 2.0
-        dem_extent = QgsRectangle(x0, y0, x1, y1)  # terrain extent in DEM CRS
-        npoints = int((x1 - x0) / xspacing * (y1 - y0) / yspacing / dem_sampling ** 2)
+        dem_extent = QgsRectangle(x0, y0, x1, y1)  # updated terrain extent in DEM CRS
+        xspacing *= dem_sampling  # reduce sampling, if requested
+        yspacing *= dem_sampling
+        npoints = int((x1 - x0) / xspacing * (y1 - y0) / yspacing)  # sampling points
         if npoints < 9:
             raise QgsProcessingException(
-                f"Too few sampling points, cannot proceed. (npoints: {npoints})"
+                f"Too few sampling points <{npoints}>, cannot proceed."
             )
-        feedback.pushInfo(
-            f"Sampling points: {npoints} (xspacing: {xspacing}, yspacing: {yspacing})"
+
+        # Get texture extent and its size in meters
+        dem_to_utm_tr = QgsCoordinateTransform(dem_crs, utm_crs, QgsProject.instance())
+        tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
+
+        d = QgsDistanceArea()
+        d.setSourceCrs(
+            crs=utm_crs, context=QgsProject.instance().transformContext()
         )
+        p00, p10, p01 = (
+            QgsPointXY(tex_extent.xMinimum(), tex_extent.yMinimum()),
+            QgsPointXY(tex_extent.xMaximum(), tex_extent.yMinimum()),
+            QgsPointXY(tex_extent.xMinimum(), tex_extent.yMaximum()),
+        )
+        tex_extent_wm = d.measureLine(p00, p10)  # euclidean dist, extent width in m
+        tex_extent_hm = d.measureLine(p00, p01)  # euclidean dist, extent height in m
+
+        # Feedback
+        feedback.pushInfo(f"\nTerrain size: {tex_extent_wm:.1f} x {tex_extent_hm:.1f} meters")
+        feedback.pushInfo(f"Sampling resolution: {xspacing:.1f} x {yspacing:.1f} meters")
+        feedback.pushInfo(f"Generated faces: {npoints*2}")
+
+        feedback.pushInfo(f"\nPush <Cancel> to interrupt execution.")
+
+        # QGIS geographic transformations
+        # Creating sampling grid in DEM crs
+
+        feedback.setCurrentStep(1)
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\nCreating sampling grid layer from DEM...")
+
         alg_params = {
             "CRS": dem_crs,
             "EXTENT": dem_extent,
             "HOVERLAY": 0,
-            "HSPACING": xspacing * dem_sampling,  # reduce sampling, if requested
+            "HSPACING": xspacing,
             "TYPE": 0,  # Points
             "VOVERLAY": 0,
-            "VSPACING": yspacing * dem_sampling,  # reduce sampling, if requested
+            "VSPACING": yspacing,
             "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
         outputs["CreateGrid"] = processing.run(
@@ -416,33 +438,33 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(3)
-        if feedback.isCanceled():
-            return {}
-
         # Save texture
 
-        dem_to_utm_tr = QgsCoordinateTransform(dem_crs, utm_crs, QgsProject.instance())
-        tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
+        feedback.setCurrentStep(2)
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\nRendering and saving texture image, timeout in 30s...")
 
         utils.write_image(
             feedback=feedback,
             tex_layer=tex_layer,
             tex_pixel_size=tex_pixel_size,  # pixel size in meters
+            tex_extent_wm=tex_extent_wm,  # texture width in m
+            tex_extent_hm=tex_extent_hm,  # texture height in m
             destination_crs=utm_crs,  # using UTM crs, texture aligned to axis in Smokeview
             destination_extent=tex_extent,
             filepath=f"{path}/{chid}_tex.png",
             imagetype="png",
         )
 
-        feedback.setCurrentStep(4)
-        if feedback.isCanceled():
-            return {}
-
         # QGIS geographic transformations
         # Draping Z values to sampling grid in DEM crs
 
-        feedback.pushInfo("Draping Z values from DEM...")
+        feedback.setCurrentStep(3)
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\nDraping Z values from DEM (takes time!)...")
+
         alg_params = {
             "BAND": 1,
             "INPUT": outputs["CreateGrid"]["OUTPUT"],
@@ -459,14 +481,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(5)
-        if feedback.isCanceled():
-            return {}
-
         # QGIS geographic transformations
         # Reprojecting sampling grid to UTM CRS
 
-        feedback.pushInfo("Reprojecting sampling grid layer to UTM CRS...")
+        feedback.setCurrentStep(4)
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\nReprojecting sampling grid layer to UTM CRS...")
+
         alg_params = {
             "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
             "TARGET_CRS": utm_crs,
@@ -482,15 +504,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(6)
-        if feedback.isCanceled():
-            return {}
-
         # QGIS geographic transformations
         # Sampling landuse layer with sampling grid in UTM CRS
 
+        feedback.setCurrentStep(5)
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\nSampling landuse (takes time!)...")
+
         if landuse_layer:
-            feedback.pushInfo("Sampling landuse...")
             alg_params = {
                 "COLUMN_PREFIX": "landuse",
                 "INPUT": outputs["ReprojectLayer"]["OUTPUT"],
@@ -517,21 +539,23 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
             point_layer.updateFields()
 
-        feedback.setCurrentStep(7)
+        # Prepare geometry
+
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
-
-        # Prepare geometry
+        feedback.setProgressText("\nBuilding FDS geometry...")
 
         verts, faces, landuses = geometry.get_geometry(
             feedback=feedback, layer=point_layer, utm_origin=utm_origin,
         )
 
-        feedback.setCurrentStep(12)
+        # Write the FDS case file
+
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
-
-        # Write the FDS case file
+        feedback.setProgressText("\nWriting the FDS case file...")
 
         fds.write_case(
             feedback=feedback,

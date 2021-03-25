@@ -7,9 +7,10 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+from qgis.core import QgsProcessingException
+
 import math
 import numpy as np
-
 
 # Get verts, faces, landuses
 
@@ -21,20 +22,16 @@ def get_geometry(feedback, layer, utm_origin):
     @param utm_origin: domain origin in UTM CRS.
     @return verts, faces, landuses
     """
-    feedback.setCurrentStep(8)
-    feedback.pushInfo("Building the point matrix...")
+    feedback.pushInfo("Point matrix...")
     matrix = _get_matrix(feedback, layer=layer, utm_origin=utm_origin)
     if feedback.isCanceled():
         return {}
-    feedback.setCurrentStep(9)
-    feedback.pushInfo("Getting faces and landuses...")
+    feedback.pushInfo("Faces and landuses...")
     faces, landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
-    feedback.setCurrentStep(10)
-    feedback.pushInfo("Getting verts...")
+    feedback.pushInfo("Verts...")
     verts = _get_verts(feedback=feedback, m=matrix)
-    feedback.setCurrentStep(11)
     feedback.pushInfo(f"Geometry ready: {len(verts)} verts, {len(faces)} faces.")
     return verts, faces, landuses
 
@@ -80,7 +77,9 @@ def _get_matrix(feedback, layer, utm_origin):
     features = tuple(layer.getFeatures())  # get the points
     npoints = len(features)
     if npoints < 9:
-        raise QgsProcessingException(f"Too few sampling points (features: {npoints})")
+        raise QgsProcessingException(
+                f"Too few sampling points <{npoints}>, cannot proceed."
+            )
     m = np.empty((len(features), 4))  # allocate array
     for i, f in enumerate(features):
         g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
