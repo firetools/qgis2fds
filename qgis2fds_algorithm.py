@@ -410,7 +410,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo(f"Sampling resolution: {xspacing:.1f} x {yspacing:.1f} meters")
         feedback.pushInfo(f"Generated faces: {npoints*2}")
 
-        feedback.pushInfo(f"\Press <Cancel> to interrupt the execution.")
+        feedback.pushInfo(f"\nPress <Cancel> to interrupt the execution.")
 
         # QGIS geographic transformations
         # Creating sampling grid in DEM crs
