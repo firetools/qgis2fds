@@ -72,16 +72,17 @@ def _get_matrix(feedback, layer, utm_origin):
     @param utm_origin: domain origin in UTM CRS.
     @return matrix of quad faces center points with landuse.
     """
+    feedback.setProgress(0)
     # Allocate and fill np array, points are listed by column
     ox, oy = utm_origin.x(), utm_origin.y()  # get origin
-    features = tuple(layer.getFeatures())  # get the points
-    npoints = len(features)
+    npoints = layer.featureCount()
+    npoints100 = npoints // 100
     if npoints < 9:
         raise QgsProcessingException(
-                f"Too few sampling points <{npoints}>, cannot proceed."
-            )
-    m = np.empty((len(features), 4))  # allocate array
-    for i, f in enumerate(features):
+            f"Too few sampling points <{npoints}>, cannot proceed."
+        )
+    m = np.empty((npoints, 4))  # allocate array
+    for i, f in enumerate(layer.getFeatures()):
         g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
         m[i] = (  # fill array
             g.x() - ox,  # x, relative to origin
@@ -89,6 +90,8 @@ def _get_matrix(feedback, layer, utm_origin):
             g.z(),  # z absolute
             a[5] or 0,  # landuse, protect from None
         )
+        if i % npoints100 == 0:
+            feedback.setProgress(int(i / npoints * 100))
     # Get point column length and split matrix
     column_len = 2
     p0, p1 = m[0, :2], m[1, :2]
@@ -126,7 +129,9 @@ def _get_faces(feedback, m):
     @param m: matrix of quad faces center points with landuse.
     @return faces and landuses
     """
+    feedback.setProgress(0)
     faces, landuses = list(), list()
+    len_vrow = m.shape[0]
     len_vcol = m.shape[1] + 1  # vert matrix is larger
     for i, row in enumerate(m):
         for j, p in enumerate(row):
@@ -146,6 +151,7 @@ def _get_faces(feedback, m):
             )
             lu = int(p[3])  # landuse idx
             landuses.extend((lu, lu))
+        feedback.setProgress(int(i / len_vrow * 100))
     return faces, landuses
 
 
@@ -173,6 +179,7 @@ def _get_verts(feedback, m):
     @param m: matrix of quad faces center points with landuse, and ghost cells.
     @return verts
     """
+    feedback.setProgress(0)
     # Inject ghost centers
     dx, dy = m[0, 1] - m[0, 0], m[1, 0] - m[0, 0]  # displacements
     dx[2], dy[2] = 0.0, 0.0  # no z displacement
@@ -187,15 +194,23 @@ def _get_verts(feedback, m):
     col = tuple(c - dx for c in m[:, 0])  # new first ghost center col
     m = np.insert(m, 0, col, axis=1)
 
-    col = tuple(tuple((c + dx,) for c in m[:, -1]),)  # last ghost center col
+    col = tuple(
+        tuple((c + dx,) for c in m[:, -1]),
+    )  # last ghost center col
     m = np.append(m, col, axis=1)
 
     # Average center coordinates to obtain verts
     verts = list()
-    for idxs in np.ndindex(m.shape[0] - 1, m.shape[1] - 1):  # skip last row and col
+    npoints = m.shape[0] * m.shape[1]
+    npoints100 = npoints // 100
+    for ip, idxs in enumerate(
+        np.ndindex(m.shape[0] - 1, m.shape[1] - 1)
+    ):  # skip last row and col
         i, j = idxs
         verts.append(
             (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
             / 4.0
         )
+        if ip % npoints100 == 0:
+            feedback.setProgress(int(ip / npoints * 100))
     return verts

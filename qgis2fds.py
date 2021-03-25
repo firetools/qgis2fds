@@ -25,7 +25,6 @@ class qgis2fdsPlugin(object):
         self.provider = None
 
     def initProcessing(self):
-        """Init Processing provider for QGIS >= 3.8."""
         self.provider = qgis2fdsProvider()
         QgsApplication.processingRegistry().addProvider(self.provider)
 
