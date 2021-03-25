@@ -244,7 +244,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
         dem_sampling = self.parameterAsInt(parameters, "dem_sampling", context)
         project.writeEntry("qgis2fds", "dem_sampling", parameters["dem_sampling"])
-        extent = self.parameterAsExtent(parameters, "extent", context)  # FIXME crs?
+        # extent = self.parameterAsExtent(parameters, "extent", context)  # see wgs84_extent
         project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
         # Get layers in their respective crs: dem_layer, landuse_layer, tex_layer
