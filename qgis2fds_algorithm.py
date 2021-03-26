@@ -308,7 +308,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             origin = self.parameterAsPoint(parameters, "origin", context)
             project.writeEntry("qgis2fds", "origin", parameters["origin"])
-            wgs84_origin = QgsPoint(origin.x(), origin.y())
+            wgs84_origin = QgsPoint(origin)
             wgs84_origin.transform(project_to_wgs84_tr)
         else:  # no origin
             wgs84_origin = QgsPoint(extent.center())
