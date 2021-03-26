@@ -226,7 +226,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         #  dem_crs:  dem crs, used for grid alignment
 
         # Extents:
-        #  extent:      user terrain extent in any crs
+        #  extent:      user terrain extent in its crs
         #  mesh_extent: extent to utm crs, used for FDS MESH
         #               as it is always contained in the terrain
         #  dem_extent:  mesh_extent to dem crs, used for grid
@@ -244,7 +244,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
         dem_sampling = self.parameterAsInt(parameters, "dem_sampling", context)
         project.writeEntry("qgis2fds", "dem_sampling", parameters["dem_sampling"])
-        # extent = self.parameterAsExtent(parameters, "extent", context)  # see wgs84_extent
+        extent = self.parameterAsExtent(parameters, "extent", context)
         project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
         # Get layers in their respective crs: dem_layer, landuse_layer, tex_layer
@@ -300,11 +300,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     f"Texture layer CRS <{tex_crs.description()}> is not usable, cannot proceed."
                 )
 
-        # Get extent in WGS84 CRS
-        wgs84_extent = self.parameterAsExtent(
-            parameters, "extent", context, crs=wgs84_crs
-        )
-
         # Get origin in WGS84 CRS
         project_to_wgs84_tr = QgsCoordinateTransform(
             project_crs, wgs84_crs, QgsProject.instance()
@@ -316,7 +311,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             wgs84_origin = QgsPoint(origin.x(), origin.y())
             wgs84_origin.transform(project_to_wgs84_tr)
         else:  # no origin
-            wgs84_origin = wgs84_extent.center()
+            wgs84_origin = QgsPoint(extent.center())
+            wgs84_origin.transform(project_to_wgs84_tr)
         feedback.pushInfo(
             f"Domain origin: {wgs84_origin.x():.6f}, {wgs84_origin.y():.6f} (WGS 84)"
         )
@@ -328,7 +324,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
             wgs84_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
             wgs84_fire_origin.transform(project_to_wgs84_tr)
-        else:
+        else:  # no fire origin
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
         feedback.pushInfo(
             f"Fire origin: {wgs84_fire_origin.x():.6f}, {wgs84_fire_origin.y():.6f} (WGS 84)"
@@ -384,13 +380,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         # Extent and grid calculations
         # align terrain extent to DEM grid (gridding starts from top left corner)
-        x0, y0, x1, y1 = (  # terrain extent in DEM CRS
+        x0, y0, x1, y1 = (  # extent in DEM CRS
             dem_extent.xMinimum(),
             dem_extent.yMinimum(),
             dem_extent.xMaximum(),
             dem_extent.yMaximum(),
         )
-        xd0, yd1 = (  # DEM extent in DEM CRS
+        xd0, yd1 = (
             dem_layer.extent().xMinimum(),
             dem_layer.extent().yMaximum(),
         )
