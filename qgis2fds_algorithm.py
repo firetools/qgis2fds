@@ -325,7 +325,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             wgs84_fire_origin = QgsPoint(fire_origin)
             wgs84_fire_origin.transform(project_to_wgs84_tr)
         else:  # no fire origin
-            wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
+            wgs84_fire_origin = QgsPoint(wgs84_origin)
         feedback.pushInfo(
             f"Fire origin: {wgs84_fire_origin.x():.6f}, {wgs84_fire_origin.y():.6f} (WGS 84)"
         )
@@ -349,7 +349,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         wgs84_to_utm_tr = QgsCoordinateTransform(
             wgs84_crs, utm_crs, QgsProject.instance()
         )
-        utm_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
+        utm_origin = QgsPoint(wgs84_origin)
         utm_origin.transform(wgs84_to_utm_tr)
 
         # Check for QGIS bug
@@ -359,7 +359,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
 
         # Get fire origin in UTM CRS
-        utm_fire_origin = QgsPoint(wgs84_fire_origin.x(), wgs84_fire_origin.y())
+        utm_fire_origin = QgsPoint(wgs84_fire_origin)
         utm_fire_origin.transform(wgs84_to_utm_tr)
 
         # Get FDS MESH extent in UTM CRS, then obtain dem extent in DEM CRS
