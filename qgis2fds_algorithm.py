@@ -322,7 +322,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
             project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
-            wgs84_fire_origin = QgsPoint(fire_origin.x(), fire_origin.y())
+            wgs84_fire_origin = QgsPoint(fire_origin)
             wgs84_fire_origin.transform(project_to_wgs84_tr)
         else:  # no fire origin
             wgs84_fire_origin = QgsPoint(wgs84_origin.x(), wgs84_origin.y())
