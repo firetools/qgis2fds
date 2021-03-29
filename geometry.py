@@ -18,6 +18,7 @@ import numpy as np
 def get_geometry(feedback, layer, utm_origin):
     """!
     Get verts, faces, and landuses from sampling point layer.
+    @feedback: pyqgis feedback obj
     @param layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
     @return verts, faces, landuses
@@ -75,13 +76,9 @@ def _get_matrix(feedback, layer, utm_origin):
     feedback.setProgress(0)
     # Allocate and fill np array, points are listed by column
     ox, oy = utm_origin.x(), utm_origin.y()  # get origin
-    npoints = layer.featureCount()
-    npoints100 = npoints // 100
-    if npoints < 9:
-        raise QgsProcessingException(
-            f"Too few sampling points <{npoints}>, cannot proceed."
-        )
-    m = np.empty((npoints, 4))  # allocate array
+    nfeatures = layer.featureCount()
+    partial_progress = nfeatures // 100 or 1
+    m = np.empty((nfeatures, 4))  # allocate array
     for i, f in enumerate(layer.getFeatures()):
         g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
         m[i] = (  # fill array
@@ -90,8 +87,8 @@ def _get_matrix(feedback, layer, utm_origin):
             g.z(),  # z absolute
             a[5] or 0,  # landuse, protect from None
         )
-        if i % npoints100 == 0:
-            feedback.setProgress(int(i / npoints * 100))
+        if i % partial_progress == 0:
+            feedback.setProgress(int(i / nfeatures * 100))
     # Get point column length and split matrix
     column_len = 2
     p0, p1 = m[0, :2], m[1, :2]
@@ -103,7 +100,7 @@ def _get_matrix(feedback, layer, utm_origin):
         column_len += 1
     # Split into columns list, get np array, and transpose
     # Now points are by row
-    return np.array(np.split(m, npoints // column_len)).transpose(1, 0, 2)
+    return np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
 
 
 # Getting face connectivity and landuse
@@ -201,8 +198,8 @@ def _get_verts(feedback, m):
 
     # Average center coordinates to obtain verts
     verts = list()
-    npoints = m.shape[0] * m.shape[1]
-    npoints100 = npoints // 100
+    ncenters = m.shape[0] * m.shape[1]
+    partial_progress = ncenters // 100 or 1
     for ip, idxs in enumerate(
         np.ndindex(m.shape[0] - 1, m.shape[1] - 1)
     ):  # skip last row and col
@@ -211,6 +208,6 @@ def _get_verts(feedback, m):
             (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
             / 4.0
         )
-        if ip % npoints100 == 0:
-            feedback.setProgress(int(ip / npoints * 100))
+        if ip % partial_progress == 0:
+            feedback.setProgress(int(ip / ncenters * 100))
     return verts

@@ -41,35 +41,45 @@ def write_file(feedback, filepath, content):
         )
     feedback.pushInfo(f"Saved: <{filepath}>")
 
-def write_image(
+
+def write_texture(
     feedback,
     tex_layer,
+    tex_extent,
     tex_pixel_size,
-    tex_extent_wm,
-    tex_extent_hm,
-    destination_crs,
-    destination_extent,
+    utm_crs,  # destination_crs
     filepath,
     imagetype,
 ):
     """
-    Save current QGIS canvas to image file.
+    Crop and save texture to image file.
     """
+
+    # Calc tex_extent size in meters (it is in utm)
+    tex_extent_xm = tex_extent.xMaximum() - tex_extent.xMinimum()
+    tex_extent_ym = tex_extent.yMaximum() - tex_extent.yMinimum()
+
+    # Calc tex_extent size in pixels
+    tex_extent_xpix = int(tex_extent_xm / tex_pixel_size)
+    tex_extent_ypix = int(tex_extent_ym / tex_pixel_size)
+
+    # Choose exporting layers
+    if tex_layer:  # use user tex layer
+        layers = (tex_layer,)
+    else:  # no user tex layer, use map canvas
+        canvas = iface.mapCanvas()
+        layers = canvas.layers()
 
     # Image settings and texture layer choice
     settings = QgsMapSettings()  # build settings
-    settings.setDestinationCrs(destination_crs)  # set output crs
-    settings.setExtent(destination_extent)  # in destination_crs
-    if tex_layer:
-        layers = (tex_layer,)  # chosen texture layer
-    else:
-        canvas = iface.mapCanvas()
-        layers = canvas.layers()  # get visible layers
-    wpix = int(tex_extent_wm / tex_pixel_size)
-    hpix = int(tex_extent_hm / tex_pixel_size)
-    settings.setOutputSize(QSize(wpix, hpix))
+    settings.setDestinationCrs(utm_crs)  # set output crs
+    settings.setExtent(tex_extent)  # in utm_crs
+    settings.setOutputSize(QSize(tex_extent_xpix, tex_extent_ypix))
     settings.setLayers(layers)
-    feedback.pushInfo(f"Requested texture: {wpix} x {hpix} pixels")
+
+    feedback.pushInfo(
+        f"Texture size: {tex_extent_xpix} x {tex_extent_ypix} pixels, {tex_extent_xm:.1f} x {tex_extent_ym:.1f} meters"
+    )
 
     # Render and save image
     render = QgsMapRendererParallelJob(settings)
@@ -83,7 +93,7 @@ def write_image(
             return
         if dt >= 30.0:
             render.cancelWithoutBlocking()
-            feedback.reportError("Render timed out, no texture saved.")
+            feedback.reportError("Texture render timed out, no texture saved.")
             return
     image = render.renderedImage()
     try:
@@ -92,7 +102,7 @@ def write_image(
         raise QgsProcessingException(
             f"Texture not writable to <{filepath}>, cannot proceed."
         )
-    feedback.pushInfo(f"Saved ({dt:.2f} s): <{filepath}>")
+    feedback.pushInfo(f"Saved (in {dt:.2f} s): <{filepath}>")
 
 
 # The FDS bingeom file is written from Fortran90 like this:
@@ -127,7 +137,7 @@ def write_bingeom(
 ):
     """!
     Write FDS bingeom file.
-    @param feedback: FIXME
+    @param feedback: pyqgis feedback
     @param geom_type: GEOM type (eg. 1 is manifold, 2 is terrain)
     @param n_surf_id: number of referred boundary conditions
     @param fds_verts: vertices coordinates in FDS flat format, eg. (x0, y0, z0, x1, y1, ...)
@@ -157,6 +167,7 @@ def write_bingeom(
         _write_record(f, np.array(fds_volus, dtype="int32"))
     feedback.pushInfo(f"Saved: <{filepath}>")
 
+
 # Geographic operations
 
 
@@ -171,10 +182,10 @@ def lonlat_to_zn(lon, lat):
     @param lat: latitude in decimal degrees.
     @return the UTM zone number.
     """
-    if lat < -90. or lat > 90.:
-        raise Exception(f"Latitude <{lat}> out of bounds.") 
-    if lon < -180. or lon > 180.:
-        raise Exception(f"Longitude <{lon}> out of bounds.") 
+    if lat < -90.0 or lat > 90.0:
+        raise Exception(f"Latitude <{lat}> out of bounds.")
+    if lon < -180.0 or lon > 180.0:
+        raise Exception(f"Longitude <{lon}> out of bounds.")
     if 56 <= lat < 64 and 3 <= lon < 12:
         return 32
     if 72 <= lat <= 84 and lon >= 0:
@@ -195,8 +206,8 @@ def lat_to_ne(lat):
     @param lat: latitude in decimal degrees.
     @return True if UTM north hemisphere. False otherwise.
     """
-    if lat < -90. or lat > 90.:
-        raise Exception(f"Latitude <{lat}> out of bounds.") 
+    if lat < -90.0 or lat > 90.0:
+        raise Exception(f"Latitude <{lat}> out of bounds.")
     if lat >= -1e-6:
         return True
     else:
@@ -210,10 +221,10 @@ def lonlat_to_epsg(lon, lat):
     @param lat: latitude in decimal degrees.
     @return the EPSG.
     """
-    if lat < -90. or lat > 90.:
-        raise Exception(f"Latitude <{lat}> out of bounds.") 
-    if lon < -180. or lon > 180.:
-        raise Exception(f"Longitude <{lon}> out of bounds.") 
+    if lat < -90.0 or lat > 90.0:
+        raise Exception(f"Latitude <{lat}> out of bounds.")
+    if lon < -180.0 or lon > 180.0:
+        raise Exception(f"Longitude <{lon}> out of bounds.")
     zn = lonlat_to_zn(lon=lon, lat=lat)
     if lat_to_ne(lat):
         return "EPSG:326" + str(zn).zfill(2)
