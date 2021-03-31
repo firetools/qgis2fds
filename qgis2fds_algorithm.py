@@ -7,6 +7,8 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+DEBUG = False
+
 from qgis.core import (
     QgsProject,
     QgsGeometry,
@@ -32,11 +34,13 @@ from qgis.core import (
     QgsProcessingParameterPoint,
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
+    QgsProcessingParameterVectorDestination,
 )
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QVariant
 
 import processing
+from math import ceil
 
 from . import utils, fds, geometry
 
@@ -195,13 +199,41 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         param = QgsProcessingParameterFeatureSink(
             "sampling_layer",
-            "Sampling grid output layer",
+            "Sampling grid layer",
             type=QgsProcessing.TypeVectorAnyGeometry,
             createByDefault=True,
             defaultValue=None,
         )
         self.addParameter(param)
         # param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
+        if DEBUG:
+            param = QgsProcessingParameterVectorDestination(
+                "tex_extent_layer",  # Name
+                "FDS texture",  # Description
+                type=QgsProcessing.TypeVectorAnyGeometry,
+                createByDefault=True,
+                defaultValue=None,
+            )
+            self.addParameter(param)
+
+            param = QgsProcessingParameterVectorDestination(
+                "dem_extent_layer",  # Name
+                "FDS terrain extent layer",  # Description
+                type=QgsProcessing.TypeVectorAnyGeometry,
+                createByDefault=True,
+                defaultValue=None,
+            )
+            self.addParameter(param)
+
+            param = QgsProcessingParameterVectorDestination(
+                "utm_extent_layer",  # Name
+                "FDS domain extent layer",  # Description
+                type=QgsProcessing.TypeVectorAnyGeometry,
+                createByDefault=True,
+                defaultValue=None,
+            )
+            self.addParameter(param)
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -394,18 +426,26 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         x0 = (
             dem_layer_x0  # start lower
             + int((x0 - dem_layer_x0) / dem_layer_xres) * dem_layer_xres  # align
-            + dem_layer_xres / 2.0  # to raster pixel center
+            - dem_layer_xres / 2.0  # to previous raster pixel center
         )
         y1 = (
             dem_layer_y1  # start upper
             - int((dem_layer_y1 - y1) / dem_layer_yres) * dem_layer_yres  # align
-            - dem_layer_yres / 2.0  # to raster pixel center
+            + dem_layer_yres / 2.0  # to following raster pixel center
+        )
+        dem_layer_xres *= dem_sampling  # down sampling, if requested
+        dem_layer_yres *= dem_sampling
+        x1 = (
+            x0  # start lower
+            + (ceil((x1 - x0) / dem_layer_xres) + 0.000001)  # prevent rounding errors
+            * dem_layer_xres  # ceil multiple of xres
+        )
+        y0 = (
+            y1  # start upper
+            - (ceil((y1 - y0) / dem_layer_yres) + 0.000001)  # prevent rounding errors
+            * dem_layer_yres  # ceil multiple of yres
         )
         dem_extent = QgsRectangle(x0, y0, x1, y1)
-
-        # Reduce dem sampling (increase resolution), if requested
-        dem_layer_xres *= dem_sampling
-        dem_layer_yres *= dem_sampling
 
         # Check dem_layer contains updated dem_extent
         if not dem_layer.extent().contains(dem_extent):
@@ -445,6 +485,70 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             f"geometry: {(dem_sampling_xn+1)*(dem_sampling_yn+1)} verts, {dem_sampling_xn*dem_sampling_yn*2} faces"
         )
         feedback.pushInfo(f"\nPress <Cancel> to interrupt the execution.")
+
+        if DEBUG:
+            # Show utm_extent layer
+            feedback.pushInfo(f"\n[DEBUG] Drawing utm_extent...")
+            x0, y0, x1, y1 = (
+                utm_extent.xMinimum(),
+                utm_extent.yMinimum(),
+                utm_extent.xMaximum(),
+                utm_extent.yMaximum(),
+            )
+            alg_params = {
+                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{utm_crs.authid()}]",
+                "OUTPUT": parameters["utm_extent_layer"],
+            }
+            outputs["CreateLayerFromExtent"] = processing.run(
+                "native:extenttolayer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            results["utm_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
+
+            # Show dem_extent layer
+            feedback.pushInfo(f"[DEBUG] Drawing dem_extent...")
+            x0, y0, x1, y1 = (
+                dem_extent.xMinimum(),
+                dem_extent.yMinimum(),
+                dem_extent.xMaximum(),
+                dem_extent.yMaximum(),
+            )
+            alg_params = {
+                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{dem_crs.authid()}]",
+                "OUTPUT": parameters["dem_extent_layer"],
+            }
+            outputs["CreateLayerFromExtent"] = processing.run(
+                "native:extenttolayer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            results["dem_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
+
+            # Show tex_extent layer
+            feedback.pushInfo(f"[DEBUG] Drawing tex_extent...")
+            x0, y0, x1, y1 = (
+                tex_extent.xMinimum(),
+                tex_extent.yMinimum(),
+                tex_extent.xMaximum(),
+                tex_extent.yMaximum(),
+            )
+            alg_params = {
+                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{utm_crs.authid()}]",
+                "OUTPUT": parameters["tex_extent_layer"],
+            }
+            outputs["CreateLayerFromExtent"] = processing.run(
+                "native:extenttolayer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            results["tex_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
 
         # QGIS geographic transformations
         # Creating sampling grid in DEM crs
