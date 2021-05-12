@@ -7,7 +7,7 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-DEBUG = False
+DEBUG = True
 
 from qgis.core import (
     QgsProject,
@@ -197,21 +197,31 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        param = QgsProcessingParameterFeatureSink(
+        # param = QgsProcessingParameterFeatureSink(
+        #     "sampling_layer",
+        #     "Sampling grid layer",
+        #     type=QgsProcessing.TypeVectorAnyGeometry,
+        #     createByDefault=True,
+        #     defaultValue=None,
+        # )
+        # self.addParameter(param)
+        # # param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
+        param = QgsProcessingParameterVectorDestination(
             "sampling_layer",
             "Sampling grid layer",
-            type=QgsProcessing.TypeVectorAnyGeometry,
+            type=QgsProcessing.TypeVectorPoint,
             createByDefault=True,
             defaultValue=None,
         )
         self.addParameter(param)
-        # param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         if DEBUG:
             param = QgsProcessingParameterVectorDestination(
                 "tex_extent_layer",  # Name
                 "FDS texture",  # Description
-                type=QgsProcessing.TypeVectorAnyGeometry,
+                type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
             )
@@ -220,7 +230,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             param = QgsProcessingParameterVectorDestination(
                 "dem_extent_layer",  # Name
                 "FDS terrain extent layer",  # Description
-                type=QgsProcessing.TypeVectorAnyGeometry,
+                type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
             )
@@ -229,7 +239,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             param = QgsProcessingParameterVectorDestination(
                 "utm_extent_layer",  # Name
                 "FDS domain extent layer",  # Description
-                type=QgsProcessing.TypeVectorAnyGeometry,
+                type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
             )
@@ -464,6 +474,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException(
                 f"Too few sampling points <{dem_sampling_yn}> along y axis, cannot proceed."
             )
+        nverts = (dem_sampling_xn + 1) * (dem_sampling_yn + 1)
+        nfaces = dem_sampling_xn * dem_sampling_yn * 2
 
         # Get tex_extent in utm_crs from dem_crs,
         # texture shall be aligned to MESH, and exactly cover the GEOM terrain
@@ -481,9 +493,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         feedback.pushInfo(
             f"resolution: {dem_layer_xres:.1f} x {dem_layer_yres:.1f} meters"
         )
-        feedback.pushInfo(
-            f"geometry: {(dem_sampling_xn+1)*(dem_sampling_yn+1)} verts, {dem_sampling_xn*dem_sampling_yn*2} faces"
-        )
+        feedback.pushInfo(f"geometry: {nverts} verts, {nfaces} faces")
         feedback.pushInfo(f"\nPress <Cancel> to interrupt the execution.")
 
         if DEBUG:
@@ -681,6 +691,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         feedback.setProgressText("\n(6/7) Building FDS geometry...")
+
+        if point_layer.featureCount() < 9:
+            raise QgsProcessingException(
+                f"[QGIS bug] Too few features in sampling layer, cannot proceed.\n{point_layer.featureCount()}"
+            )
 
         verts, faces, landuses = geometry.get_geometry(
             feedback=feedback,
