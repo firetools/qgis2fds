@@ -62,7 +62,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Get project crs
         project_crs = project.crs()
 
-        # Check if project crs changed
+        # Check if project crs has changed
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         project_crs_changed = False
         if prev_project_crs_desc != project_crs.description():
