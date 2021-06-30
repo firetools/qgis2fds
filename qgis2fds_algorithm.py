@@ -630,9 +630,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         alg_params = {
             "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
             "TARGET_CRS": utm_crs,
-            "OUTPUT": landuse_layer
-            and QgsProcessing.TEMPORARY_OUTPUT
-            or parameters["sampling_layer"],
+            "OUTPUT": parameters["sampling_layer"],
         }
         outputs["ReprojectLayer"] = processing.run(
             "native:reprojectlayer",
@@ -641,7 +639,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-        results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
 
         # QGIS geographic transformations
         # Sampling landuse layer with sampling grid in UTM CRS
