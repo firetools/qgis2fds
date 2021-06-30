@@ -130,7 +130,7 @@ def _get_faces(feedback, m):
     faces, landuses = list(), list()
     if m.shape[0] < 3 or m.shape[1] < 3:
         raise QgsProcessingException(
-            f"[QGIS bug] Too small point matrix, cannot proceed with face building: {m.shape[0]}x{m.shape[1]}"
+            f"[QGIS bug] Too small point matrix, cannot proceed with face building: {m.shape[0]}x{m.shape[1]}\nm: {m}"
         )
     len_vrow = m.shape[0]
     len_vcol = m.shape[1] + 1  # vert matrix is larger
