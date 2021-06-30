@@ -197,16 +197,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        # param = QgsProcessingParameterFeatureSink(
-        #     "sampling_layer",
-        #     "Sampling grid layer",
-        #     type=QgsProcessing.TypeVectorAnyGeometry,
-        #     createByDefault=True,
-        #     defaultValue=None,
-        # )
-        # self.addParameter(param)
-        # # param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-
         param = QgsProcessingParameterVectorDestination(
             "sampling_layer",
             "Sampling grid layer",
@@ -651,6 +641,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
+        results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
 
         # QGIS geographic transformations
         # Sampling landuse layer with sampling grid in UTM CRS
