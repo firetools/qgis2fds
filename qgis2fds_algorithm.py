@@ -7,28 +7,20 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-DEBUG = True
+DEBUG = False
 
 from qgis.core import (
     QgsProject,
-    QgsGeometry,
     QgsPoint,
-    QgsPointXY,
     QgsRectangle,
-    QgsField,
-    QgsDistanceArea,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
-    QgsVectorLayer,
     QgsProcessing,
     QgsProcessingException,
     QgsProcessingAlgorithm,
     QgsProcessingParameterRasterLayer,
-    QgsProcessingParameterVectorLayer,
     QgsProcessingParameterExtent,
-    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterEnum,
-    QgsProcessingParameterBoolean,
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterPoint,
@@ -550,12 +542,30 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
             results["tex_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
 
+        # Writing texture image to disk
+
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText(
+            "\n(1/7) Rendering, cropping, and writing texture image, timeout in 30s..."
+        )
+
+        utils.write_texture(
+            feedback=feedback,
+            tex_layer=tex_layer,
+            tex_extent=tex_extent,
+            tex_pixel_size=tex_pixel_size,
+            utm_crs=utm_crs,
+            filepath=f"{path}/{chid}_tex.png",
+            imagetype="png",
+        )
+
         # QGIS geographic transformations
         # Creating sampling grid in DEM crs
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(1/7) Creating sampling grid from DEM layer...")
+        feedback.setProgressText("\n(2/7) Creating sampling grid from DEM layer...")
 
         alg_params = {
             "CRS": dem_crs,
@@ -573,24 +583,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             context=context,
             feedback=feedback,
             is_child_algorithm=True,
-        )
-
-        # Writing texture image to disk
-
-        if feedback.isCanceled():
-            return {}
-        feedback.setProgressText(
-            "\n(2/7) Rendering, cropping, and writing texture image, timeout in 30s..."
-        )
-
-        utils.write_texture(
-            feedback=feedback,
-            tex_layer=tex_layer,
-            tex_extent=tex_extent,
-            tex_pixel_size=tex_pixel_size,
-            utm_crs=utm_crs,
-            filepath=f"{path}/{chid}_tex.png",
-            imagetype="png",
         )
 
         # QGIS geographic transformations
@@ -619,16 +611,42 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # QGIS geographic transformations
+        # Sampling landuse layer with sampling grid in UTM CRS
+
+        if feedback.isCanceled():
+            return {}
+        feedback.setProgressText("\n(4/7) Sampling landuse layer...")
+
+        if landuse_layer:
+            alg_params = {
+                "COLUMN_PREFIX": "landuse",
+                "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
+                "RASTERCOPY": parameters["landuse_layer"],
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            }
+            outputs["RasterSampling"] = processing.run(
+                "qgis:rastersampling",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+        else:
+            feedback.pushInfo("No landuse layer provided, no sampling.")
+
+        # QGIS geographic transformations
         # Reprojecting sampling grid to UTM CRS
 
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(4/7) Reprojecting sampling grid layer to UTM CRS..."
+            "\n(5/7) Reprojecting sampling grid layer to UTM CRS..."
         )
 
         alg_params = {
-            "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
+            "INPUT": landuse_layer
+            and outputs["RasterSampling"]["OUTPUT"]
+            or outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
             "TARGET_CRS": utm_crs,
             "OUTPUT": parameters["sampling_layer"],
         }
@@ -639,40 +657,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
+        results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
 
-        # QGIS geographic transformations
-        # Sampling landuse layer with sampling grid in UTM CRS
+        # Get point_layer and check it
 
-        if feedback.isCanceled():
-            return {}
-        feedback.setProgressText("\n(5/7) Sampling landuse layer...")
-
-        if landuse_layer:
-            alg_params = {
-                "COLUMN_PREFIX": "landuse",
-                "INPUT": outputs["ReprojectLayer"]["OUTPUT"],
-                "RASTERCOPY": parameters["landuse_layer"],
-                "OUTPUT": parameters["sampling_layer"],
-            }
-            outputs["sampling_layer"] = processing.run(
-                "qgis:rastersampling",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
+        point_layer = context.getMapLayer(results["sampling_layer"])
+        if point_layer.featureCount() < 9:
+            raise QgsProcessingException(
+                f"[QGIS bug] Too few features in sampling layer, cannot proceed.\n{point_layer.featureCount()}"
             )
-
-            results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
-            point_layer = context.getMapLayer(results["sampling_layer"])
-        else:
-            feedback.pushInfo("No landuse layer provided, no sampling.")
-            results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
-            point_layer = context.getMapLayer(results["sampling_layer"])
-            # add fake landuse
-            point_layer.dataProvider().addAttributes(
-                (QgsField("landuse", QVariant.Int),)
-            )
-            point_layer.updateFields()
 
         # Prepare geometry
 
@@ -680,15 +673,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
         feedback.setProgressText("\n(6/7) Building FDS geometry...")
 
-        if point_layer.featureCount() < 9:
-            raise QgsProcessingException(
-                f"[QGIS bug] Too few features in sampling layer, cannot proceed.\n{point_layer.featureCount()}"
-            )
-
         verts, faces, landuses = geometry.get_geometry(
             feedback=feedback,
-            layer=point_layer,
+            point_layer=point_layer,
             utm_origin=utm_origin,
+            landuse_layer=landuse_layer,
         )
 
         # Write the FDS case file
