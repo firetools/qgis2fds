@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="3.18.1-Zürich" saveDateTime="2021-03-31T12:04:02" saveUserFull="Emanuele Gissi" projectname="" saveUser="egissi">
+<qgis version="3.20.0-Odense" saveUserFull="Emanuele Gissi" saveDateTime="2021-06-30T20:36:12" projectname="" saveUser="egissi">
   <homePath path=""/>
   <title></title>
   <autotransaction active="0"/>
@@ -7,7 +7,7 @@
   <trust active="0"/>
   <projectCrs>
     <spatialrefsys>
-      <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"],AREA["World"],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
+      <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
       <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
       <srsid>3452</srsid>
       <srid>4326</srid>
@@ -19,18 +19,28 @@
     </spatialrefsys>
   </projectCrs>
   <layer-tree-group>
-    <customproperties/>
-    <layer-tree-layer expanded="1" id="Extent_88c303f3_a084_4bd4_8970_edd67635146a" legend_split_behavior="0" providerKey="ogr" source="./Extent.shp" checked="Qt::Checked" legend_exp="" name="Extent" patch_size="-1,-1">
-      <customproperties/>
+    <customproperties>
+      <Option/>
+    </customproperties>
+    <layer-tree-layer legend_exp="" providerKey="ogr" patch_size="-1,-1" name="Extent" legend_split_behavior="0" source="./Extent.shp" expanded="1" id="Extent_88c303f3_a084_4bd4_8970_edd67635146a" checked="Qt::Checked">
+      <customproperties>
+        <Option/>
+      </customproperties>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" id="MN_Surface_2017_GRID_bd1562f9_0e87_441e_9476_0dc5af3777ac" legend_split_behavior="0" providerKey="gdal" source="./format_6_grid_asc_meyrin_dtm_20200522_122939/MN_Surface_2017_GRID.asc" checked="Qt::Checked" legend_exp="" name="MN_Surface_2017_GRID" patch_size="0,0">
-      <customproperties/>
+    <layer-tree-layer legend_exp="" providerKey="gdal" patch_size="0,0" name="MN_Surface_2017_GRID" legend_split_behavior="0" source="./format_6_grid_asc_meyrin_dtm_20200522_122939/MN_Surface_2017_GRID.asc" expanded="1" id="MN_Surface_2017_GRID_bd1562f9_0e87_441e_9476_0dc5af3777ac" checked="Qt::Checked">
+      <customproperties>
+        <Option/>
+      </customproperties>
     </layer-tree-layer>
-    <layer-tree-layer expanded="0" id="Google_Satellite_99f1ae74_91ea_49be_93e5_15eca5564b76" legend_split_behavior="0" providerKey="wms" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=http://www.google.cn/maps/vt?lyrs%3Ds@189%26gl%3Dcn%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" checked="Qt::Checked" legend_exp="" name="Google Satellite" patch_size="0,0">
-      <customproperties/>
+    <layer-tree-layer legend_exp="" providerKey="wms" patch_size="0,0" name="Google Satellite" legend_split_behavior="0" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=http://www.google.cn/maps/vt?lyrs%3Ds@189%26gl%3Dcn%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0" expanded="0" id="Google_Satellite_99f1ae74_91ea_49be_93e5_15eca5564b76" checked="Qt::Checked">
+      <customproperties>
+        <Option/>
+      </customproperties>
     </layer-tree-layer>
-    <layer-tree-layer expanded="1" id="OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299" legend_split_behavior="0" providerKey="wms" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" checked="Qt::Unchecked" legend_exp="" name="OpenStreetMap" patch_size="0,0">
-      <customproperties/>
+    <layer-tree-layer legend_exp="" providerKey="wms" patch_size="0,0" name="OpenStreetMap" legend_split_behavior="0" source="crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0" expanded="1" id="OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299" checked="Qt::Unchecked">
+      <customproperties>
+        <Option/>
+      </customproperties>
     </layer-tree-layer>
     <custom-order enabled="0">
       <item>OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299</item>
@@ -39,9 +49,9 @@
       <item>Extent_88c303f3_a084_4bd4_8970_edd67635146a</item>
     </custom-order>
   </layer-tree-group>
-  <snapping-settings tolerance="12" minScale="0" maxScale="0" intersection-snapping="0" scaleDependencyMode="0" enabled="0" mode="2" self-snapping="0" type="1" unit="1">
+  <snapping-settings intersection-snapping="0" minScale="0" enabled="0" mode="2" tolerance="12" self-snapping="0" unit="1" scaleDependencyMode="0" maxScale="0" type="1">
     <individual-layer-settings>
-      <layer-setting tolerance="12" units="1" id="Extent_88c303f3_a084_4bd4_8970_edd67635146a" minScale="0" maxScale="0" enabled="0" type="1"/>
+      <layer-setting minScale="0" units="1" enabled="0" tolerance="12" id="Extent_88c303f3_a084_4bd4_8970_edd67635146a" maxScale="0" type="1"/>
     </individual-layer-settings>
   </snapping-settings>
   <relations/>
@@ -57,7 +67,7 @@
     <rotation>0</rotation>
     <destinationsrs>
       <spatialrefsys>
-        <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"],AREA["World"],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
+        <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
         <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
         <srsid>3452</srsid>
         <srid>4326</srid>
@@ -73,30 +83,30 @@
   </mapcanvas>
   <projectModels/>
   <legend updateDrawingOrder="true">
-    <legendlayer open="true" drawingOrder="-1" checked="Qt::Checked" showFeatureCount="0" name="Extent">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="Extent_88c303f3_a084_4bd4_8970_edd67635146a" isInOverview="0" visible="1"/>
+    <legendlayer drawingOrder="-1" name="Extent" open="true" showFeatureCount="0" checked="Qt::Checked">
+      <filegroup hidden="false" open="true">
+        <legendlayerfile layerid="Extent_88c303f3_a084_4bd4_8970_edd67635146a" visible="1" isInOverview="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="true" drawingOrder="-1" checked="Qt::Checked" showFeatureCount="0" name="MN_Surface_2017_GRID">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="MN_Surface_2017_GRID_bd1562f9_0e87_441e_9476_0dc5af3777ac" isInOverview="0" visible="1"/>
+    <legendlayer drawingOrder="-1" name="MN_Surface_2017_GRID" open="true" showFeatureCount="0" checked="Qt::Checked">
+      <filegroup hidden="false" open="true">
+        <legendlayerfile layerid="MN_Surface_2017_GRID_bd1562f9_0e87_441e_9476_0dc5af3777ac" visible="1" isInOverview="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="false" drawingOrder="-1" checked="Qt::Checked" showFeatureCount="0" name="Google Satellite">
-      <filegroup open="false" hidden="false">
-        <legendlayerfile layerid="Google_Satellite_99f1ae74_91ea_49be_93e5_15eca5564b76" isInOverview="0" visible="1"/>
+    <legendlayer drawingOrder="-1" name="Google Satellite" open="false" showFeatureCount="0" checked="Qt::Checked">
+      <filegroup hidden="false" open="false">
+        <legendlayerfile layerid="Google_Satellite_99f1ae74_91ea_49be_93e5_15eca5564b76" visible="1" isInOverview="0"/>
       </filegroup>
     </legendlayer>
-    <legendlayer open="true" drawingOrder="-1" checked="Qt::Unchecked" showFeatureCount="0" name="OpenStreetMap">
-      <filegroup open="true" hidden="false">
-        <legendlayerfile layerid="OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299" isInOverview="0" visible="0"/>
+    <legendlayer drawingOrder="-1" name="OpenStreetMap" open="true" showFeatureCount="0" checked="Qt::Unchecked">
+      <filegroup hidden="false" open="true">
+        <legendlayerfile layerid="OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299" visible="0" isInOverview="0"/>
       </filegroup>
     </legendlayer>
   </legend>
   <mapViewDocks/>
   <mapViewDocks3D/>
-  <main-annotation-layer autoRefreshTime="0" autoRefreshEnabled="0" refreshOnNotifyEnabled="0" refreshOnNotifyMessage="" type="annotation">
+  <main-annotation-layer autoRefreshEnabled="0" refreshOnNotifyMessage="" refreshOnNotifyEnabled="0" autoRefreshTime="0" type="annotation">
     <id>Annotations_d871f524_43a4_4733_99dc_9a0ec6938f47</id>
     <datasource></datasource>
     <keywordList>
@@ -146,13 +156,19 @@
     <blendMode>0</blendMode>
   </main-annotation-layer>
   <projectlayers>
-    <maplayer simplifyAlgorithm="0" maxScale="0" autoRefreshTime="0" styleCategories="AllStyleCategories" minScale="100000000" wkbType="MultiPolygon" refreshOnNotifyMessage="" geometry="Polygon" hasScaleBasedVisibilityFlag="0" readOnly="0" simplifyDrawingHints="1" simplifyLocal="1" type="vector" simplifyMaxScale="1" autoRefreshEnabled="0" refreshOnNotifyEnabled="0" labelsEnabled="0" simplifyDrawingTol="1">
+    <maplayer simplifyDrawingHints="1" wkbType="MultiPolygon" simplifyLocal="1" autoRefreshTime="0" simplifyAlgorithm="0" minScale="100000000" maxScale="0" geometry="Polygon" hasScaleBasedVisibilityFlag="0" autoRefreshEnabled="0" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" labelsEnabled="0" simplifyDrawingTol="1" refreshOnNotifyMessage="" type="vector" readOnly="0" simplifyMaxScale="1">
       <extent>
         <xmin>6.04800849794942685</xmin>
         <ymin>46.23249326521120395</ymin>
         <xmax>6.04955279851844008</xmax>
         <ymax>46.23346011241558529</ymax>
       </extent>
+      <wgs84extent>
+        <xmin>6.04800849794942685</xmin>
+        <ymin>46.23249326521120395</ymin>
+        <xmax>6.04955279851844008</xmax>
+        <ymax>46.23346011241558529</ymax>
+      </wgs84extent>
       <id>Extent_88c303f3_a084_4bd4_8970_edd67635146a</id>
       <datasource>./Extent.shp</datasource>
       <keywordList>
@@ -161,7 +177,7 @@
       <layername>Extent</layername>
       <srs>
         <spatialrefsys>
-          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"],AREA["World"],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
+          <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
           <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
           <srsid>3452</srsid>
           <srid>4326</srid>
@@ -205,7 +221,7 @@
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial dimensions="2" maxx="0" minx="0" crs="" maxy="0" miny="0" maxz="0" minz="0"/>
+          <spatial minx="0" maxy="0" dimensions="2" maxx="0" maxz="0" crs="" minz="0" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -229,15 +245,15 @@
         <Searchable>1</Searchable>
         <Private>0</Private>
       </flags>
-      <temporal startField="" endField="" startExpression="" accumulate="0" enabled="0" mode="0" endExpression="" durationField="" durationUnit="min" fixedDuration="0">
+      <temporal fixedDuration="0" accumulate="0" enabled="0" mode="0" startExpression="" endField="" durationUnit="min" durationField="" startField="" endExpression="">
         <fixedRange>
           <start></start>
           <end></end>
         </fixedRange>
       </temporal>
-      <renderer-v2 enableorderby="0" forceraster="0" type="singleSymbol" symbollevels="0">
+      <renderer-v2 symbollevels="0" forceraster="0" enableorderby="0" type="singleSymbol">
         <symbols>
-          <symbol alpha="1" force_rhr="0" clip_to_extent="1" name="0" type="fill">
+          <symbol force_rhr="0" name="0" alpha="1" clip_to_extent="1" type="fill">
             <data_defined_properties>
               <Option type="Map">
                 <Option name="name" value="" type="QString"/>
@@ -245,7 +261,7 @@
                 <Option name="type" value="collection" type="QString"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleLine" locked="0" enabled="1" pass="0">
+            <layer enabled="1" pass="0" class="SimpleLine" locked="0">
               <Option type="Map">
                 <Option name="align_dash_pattern" value="0" type="QString"/>
                 <Option name="capstyle" value="square" type="QString"/>
@@ -265,31 +281,43 @@
                 <Option name="offset_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
                 <Option name="offset_unit" value="MM" type="QString"/>
                 <Option name="ring_filter" value="0" type="QString"/>
+                <Option name="trim_distance_end" value="0" type="QString"/>
+                <Option name="trim_distance_end_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
+                <Option name="trim_distance_end_unit" value="MM" type="QString"/>
+                <Option name="trim_distance_start" value="0" type="QString"/>
+                <Option name="trim_distance_start_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
+                <Option name="trim_distance_start_unit" value="MM" type="QString"/>
                 <Option name="tweak_dash_pattern_on_corners" value="0" type="QString"/>
                 <Option name="use_custom_dash" value="0" type="QString"/>
                 <Option name="width_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
               </Option>
-              <prop v="0" k="align_dash_pattern"/>
-              <prop v="square" k="capstyle"/>
-              <prop v="5;2" k="customdash"/>
-              <prop v="3x:0,0,0,0,0,0" k="customdash_map_unit_scale"/>
-              <prop v="MM" k="customdash_unit"/>
-              <prop v="0" k="dash_pattern_offset"/>
-              <prop v="3x:0,0,0,0,0,0" k="dash_pattern_offset_map_unit_scale"/>
-              <prop v="MM" k="dash_pattern_offset_unit"/>
-              <prop v="0" k="draw_inside_polygon"/>
-              <prop v="bevel" k="joinstyle"/>
-              <prop v="77,175,74,255" k="line_color"/>
-              <prop v="solid" k="line_style"/>
-              <prop v="0.96" k="line_width"/>
-              <prop v="MM" k="line_width_unit"/>
-              <prop v="0" k="offset"/>
-              <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
-              <prop v="MM" k="offset_unit"/>
-              <prop v="0" k="ring_filter"/>
-              <prop v="0" k="tweak_dash_pattern_on_corners"/>
-              <prop v="0" k="use_custom_dash"/>
-              <prop v="3x:0,0,0,0,0,0" k="width_map_unit_scale"/>
+              <prop k="align_dash_pattern" v="0"/>
+              <prop k="capstyle" v="square"/>
+              <prop k="customdash" v="5;2"/>
+              <prop k="customdash_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="customdash_unit" v="MM"/>
+              <prop k="dash_pattern_offset" v="0"/>
+              <prop k="dash_pattern_offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="dash_pattern_offset_unit" v="MM"/>
+              <prop k="draw_inside_polygon" v="0"/>
+              <prop k="joinstyle" v="bevel"/>
+              <prop k="line_color" v="77,175,74,255"/>
+              <prop k="line_style" v="solid"/>
+              <prop k="line_width" v="0.96"/>
+              <prop k="line_width_unit" v="MM"/>
+              <prop k="offset" v="0"/>
+              <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="offset_unit" v="MM"/>
+              <prop k="ring_filter" v="0"/>
+              <prop k="trim_distance_end" v="0"/>
+              <prop k="trim_distance_end_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="trim_distance_end_unit" v="MM"/>
+              <prop k="trim_distance_start" v="0"/>
+              <prop k="trim_distance_start_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+              <prop k="trim_distance_start_unit" v="MM"/>
+              <prop k="tweak_dash_pattern_on_corners" v="0"/>
+              <prop k="use_custom_dash" v="0"/>
+              <prop k="width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
               <data_defined_properties>
                 <Option type="Map">
                   <Option name="name" value="" type="QString"/>
@@ -304,19 +332,21 @@
         <sizescale/>
       </renderer-v2>
       <customproperties>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property key="variableNames"/>
-        <property key="variableValues"/>
+        <Option type="Map">
+          <Option name="embeddedWidgets/count" value="0" type="QString"/>
+          <Option name="variableNames"/>
+          <Option name="variableValues"/>
+        </Option>
       </customproperties>
       <blendMode>0</blendMode>
       <featureBlendMode>0</featureBlendMode>
       <layerOpacity>1</layerOpacity>
-      <SingleCategoryDiagramRenderer diagramType="Histogram" attributeLegend="1">
-        <DiagramCategory labelPlacementMethod="XHeight" diagramOrientation="Up" showAxis="1" sizeScale="3x:0,0,0,0,0,0" lineSizeScale="3x:0,0,0,0,0,0" penColor="#000000" penAlpha="255" enabled="0" spacing="5" spacingUnit="MM" maxScaleDenominator="1e+08" scaleDependency="Area" backgroundColor="#ffffff" width="15" lineSizeType="MM" rotationOffset="270" penWidth="0" barWidth="5" opacity="1" minimumSize="0" minScaleDenominator="0" spacingUnitScale="3x:0,0,0,0,0,0" scaleBasedVisibility="0" sizeType="MM" backgroundAlpha="255" height="15" direction="0">
+      <SingleCategoryDiagramRenderer attributeLegend="1" diagramType="Histogram">
+        <DiagramCategory penWidth="0" lineSizeScale="3x:0,0,0,0,0,0" spacing="5" labelPlacementMethod="XHeight" scaleBasedVisibility="0" opacity="1" enabled="0" maxScaleDenominator="1e+08" showAxis="1" backgroundColor="#ffffff" penAlpha="255" minScaleDenominator="0" direction="0" width="15" spacingUnit="MM" rotationOffset="270" spacingUnitScale="3x:0,0,0,0,0,0" sizeType="MM" minimumSize="0" barWidth="5" penColor="#000000" height="15" scaleDependency="Area" diagramOrientation="Up" backgroundAlpha="255" sizeScale="3x:0,0,0,0,0,0" lineSizeType="MM">
           <fontProperties description="Cantarell,11,-1,5,50,0,0,0,0,0" style=""/>
-          <attribute color="#000000" field="" label=""/>
+          <attribute label="" color="#000000" field=""/>
           <axisSymbol>
-            <symbol alpha="1" force_rhr="0" clip_to_extent="1" name="" type="line">
+            <symbol force_rhr="0" name="" alpha="1" clip_to_extent="1" type="line">
               <data_defined_properties>
                 <Option type="Map">
                   <Option name="name" value="" type="QString"/>
@@ -324,7 +354,7 @@
                   <Option name="type" value="collection" type="QString"/>
                 </Option>
               </data_defined_properties>
-              <layer class="SimpleLine" locked="0" enabled="1" pass="0">
+              <layer enabled="1" pass="0" class="SimpleLine" locked="0">
                 <Option type="Map">
                   <Option name="align_dash_pattern" value="0" type="QString"/>
                   <Option name="capstyle" value="square" type="QString"/>
@@ -344,31 +374,43 @@
                   <Option name="offset_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
                   <Option name="offset_unit" value="MM" type="QString"/>
                   <Option name="ring_filter" value="0" type="QString"/>
+                  <Option name="trim_distance_end" value="0" type="QString"/>
+                  <Option name="trim_distance_end_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
+                  <Option name="trim_distance_end_unit" value="MM" type="QString"/>
+                  <Option name="trim_distance_start" value="0" type="QString"/>
+                  <Option name="trim_distance_start_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
+                  <Option name="trim_distance_start_unit" value="MM" type="QString"/>
                   <Option name="tweak_dash_pattern_on_corners" value="0" type="QString"/>
                   <Option name="use_custom_dash" value="0" type="QString"/>
                   <Option name="width_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
                 </Option>
-                <prop v="0" k="align_dash_pattern"/>
-                <prop v="square" k="capstyle"/>
-                <prop v="5;2" k="customdash"/>
-                <prop v="3x:0,0,0,0,0,0" k="customdash_map_unit_scale"/>
-                <prop v="MM" k="customdash_unit"/>
-                <prop v="0" k="dash_pattern_offset"/>
-                <prop v="3x:0,0,0,0,0,0" k="dash_pattern_offset_map_unit_scale"/>
-                <prop v="MM" k="dash_pattern_offset_unit"/>
-                <prop v="0" k="draw_inside_polygon"/>
-                <prop v="bevel" k="joinstyle"/>
-                <prop v="35,35,35,255" k="line_color"/>
-                <prop v="solid" k="line_style"/>
-                <prop v="0.26" k="line_width"/>
-                <prop v="MM" k="line_width_unit"/>
-                <prop v="0" k="offset"/>
-                <prop v="3x:0,0,0,0,0,0" k="offset_map_unit_scale"/>
-                <prop v="MM" k="offset_unit"/>
-                <prop v="0" k="ring_filter"/>
-                <prop v="0" k="tweak_dash_pattern_on_corners"/>
-                <prop v="0" k="use_custom_dash"/>
-                <prop v="3x:0,0,0,0,0,0" k="width_map_unit_scale"/>
+                <prop k="align_dash_pattern" v="0"/>
+                <prop k="capstyle" v="square"/>
+                <prop k="customdash" v="5;2"/>
+                <prop k="customdash_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="customdash_unit" v="MM"/>
+                <prop k="dash_pattern_offset" v="0"/>
+                <prop k="dash_pattern_offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="dash_pattern_offset_unit" v="MM"/>
+                <prop k="draw_inside_polygon" v="0"/>
+                <prop k="joinstyle" v="bevel"/>
+                <prop k="line_color" v="35,35,35,255"/>
+                <prop k="line_style" v="solid"/>
+                <prop k="line_width" v="0.26"/>
+                <prop k="line_width_unit" v="MM"/>
+                <prop k="offset" v="0"/>
+                <prop k="offset_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="offset_unit" v="MM"/>
+                <prop k="ring_filter" v="0"/>
+                <prop k="trim_distance_end" v="0"/>
+                <prop k="trim_distance_end_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="trim_distance_end_unit" v="MM"/>
+                <prop k="trim_distance_start" v="0"/>
+                <prop k="trim_distance_start_map_unit_scale" v="3x:0,0,0,0,0,0"/>
+                <prop k="trim_distance_start_unit" v="MM"/>
+                <prop k="tweak_dash_pattern_on_corners" v="0"/>
+                <prop k="use_custom_dash" v="0"/>
+                <prop k="width_map_unit_scale" v="3x:0,0,0,0,0,0"/>
                 <data_defined_properties>
                   <Option type="Map">
                     <Option name="name" value="" type="QString"/>
@@ -381,7 +423,7 @@
           </axisSymbol>
         </DiagramCategory>
       </SingleCategoryDiagramRenderer>
-      <DiagramLayerSettings zIndex="0" dist="0" linePlacementFlags="18" obstacle="0" showAll="1" priority="0" placement="1">
+      <DiagramLayerSettings placement="1" zIndex="0" obstacle="0" linePlacementFlags="18" priority="0" dist="0" showAll="1">
         <properties>
           <Option type="Map">
             <Option name="name" value="" type="QString"/>
@@ -390,7 +432,7 @@
           </Option>
         </properties>
       </DiagramLayerSettings>
-      <geometryOptions geometryPrecision="0" removeDuplicateNodes="0">
+      <geometryOptions removeDuplicateNodes="0" geometryPrecision="0">
         <activeChecks/>
         <checkConfiguration type="Map">
           <Option name="QgsGeometryGapCheck" type="Map">
@@ -400,7 +442,7 @@
           </Option>
         </checkConfiguration>
       </geometryOptions>
-      <legend type="default-vector"/>
+      <legend showLabelLegend="0" type="default-vector"/>
       <referencedLayers/>
       <fieldConfiguration>
         <field configurationFlags="None" name="id">
@@ -415,22 +457,22 @@
         <alias index="0" name="" field="id"/>
       </aliases>
       <defaults>
-        <default applyOnUpdate="0" field="id" expression=""/>
+        <default expression="" applyOnUpdate="0" field="id"/>
       </defaults>
       <constraints>
-        <constraint constraints="0" notnull_strength="0" unique_strength="0" exp_strength="0" field="id"/>
+        <constraint notnull_strength="0" unique_strength="0" exp_strength="0" constraints="0" field="id"/>
       </constraints>
       <constraintExpressions>
-        <constraint desc="" field="id" exp=""/>
+        <constraint exp="" desc="" field="id"/>
       </constraintExpressions>
       <expressionfields/>
       <attributeactions>
-        <defaultAction value="{00000000-0000-0000-0000-000000000000}" key="Canvas"/>
+        <defaultAction key="Canvas" value="{00000000-0000-0000-0000-000000000000}"/>
       </attributeactions>
-      <attributetableconfig actionWidgetStyle="dropDown" sortExpression="" sortOrder="0">
+      <attributetableconfig actionWidgetStyle="dropDown" sortOrder="0" sortExpression="">
         <columns>
-          <column width="-1" hidden="0" name="id" type="field"/>
-          <column width="-1" hidden="1" type="actions"/>
+          <column hidden="0" name="id" width="-1" type="field"/>
+          <column hidden="1" width="-1" type="actions"/>
         </columns>
       </attributetableconfig>
       <conditionalstyles>
@@ -462,23 +504,30 @@ def my_form_open(dialog, layer, feature):
       <featformsuppress>0</featformsuppress>
       <editorlayout>generatedlayout</editorlayout>
       <editable>
-        <field editable="1" name="id"/>
+        <field name="id" editable="1"/>
       </editable>
       <labelOnTop>
         <field labelOnTop="0" name="id"/>
       </labelOnTop>
+      <reuseLastValue/>
       <dataDefinedFieldProperties/>
       <widgets/>
       <previewExpression>"id"</previewExpression>
       <mapTip></mapTip>
     </maplayer>
-    <maplayer autoRefreshTime="0" autoRefreshEnabled="0" refreshOnNotifyEnabled="0" minScale="1e+08" hasScaleBasedVisibilityFlag="0" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" type="raster">
+    <maplayer minScale="1e+08" autoRefreshEnabled="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyMessage="" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" autoRefreshTime="0" type="raster">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
         <xmax>20037508.34278924390673637</xmax>
         <ymax>20037508.34278924390673637</ymax>
       </extent>
+      <wgs84extent>
+        <xmin>-180</xmin>
+        <ymin>-85.05112877980660357</ymin>
+        <xmax>179.99999999999997158</xmax>
+        <ymax>85.05112877980658936</ymax>
+      </wgs84extent>
       <id>Google_Satellite_99f1ae74_91ea_49be_93e5_15eca5564b76</id>
       <datasource>crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=http://www.google.cn/maps/vt?lyrs%3Ds@189%26gl%3Dcn%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&amp;zmax=19&amp;zmin=0</datasource>
       <keywordList>
@@ -487,7 +536,7 @@ def my_form_open(dialog, layer, feature):
       <layername>Google Satellite</layername>
       <srs>
         <spatialrefsys>
-          <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["unknown"],AREA["World - 85°S to 85°N"],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
+          <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Web mapping and visualisation."],AREA["World between 85.06°S and 85.06°N."],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
           <proj4>+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs</proj4>
           <srsid>3857</srsid>
           <srid>3857</srid>
@@ -531,7 +580,7 @@ def my_form_open(dialog, layer, feature):
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial dimensions="2" maxx="0" minx="0" crs="" maxy="0" miny="0" maxz="0" minz="0"/>
+          <spatial minx="0" maxy="0" dimensions="2" maxx="0" maxz="0" crs="" minz="0" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -553,23 +602,25 @@ def my_form_open(dialog, layer, feature):
         <Searchable>1</Searchable>
         <Private>0</Private>
       </flags>
-      <temporal fetchMode="0" enabled="0" mode="0">
+      <temporal enabled="0" mode="0" fetchMode="0">
         <fixedRange>
           <start></start>
           <end></end>
         </fixedRange>
       </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Undefined" key="identify/format"/>
+        <Option type="Map">
+          <Option name="WMSBackgroundLayer" value="false" type="QString"/>
+          <Option name="WMSPublishDataSourceUrl" value="false" type="QString"/>
+          <Option name="embeddedWidgets/count" value="0" type="QString"/>
+          <Option name="identify/format" value="Undefined" type="QString"/>
+        </Option>
       </customproperties>
       <pipe>
         <provider>
-          <resampling zoomedOutResamplingMethod="nearestNeighbour" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2" enabled="false"/>
+          <resampling zoomedOutResamplingMethod="nearestNeighbour" enabled="false" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2"/>
         </provider>
-        <rasterrenderer alphaBand="-1" nodataColor="" band="1" opacity="1" type="singlebandcolordata">
+        <rasterrenderer opacity="1" alphaBand="-1" band="1" nodataColor="" type="singlebandcolordata">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -580,20 +631,26 @@ def my_form_open(dialog, layer, feature):
             <stdDevFactor>2</stdDevFactor>
           </minMaxOrigin>
         </rasterrenderer>
-        <brightnesscontrast gamma="1" brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeBlue="128" colorizeStrength="100" colorizeOn="0" colorizeRed="255" colorizeGreen="128"/>
+        <brightnesscontrast gamma="1" contrast="0" brightness="0"/>
+        <huesaturation colorizeBlue="128" colorizeStrength="100" colorizeOn="0" grayscaleMode="0" colorizeRed="255" colorizeGreen="128" saturation="0"/>
         <rasterresampler zoomedInResampler="bilinear" maxOversampling="2"/>
         <resamplingStage>resamplingFilter</resamplingStage>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
-    <maplayer autoRefreshTime="0" autoRefreshEnabled="0" refreshOnNotifyEnabled="0" minScale="1e+08" hasScaleBasedVisibilityFlag="0" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" type="raster">
+    <maplayer minScale="1e+08" autoRefreshEnabled="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyMessage="" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" autoRefreshTime="0" type="raster">
       <extent>
         <xmin>2492682.5</xmin>
         <ymin>1121058.5</ymin>
         <xmax>2492860.5</xmax>
         <ymax>1121188</ymax>
       </extent>
+      <wgs84extent>
+        <xmin>6.04742772184126132</xmin>
+        <ymin>46.23238732999238465</ymin>
+        <xmax>6.04976451160806228</xmax>
+        <ymax>46.23358048597339121</ymax>
+      </wgs84extent>
       <id>MN_Surface_2017_GRID_bd1562f9_0e87_441e_9476_0dc5af3777ac</id>
       <datasource>./format_6_grid_asc_meyrin_dtm_20200522_122939/MN_Surface_2017_GRID.asc</datasource>
       <keywordList>
@@ -602,7 +659,7 @@ def my_form_open(dialog, layer, feature):
       <layername>MN_Surface_2017_GRID</layername>
       <srs>
         <spatialrefsys>
-          <wkt>PROJCRS["CH1903+ / LV95",BASEGEOGCRS["CH1903+",DATUM["CH1903+",ELLIPSOID["Bessel 1841",6377397.155,299.1528128,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4150]],CONVERSION["Swiss Oblique Mercator 1995",METHOD["Hotine Oblique Mercator (variant B)",ID["EPSG",9815]],PARAMETER["Latitude of projection centre",46.9524055555556,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8811]],PARAMETER["Longitude of projection centre",7.43958333333333,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8812]],PARAMETER["Azimuth of initial line",90,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8813]],PARAMETER["Angle from Rectified to Skew Grid",90,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8814]],PARAMETER["Scale factor on initial line",1,SCALEUNIT["unity",1],ID["EPSG",8815]],PARAMETER["Easting at projection centre",2600000,LENGTHUNIT["metre",1],ID["EPSG",8816]],PARAMETER["Northing at projection centre",1200000,LENGTHUNIT["metre",1],ID["EPSG",8817]]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["unknown"],AREA["Europe - Liechtenstein and Switzerland"],BBOX[45.82,5.96,47.81,10.49]],ID["EPSG",2056]]</wkt>
+          <wkt>PROJCRS["CH1903+ / LV95",BASEGEOGCRS["CH1903+",DATUM["CH1903+",ELLIPSOID["Bessel 1841",6377397.155,299.1528128,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4150]],CONVERSION["Swiss Oblique Mercator 1995",METHOD["Hotine Oblique Mercator (variant B)",ID["EPSG",9815]],PARAMETER["Latitude of projection centre",46.9524055555556,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8811]],PARAMETER["Longitude of projection centre",7.43958333333333,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8812]],PARAMETER["Azimuth of initial line",90,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8813]],PARAMETER["Angle from Rectified to Skew Grid",90,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8814]],PARAMETER["Scale factor on initial line",1,SCALEUNIT["unity",1],ID["EPSG",8815]],PARAMETER["Easting at projection centre",2600000,LENGTHUNIT["metre",1],ID["EPSG",8816]],PARAMETER["Northing at projection centre",1200000,LENGTHUNIT["metre",1],ID["EPSG",8817]]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Cadastre, engineering survey, topographic mapping (large and medium scale)."],AREA["Liechtenstein; Switzerland."],BBOX[45.82,5.96,47.81,10.49]],ID["EPSG",2056]]</wkt>
           <proj4>+proj=somerc +lat_0=46.9524055555556 +lon_0=7.43958333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs</proj4>
           <srsid>47</srsid>
           <srid>2056</srid>
@@ -646,7 +703,7 @@ def my_form_open(dialog, layer, feature):
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial dimensions="2" maxx="0" minx="0" crs="" maxy="0" miny="0" maxz="0" minz="0"/>
+          <spatial minx="0" maxy="0" dimensions="2" maxx="0" maxz="0" crs="" minz="0" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -668,23 +725,25 @@ def my_form_open(dialog, layer, feature):
         <Searchable>1</Searchable>
         <Private>0</Private>
       </flags>
-      <temporal fetchMode="0" enabled="0" mode="0">
+      <temporal enabled="0" mode="0" fetchMode="0">
         <fixedRange>
           <start></start>
           <end></end>
         </fixedRange>
       </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Value" key="identify/format"/>
+        <Option type="Map">
+          <Option name="WMSBackgroundLayer" value="false" type="QString"/>
+          <Option name="WMSPublishDataSourceUrl" value="false" type="QString"/>
+          <Option name="embeddedWidgets/count" value="0" type="QString"/>
+          <Option name="identify/format" value="Value" type="QString"/>
+        </Option>
       </customproperties>
       <pipe>
         <provider>
-          <resampling zoomedOutResamplingMethod="nearestNeighbour" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2" enabled="false"/>
+          <resampling zoomedOutResamplingMethod="nearestNeighbour" enabled="false" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2"/>
         </provider>
-        <rasterrenderer alphaBand="-1" nodataColor="" azimuth="315" band="1" opacity="1" multidirection="0" angle="45" zfactor="1" type="hillshade">
+        <rasterrenderer opacity="1" angle="45" zfactor="1" multidirection="0" alphaBand="-1" band="1" nodataColor="" azimuth="315" type="hillshade">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -695,20 +754,26 @@ def my_form_open(dialog, layer, feature):
             <stdDevFactor>2</stdDevFactor>
           </minMaxOrigin>
         </rasterrenderer>
-        <brightnesscontrast gamma="1" brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeBlue="128" colorizeStrength="100" colorizeOn="0" colorizeRed="255" colorizeGreen="128"/>
+        <brightnesscontrast gamma="1" contrast="0" brightness="0"/>
+        <huesaturation colorizeBlue="128" colorizeStrength="100" colorizeOn="0" grayscaleMode="0" colorizeRed="255" colorizeGreen="128" saturation="0"/>
         <rasterresampler zoomedInResampler="bilinear" maxOversampling="2"/>
         <resamplingStage>resamplingFilter</resamplingStage>
       </pipe>
       <blendMode>0</blendMode>
     </maplayer>
-    <maplayer autoRefreshTime="0" autoRefreshEnabled="0" refreshOnNotifyEnabled="0" minScale="1e+08" hasScaleBasedVisibilityFlag="0" maxScale="0" styleCategories="AllStyleCategories" refreshOnNotifyMessage="" type="raster">
+    <maplayer minScale="1e+08" autoRefreshEnabled="0" hasScaleBasedVisibilityFlag="0" refreshOnNotifyMessage="" styleCategories="AllStyleCategories" refreshOnNotifyEnabled="0" maxScale="0" autoRefreshTime="0" type="raster">
       <extent>
         <xmin>-20037508.34278924390673637</xmin>
         <ymin>-20037508.34278925508260727</ymin>
         <xmax>20037508.34278924390673637</xmax>
         <ymax>20037508.34278924390673637</ymax>
       </extent>
+      <wgs84extent>
+        <xmin>-180</xmin>
+        <ymin>-85.05112877980660357</ymin>
+        <xmax>179.99999999999997158</xmax>
+        <ymax>85.05112877980658936</ymax>
+      </wgs84extent>
       <id>OpenStreetMap_cf84586a_eafe_4649_9611_37a7494e1299</id>
       <datasource>crs=EPSG:3857&amp;format&amp;type=xyz&amp;url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&amp;zmax=19&amp;zmin=0</datasource>
       <keywordList>
@@ -717,7 +782,7 @@ def my_form_open(dialog, layer, feature):
       <layername>OpenStreetMap</layername>
       <srs>
         <spatialrefsys>
-          <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["unknown"],AREA["World - 85°S to 85°N"],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
+          <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Web mapping and visualisation."],AREA["World between 85.06°S and 85.06°N."],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
           <proj4>+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs</proj4>
           <srsid>3857</srsid>
           <srid>3857</srid>
@@ -749,7 +814,7 @@ def my_form_open(dialog, layer, feature):
         <encoding></encoding>
         <crs>
           <spatialrefsys>
-            <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["unknown"],AREA["World - 85°S to 85°N"],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
+            <wkt>PROJCRS["WGS 84 / Pseudo-Mercator",BASEGEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4326]],CONVERSION["Popular Visualisation Pseudo-Mercator",METHOD["Popular Visualisation Pseudo Mercator",ID["EPSG",1024]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["False easting",0,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Web mapping and visualisation."],AREA["World between 85.06°S and 85.06°N."],BBOX[-85.06,-180,85.06,180]],ID["EPSG",3857]]</wkt>
             <proj4>+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs</proj4>
             <srsid>3857</srsid>
             <srid>3857</srid>
@@ -761,7 +826,7 @@ def my_form_open(dialog, layer, feature):
           </spatialrefsys>
         </crs>
         <extent>
-          <spatial dimensions="2" maxx="0" minx="0" crs="" maxy="0" miny="0" maxz="0" minz="0"/>
+          <spatial minx="0" maxy="0" dimensions="2" maxx="0" maxz="0" crs="" minz="0" miny="0"/>
           <temporal>
             <period>
               <start></start>
@@ -783,23 +848,25 @@ def my_form_open(dialog, layer, feature):
         <Searchable>0</Searchable>
         <Private>0</Private>
       </flags>
-      <temporal fetchMode="0" enabled="0" mode="0">
+      <temporal enabled="0" mode="0" fetchMode="0">
         <fixedRange>
           <start></start>
           <end></end>
         </fixedRange>
       </temporal>
       <customproperties>
-        <property value="false" key="WMSBackgroundLayer"/>
-        <property value="false" key="WMSPublishDataSourceUrl"/>
-        <property value="0" key="embeddedWidgets/count"/>
-        <property value="Undefined" key="identify/format"/>
+        <Option type="Map">
+          <Option name="WMSBackgroundLayer" value="false" type="QString"/>
+          <Option name="WMSPublishDataSourceUrl" value="false" type="QString"/>
+          <Option name="embeddedWidgets/count" value="0" type="QString"/>
+          <Option name="identify/format" value="Undefined" type="QString"/>
+        </Option>
       </customproperties>
       <pipe>
         <provider>
-          <resampling zoomedOutResamplingMethod="nearestNeighbour" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2" enabled="false"/>
+          <resampling zoomedOutResamplingMethod="nearestNeighbour" enabled="false" zoomedInResamplingMethod="nearestNeighbour" maxOversampling="2"/>
         </provider>
-        <rasterrenderer alphaBand="-1" nodataColor="" band="1" opacity="1" type="singlebandcolordata">
+        <rasterrenderer opacity="1" alphaBand="-1" band="1" nodataColor="" type="singlebandcolordata">
           <rasterTransparency/>
           <minMaxOrigin>
             <limits>None</limits>
@@ -810,8 +877,8 @@ def my_form_open(dialog, layer, feature):
             <stdDevFactor>2</stdDevFactor>
           </minMaxOrigin>
         </rasterrenderer>
-        <brightnesscontrast gamma="1" brightness="0" contrast="0"/>
-        <huesaturation grayscaleMode="0" saturation="0" colorizeBlue="128" colorizeStrength="100" colorizeOn="0" colorizeRed="255" colorizeGreen="128"/>
+        <brightnesscontrast gamma="1" contrast="0" brightness="0"/>
+        <huesaturation colorizeBlue="128" colorizeStrength="100" colorizeOn="0" grayscaleMode="0" colorizeRed="255" colorizeGreen="128" saturation="0"/>
         <rasterresampler maxOversampling="2"/>
         <resamplingStage>resamplingFilter</resamplingStage>
       </pipe>
@@ -985,9 +1052,9 @@ def my_form_open(dialog, layer, feature):
   <Bookmarks/>
   <ProjectViewSettings UseProjectScales="0">
     <Scales/>
-    <DefaultViewExtent xmax="6.04993776742819556" ymin="46.23199324812152611" xmin="6.04685359122016486" ymax="46.23385171872034505">
+    <DefaultViewExtent ymin="46.23200036966917281" xmin="6.04685359122016486" xmax="6.04993776742819556" ymax="46.23384459717269834">
       <spatialrefsys>
-        <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["unknown"],AREA["World"],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
+        <wkt>GEOGCRS["WGS 84",DATUM["World Geodetic System 1984",ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
         <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
         <srsid>3452</srsid>
         <srid>4326</srid>
@@ -999,7 +1066,7 @@ def my_form_open(dialog, layer, feature):
       </spatialrefsys>
     </DefaultViewExtent>
   </ProjectViewSettings>
-  <ProjectTimeSettings frameRate="1" timeStep="1" timeStepUnit="h" cumulativeTemporalRange="0"/>
+  <ProjectTimeSettings timeStep="1" timeStepUnit="h" frameRate="1" cumulativeTemporalRange="0"/>
   <ProjectDisplaySettings>
     <BearingFormat id="bearing">
       <Option type="Map">
