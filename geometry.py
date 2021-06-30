@@ -15,19 +15,25 @@ import numpy as np
 # Get verts, faces, landuses
 
 
-def get_geometry(feedback, layer, utm_origin):
+def get_geometry(feedback, point_layer, utm_origin, landuse_layer):
     """!
     Get verts, faces, and landuses from sampling point layer.
     @feedback: pyqgis feedback obj
-    @param layer: QGIS vector layer of quad faces center points with landuse.
+    @param point_layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
+    @param landuse_layer: FIXME
     @return verts, faces, landuses
     """
-    feedback.pushInfo("Point matrix...")
-    matrix = _get_matrix(feedback, layer=layer, utm_origin=utm_origin)
+    feedback.pushInfo("Point and landuse matrix...")
+    matrix = _get_matrix(
+        feedback,
+        point_layer=point_layer,
+        utm_origin=utm_origin,
+        landuse_layer=landuse_layer,
+    )
     if feedback.isCanceled():
         return {}
-    feedback.pushInfo("Faces and landuses...")
+    feedback.pushInfo("Faces with landuse...")
     faces, landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
@@ -66,29 +72,38 @@ def get_geometry(feedback, layer, utm_origin):
 # o verts
 
 
-def _get_matrix(feedback, layer, utm_origin):
+def _get_matrix(feedback, point_layer, utm_origin, landuse_layer):
     """
     Return the matrix of quad faces center points with landuse.
-    @param layer: QGIS vector layer of quad faces center points with landuse.
+    @param point_layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
+    @param landuse_layer: FIXME.
     @return matrix of quad faces center points with landuse.
     """
     feedback.setProgress(0)
-    # Allocate and fill np array, points are listed by column
-    ox, oy = utm_origin.x(), utm_origin.y()  # get origin
-    nfeatures = layer.featureCount()
+    # Allocate the np array
+    nfeatures = point_layer.featureCount()
     partial_progress = nfeatures // 100 or 1
-    m = np.empty((nfeatures, 4))  # allocate array
-    for i, f in enumerate(layer.getFeatures()):
-        g, a = f.geometry().get(), f.attributes()  # QgsPoint, landuse
-        m[i] = (  # fill array
+    m = np.empty((nfeatures, 4))
+    # Fill the array with point coordinates, points are listed by column
+    ox, oy = utm_origin.x(), utm_origin.y()  # get origin
+    for i, f in enumerate(point_layer.getFeatures()):
+        g = f.geometry().get()  # QgsPoint
+        m[i] = (
             g.x() - ox,  # x, relative to origin
             g.y() - oy,  # y, relative to origin
             g.z(),  # z absolute
-            a[5] or 0,  # landuse, protect from None
+            0,  # for landuse
         )
         if i % partial_progress == 0:
             feedback.setProgress(int(i / nfeatures * 100))
+    # Fill the array with the landuse
+    if landuse_layer:
+        for i, f in enumerate(point_layer.getFeatures()):
+            a = f.attributes()
+            m[i][3] = a[5] or 0
+            if i % partial_progress == 0:
+                feedback.setProgress(int(i / nfeatures * 100))
     # Get point column length and split matrix
     column_len = 2
     p0, p1 = m[0, :2], m[1, :2]
