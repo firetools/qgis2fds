@@ -189,6 +189,40 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        defaultValue, _ = project.readNumEntry("qgis2fds", "nmesh", 4)
+        param = QgsProcessingParameterNumber(
+            "nmesh",
+            "Max number of FDS MESH lines",
+            type=QgsProcessingParameterNumber.Integer,
+            defaultValue=defaultValue,
+            minValue=1,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
+        defaultValue, _ = project.readNumEntry("qgis2fds", "cell_size", 10.0)
+        param = QgsProcessingParameterNumber(
+            "cell_size",
+            "Desired FDS MESH cell size (in meters)",
+            type=QgsProcessingParameterNumber.Double,
+            defaultValue=defaultValue,
+            minValue=0.1,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
+        defaultValue, _ = project.readEntry("qgis2fds", "wind_filepath", "")
+        param = QgsProcessingParameterFile(
+            "wind_filepath",
+            "Wind *.csv file",
+            behavior=QgsProcessingParameterFile.File,
+            fileFilter="CSV files (*.csv)",
+            optional=True,
+            defaultValue=defaultValue,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
         param = QgsProcessingParameterVectorDestination(
             "sampling_layer",
             "Sampling grid layer",
@@ -262,8 +296,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Get some of the parameters
         chid = self.parameterAsString(parameters, "chid", context)
         project.writeEntry("qgis2fds", "chid", parameters["chid"])
+        nmesh = self.parameterAsInt(parameters, "nmesh", context)
+        project.writeEntry("qgis2fds", "nmesh", parameters["nmesh"])
+        cell_size = self.parameterAsDouble(parameters, "cell_size", context)
+        project.writeEntryDouble("qgis2fds", "cell_size", parameters["cell_size"])
         path = self.parameterAsFile(parameters, "path", context)
         project.writeEntry("qgis2fds", "path", parameters["path"])
+        wind_filepath = self.parameterAsFile(parameters, "wind_filepath", context)
+        project.writeEntry(
+            "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
+        )
         landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
         project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
         dem_sampling = self.parameterAsInt(parameters, "dem_sampling", context)
@@ -686,6 +728,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
         feedback.setProgressText("\n(7/7) Writing the FDS case file...")
 
+        # FIXME: add nmesh
+
         fds.write_case(
             feedback=feedback,
             dem_layer=dem_layer,
@@ -703,6 +747,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type=landuse_type,
             utm_extent=utm_extent,
             max_landuses=max_landuses,
+            nmesh=nmesh,
+            cell_size=cell_size,
+            wind_filepath=wind_filepath,
         )
 
         return results
