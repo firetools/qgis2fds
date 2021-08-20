@@ -34,13 +34,13 @@ def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
     if feedback.isCanceled():
         return {}
     feedback.pushInfo("Faces with landuse...")
-    faces, landuses = _get_faces(feedback=feedback, m=matrix)
+    faces, landuses, max_landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
     feedback.pushInfo("Verts...")
     verts = _get_verts(feedback=feedback, m=matrix)
     feedback.pushInfo(f"Terrain ready: {len(verts)} verts, {len(faces)} faces.")
-    return verts, faces, landuses
+    return verts, faces, landuses, max_landuses
 
 
 # Prepare the matrix of quad faces center points with landuse
@@ -168,7 +168,8 @@ def _get_faces(feedback, m):
             lu = int(p[3])  # landuse idx
             landuses.extend((lu, lu))
         feedback.setProgress(int(i / len_vrow * 100))
-    return faces, landuses
+    max_landuses = max(landuses)
+    return faces, landuses, max_landuses
 
 
 # Getting vertices
