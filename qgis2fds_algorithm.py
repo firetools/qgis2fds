@@ -728,8 +728,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
         feedback.setProgressText("\n(7/7) Writing the FDS case file...")
 
-        # FIXME: add nmesh
-
         fds.write_case(
             feedback=feedback,
             dem_layer=dem_layer,
