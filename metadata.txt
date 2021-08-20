@@ -3,9 +3,9 @@
 
 [general]
 name=qgis2fds
-qgisMinimumVersion=3.18
+qgisMinimumVersion=3.20
 description=Export terrains to NIST FDS for fire simulation
-version=0.61
+version=0.70
 author=Emanuele Gissi, Ruggero Poletto
 email=emanuele.gissi@gmail.com
 
@@ -18,7 +18,7 @@ repository=https://github.com/firetools/qgis2fds
 
 hasProcessingProvider=yes
 # changelog=
-tags=python, cfd, fire
+tags=python, cfd, fire, wilfire, WUI
 homepage=https://github.com/firetools/qgis2fds/wiki
 category=Analysis
 icon=icon.png
