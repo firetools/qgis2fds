@@ -112,7 +112,7 @@ def _get_comment_str(
     wind_filepath,
 ):
     plugin_version = pluginMetadata("qgis2fds", "version")
-    qgis_version = QgsExpressionContextUtils.globalScope().variable("qgis_version")
+    qgis_version = QgsExpressionContextUtils.globalScope().variable("qgis_version").encode('utf-8')
     filepath = QgsProject.instance().fileName() or "not saved"
     if len(filepath) > 60:
         filepath = "..." + filepath[-57:]
