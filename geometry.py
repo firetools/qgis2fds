@@ -15,13 +15,13 @@ import numpy as np
 # Get verts, faces, landuses
 
 
-def get_geometry(feedback, point_layer, utm_origin, landuse_layer):
+def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
     """!
     Get verts, faces, and landuses from sampling point layer.
     @feedback: pyqgis feedback obj
     @param point_layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
-    @param landuse_layer: FIXME
+    @param landuse_layer: landuse layer
     @return verts, faces, landuses
     """
     feedback.pushInfo("Point and landuse matrix...")
@@ -39,7 +39,7 @@ def get_geometry(feedback, point_layer, utm_origin, landuse_layer):
         return {}
     feedback.pushInfo("Verts...")
     verts = _get_verts(feedback=feedback, m=matrix)
-    feedback.pushInfo(f"Geometry ready: {len(verts)} verts, {len(faces)} faces.")
+    feedback.pushInfo(f"Terrain ready: {len(verts)} verts, {len(faces)} faces.")
     return verts, faces, landuses
 
 
