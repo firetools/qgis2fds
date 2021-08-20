@@ -673,7 +673,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
         feedback.setProgressText("\n(6/7) Building FDS geometry...")
 
-        verts, faces, landuses = geometry.get_geometry(
+        verts, faces, landuses, max_landuses = geometry.get_fds_terrain(
             feedback=feedback,
             point_layer=point_layer,
             utm_origin=utm_origin,
@@ -702,6 +702,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuses=landuses,
             landuse_type=landuse_type,
             utm_extent=utm_extent,
+            max_landuses=max_landuses,
         )
 
         return results
