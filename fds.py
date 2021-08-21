@@ -322,7 +322,7 @@ def write_case(
     )
     wind_str = _get_wind_str(wind_filepath)
     feedback.pushInfo(
-        f"\nNumber of FDS MESH lines: {nmesh_x*nmesh_y} ={nmesh_x:d}x{nmesh_y:d}"
+        f"\nNumber of FDS MESHes: {nmesh_x*nmesh_y} ={nmesh_x:d}x{nmesh_y:d}"
     )
 
     # Write bingeom file

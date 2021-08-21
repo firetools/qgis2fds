@@ -192,7 +192,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readNumEntry("qgis2fds", "nmesh", 4)
         param = QgsProcessingParameterNumber(
             "nmesh",
-            "Max number of FDS MESH lines",
+            "Max number of FDS MESHes",
             type=QgsProcessingParameterNumber.Integer,
             defaultValue=defaultValue,
             minValue=1,
