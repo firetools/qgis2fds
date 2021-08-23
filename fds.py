@@ -112,7 +112,9 @@ def _get_comment_str(
     wind_filepath,
 ):
     plugin_version = pluginMetadata("qgis2fds", "version")
-    qgis_version = QgsExpressionContextUtils.globalScope().variable("qgis_version").encode('utf-8')
+    qgis_version = (
+        QgsExpressionContextUtils.globalScope().variable("qgis_version").encode("utf-8")
+    )
     filepath = QgsProject.instance().fileName() or "not saved"
     if len(filepath) > 60:
         filepath = "..." + filepath[-57:]
@@ -206,11 +208,19 @@ def _get_fds_str(
 &TIME T_BEGIN=-10. T_END=3600. /
 
 ! Example REAC used in LEVEL_SET_MODE=4
-&REAC ID='Wood', SOOT_YIELD=0.02, O=2.5, C=3.4, H=6.2,
+&REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
       HEAT_OF_COMBUSTION=17700 /
+
+! Fix numerical instability
+! &PRES VELOCITY_TOLERANCE=1.E-6 MAX_PRESSURE_ITERATIONS=100 /
+
+! Reduce calculation duration
+! &RADI RADIATION=F /
 
 ! Domain and its boundary conditions
 ! {nmesh_x:d} x {nmesh_y:d} meshes
+! of {mesh_xb[1]-mesh_xb[0]}m x {mesh_xb[3]-mesh_xb[2]}m x {mesh_xb[5]-mesh_xb[4]}m size
+! and {ijk[0]*ijk[1]*ijk[2]} cells each
 &MULT ID='Meshes'
       DX={dx:.3f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
       DY={dy:.3f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
@@ -229,13 +239,17 @@ def _get_fds_str(
  
 ! Output quantities
 &SLCF AGL_SLICE=1. QUANTITY='LEVEL SET VALUE' /
-&SLCF AGL_SLICE=1. QUANTITY='TEMPERATURE' VECTOR=T /
 &SLCF AGL_SLICE=2. QUANTITY='VISIBILITY' /
 &SLCF AGL_SLICE=2. QUANTITY='TEMPERATURE' VECTOR=T /
 &SLCF PBX={fire_x:.3f} QUANTITY='TEMPERATURE' /
 &SLCF PBY={fire_y:.3f} QUANTITY='TEMPERATURE' /
 
 {wind_str}
+
+! Output for wind rose at origin
+&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='U-VELOCITY' /
+&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='V-VELOCITY' /
+&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='W-VELOCITY' /
  
 ! Boundary conditions
 ! 13 Anderson Fire Behavior Fuel Models
