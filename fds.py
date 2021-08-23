@@ -75,8 +75,8 @@ def _get_wind_str(feedback, wind_filepath):
             csv_reader = csv.reader(csv_file, delimiter=",")
             next(csv_reader)  # skip header line
             for r in csv_reader:
-                ws.append(f"&RAMP ID='ws', T={float(r[0]):.0f}, F={float(r[1]):.1f} /")
-                wd.append(f"&RAMP ID='wd', T={float(r[0]):.0f}, F={float(r[2]):.1f} /")
+                ws.append(f"&RAMP ID='ws', T={float(r[0]):.1f}, F={float(r[1]):.1f} /")
+                wd.append(f"&RAMP ID='wd', T={float(r[0]):.1f}, F={float(r[2]):.1f} /")
         ws.extend(wd)
         return "\n".join(ws)
     except Exception as err:
@@ -236,7 +236,7 @@ def _get_fds_case_str(
 
 ! Wind
 &WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
-&RAMP ID='ws', T=-10., F=0. / smooth initialization
+&RAMP ID='ws', T=-10.0, F=0.0 / smooth initialization
 {wind_str}
 
 ! Output quantities
