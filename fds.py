@@ -61,7 +61,7 @@ def _calc_domain(utm_extent, utm_origin, verts, nmesh, cell_size):
         utm_extent.yMinimum() - utm_origin.y(),
         utm_extent.yMaximum() - utm_origin.y(),
         min(v[2] for v in verts) - 2.0,
-        max(v[2] for v in verts) + 50.0,
+        max(v[2] for v in verts) + cell_size * 10,  # 10 cells over max z
     )
     domain_ratio = abs((domain_xb[1] - domain_xb[0]) / (domain_xb[3] - domain_xb[2]))
     nmesh_y = round(sqrt(nmesh / domain_ratio))
@@ -171,7 +171,7 @@ def _get_wind_str(wind_filepath):
         ws.extend(wd)
         return "\n".join(ws)
     except Exception as err:
-        return f"! Wind from file\n! ERROR: {err}"
+        return f"! Wind file ERROR: {err}"
 
 
 def _get_fds_str(
