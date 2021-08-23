@@ -53,7 +53,7 @@ landuse_choices = {
     },
 }
 
-wind_example_str = f"""! example ramp
+wind_ramp_example_str = f"""! example ramp
 &RAMP ID='ws', T=   0, F=10. /
 &RAMP ID='ws', T= 600, F=10. /
 &RAMP ID='ws', T=1200, F=20. /
@@ -64,9 +64,9 @@ wind_example_str = f"""! example ramp
 # Calc
 
 
-def _get_wind_str(feedback, wind_filepath):
+def _get_wind_ramp_str(feedback, wind_filepath):
     if not wind_filepath:
-        return wind_example_str
+        return wind_ramp_example_str
     ws, wd = list(), list()
     try:
         with open(wind_filepath) as csv_file:
@@ -81,7 +81,7 @@ def _get_wind_str(feedback, wind_filepath):
         return "\n".join(ws)
     except Exception as err:
         feedback.reportError(f"Error importing wind *.csv file: {err}")
-        return f"! Wind file import ERROR: {err}"
+        return f"! Wind *.csv file import ERROR: {err}"
 
 
 def _get_fds_case_str(
@@ -142,22 +142,22 @@ def _get_fds_case_str(
     )
 
     # Calc MESH IJK
-    ijk = (
+    mesh_ijk = (
         int((mesh_xb[1] - mesh_xb[0]) / cell_size),
         int((mesh_xb[3] - mesh_xb[2]) / cell_size),
         int((mesh_xb[5] - mesh_xb[4]) / cell_size),
     )
 
     # Calc MESH MULT DX DY
-    dx, dy = mesh_xb[1] - mesh_xb[0], mesh_xb[3] - mesh_xb[2]
+    mult_dx, mult_dy = mesh_xb[1] - mesh_xb[0], mesh_xb[3] - mesh_xb[2]
 
     # Calc MESH size and cell number
-    sx, sy, sz = (
+    mesh_sizes = (
         round(mesh_xb[1] - mesh_xb[0]),
         round(mesh_xb[3] - mesh_xb[2]),
         round(mesh_xb[5] - mesh_xb[4]),
     )
-    ncell = ijk[0] * ijk[1] * ijk[2]
+    ncell = mesh_ijk[0] * mesh_ijk[1] * mesh_ijk[2]
 
     # Calc ignition VENT position and XB, relative to origin
     fire_x, fire_y = (
@@ -174,7 +174,7 @@ def _get_fds_case_str(
     )
 
     # Get WIND from file
-    wind_str = _get_wind_str(feedback, wind_filepath)
+    wind_ramp_str = _get_wind_ramp_str(feedback, wind_filepath)
 
     # Build string and return it
     return f"""
@@ -204,8 +204,7 @@ def _get_fds_case_str(
       TERRAIN_IMAGE='{chid}_tex.png'
       LEVEL_SET_MODE=4 /
 
-! T_BEGIN for smoother WIND initialization
-&TIME T_BEGIN=-10. T_END=3600. /
+&TIME T_END=3600. /
 
 ! Example REAC used in LEVEL_SET_MODE=4
 &REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
@@ -218,11 +217,11 @@ def _get_fds_case_str(
 !RADI RADIATION=F /
 
 ! Domain and its boundary conditions
-! {nmesh_x:d} x {nmesh_y:d} meshes of {sx}m x {sy}m x {sz}m size and {ncell} cells each
+! {nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
 &MULT ID='Meshes'
-      DX={dx:.3f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
-      DY={dy:.3f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
-&MESH IJK={ijk[0]:d},{ijk[1]:d},{ijk[2]:d} MULT_ID='Meshes'
+      DX={mult_dx:.3f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
+      DY={mult_dy:.3f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
+&MESH IJK={mesh_ijk[0]:d},{mesh_ijk[1]:d},{mesh_ijk[2]:d} MULT_ID='Meshes'
       XB={mesh_xb[0]:.3f},{mesh_xb[1]:.3f},{mesh_xb[2]:.3f},{mesh_xb[3]:.3f},{mesh_xb[4]:.3f},{mesh_xb[5]:.3f} /
 &VENT ID='Domain BC XMIN' DB='XMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC XMAX' DB='XMAX' SURF_ID='OPEN' /
@@ -236,8 +235,7 @@ def _get_fds_case_str(
 
 ! Wind
 &WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
-&RAMP ID='ws', T=-10.0, F=0.0 / smooth initialization
-{wind_str}
+{wind_ramp_str}
 
 ! Output quantities
 &SLCF AGL_SLICE=1. QUANTITY='LEVEL SET VALUE' /
