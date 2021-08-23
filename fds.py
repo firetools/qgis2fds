@@ -53,20 +53,86 @@ landuse_choices = {
     },
 }
 
+wind_example_str = f"""! example ramp
+&RAMP ID='ws', T=   0, F=10. /
+&RAMP ID='ws', T= 600, F=10. /
+&RAMP ID='ws', T=1200, F=20. /
+&RAMP ID='wd', T=   0, F=315. /
+&RAMP ID='wd', T= 600, F=270. /
+&RAMP ID='wd', T=1200, F=360. /"""
 
-def _calc_domain(utm_extent, utm_origin, verts, nmesh, cell_size):
-    domain_xb = (  # full domain XB
-        utm_extent.xMinimum() - utm_origin.x(),  # relative to origin
+# Calc
+
+
+def _get_wind_str(feedback, wind_filepath):
+    if not wind_filepath:
+        return wind_example_str
+    ws, wd = list(), list()
+    try:
+        with open(wind_filepath) as csv_file:
+            # wind csv file has an header line and three columns:
+            # time in seconds, wind speed in m/s, and direction in degrees
+            csv_reader = csv.reader(csv_file, delimiter=",")
+            next(csv_reader)  # skip header line
+            for r in csv_reader:
+                ws.append(f"&RAMP ID='ws', T={float(r[0]):.0f}, F={float(r[1]):.1f} /")
+                wd.append(f"&RAMP ID='wd', T={float(r[0]):.0f}, F={float(r[2]):.1f} /")
+        ws.extend(wd)
+        return "\n".join(ws)
+    except Exception as err:
+        feedback.reportError(f"Error importing wind *.csv file: {err}")
+        return f"! Wind file import ERROR: {err}"
+
+
+def _get_fds_case_str(
+    feedback,
+    dem_layer,
+    landuse_layer,
+    chid,
+    wgs84_origin,
+    utm_origin,
+    wgs84_fire_origin,
+    utm_fire_origin,
+    utm_crs,
+    verts,
+    landuse_type,
+    utm_extent,
+    nmesh,
+    cell_size,
+    wind_filepath,
+):
+
+    # Calc header comment
+    plugin_version = pluginMetadata("qgis2fds", "version")
+    qgis_version = (
+        QgsExpressionContextUtils.globalScope().variable("qgis_version").encode("utf-8")
+    )
+    filepath = QgsProject.instance().fileName() or "not saved"
+    if len(filepath) > 60:
+        filepath_str = "..." + filepath[-57:]
+    if len(wind_filepath) > 60:
+        wind_filepath_str = "..." + wind_filepath[-57:]
+
+    # Calc domain XB, relative to origin
+    domain_xb = (
+        utm_extent.xMinimum() - utm_origin.x(),
         utm_extent.xMaximum() - utm_origin.x(),
         utm_extent.yMinimum() - utm_origin.y(),
         utm_extent.yMaximum() - utm_origin.y(),
         min(v[2] for v in verts) - 2.0,
         max(v[2] for v in verts) + cell_size * 10,  # 10 cells over max z
     )
+
+    # Calc number of MESH along x and y
     domain_ratio = abs((domain_xb[1] - domain_xb[0]) / (domain_xb[3] - domain_xb[2]))
     nmesh_y = round(sqrt(nmesh / domain_ratio))
     nmesh_x = int(nmesh / nmesh_y)
-    mesh_xb = (  # repeated MESH XB
+    feedback.pushInfo(
+        f"\nNumber of FDS MESHes: {nmesh_x*nmesh_y} ={nmesh_x:d}x{nmesh_y:d}"
+    )
+
+    # Calc MESH XB
+    mesh_xb = (
         domain_xb[0],
         domain_xb[0] + (domain_xb[1] - domain_xb[0]) / nmesh_x,
         domain_xb[2],
@@ -74,21 +140,31 @@ def _calc_domain(utm_extent, utm_origin, verts, nmesh, cell_size):
         domain_xb[4],
         domain_xb[5],
     )
-    ijk = (  # repeated MEXH IJK
+
+    # Calc MESH IJK
+    ijk = (
         int((mesh_xb[1] - mesh_xb[0]) / cell_size),
         int((mesh_xb[3] - mesh_xb[2]) / cell_size),
         int((mesh_xb[5] - mesh_xb[4]) / cell_size),
     )
-    dx, dy = mesh_xb[1] - mesh_xb[0], mesh_xb[3] - mesh_xb[2]  # MULT DX DY
-    return domain_xb, nmesh_x, nmesh_y, mesh_xb, ijk, dx, dy
 
+    # Calc MESH MULT DX DY
+    dx, dy = mesh_xb[1] - mesh_xb[0], mesh_xb[3] - mesh_xb[2]
 
-def _calc_ignition(utm_fire_origin, utm_origin, cell_size, domain_xb):
-    fire_x, fire_y = (  # fire ignition point
-        utm_fire_origin.x() - utm_origin.x(),  # relative to origin
+    # Calc MESH size and cell number
+    sx, sy, sz = (
+        round(mesh_xb[1] - mesh_xb[0]),
+        round(mesh_xb[3] - mesh_xb[2]),
+        round(mesh_xb[5] - mesh_xb[4]),
+    )
+    ncell = ijk[0] * ijk[1] * ijk[2]
+
+    # Calc ignition VENT position and XB, relative to origin
+    fire_x, fire_y = (
+        utm_fire_origin.x() - utm_origin.x(),
         utm_fire_origin.y() - utm_origin.y(),
     )
-    fire_xb = (  # fire ignition VENT XB
+    fire_xb = (
         fire_x - cell_size / 2,
         fire_x + cell_size / 2,
         fire_y - cell_size / 2,
@@ -96,33 +172,14 @@ def _calc_ignition(utm_fire_origin, utm_origin, cell_size, domain_xb):
         domain_xb[4] + 1.0,  # proj to terrain
         domain_xb[4] + 1.0,
     )
-    return fire_x, fire_y, fire_xb
 
+    # Get WIND from file
+    wind_str = _get_wind_str(feedback, wind_filepath)
 
-def _get_comment_str(
-    utm_crs,
-    utm_extent,
-    dem_layer,
-    landuse_layer,
-    landuse_type,
-    utm_origin,
-    wgs84_origin,
-    utm_fire_origin,
-    wgs84_fire_origin,
-    wind_filepath,
-):
-    plugin_version = pluginMetadata("qgis2fds", "version")
-    qgis_version = (
-        QgsExpressionContextUtils.globalScope().variable("qgis_version").encode("utf-8")
-    )
-    filepath = QgsProject.instance().fileName() or "not saved"
-    if len(filepath) > 60:
-        filepath = "..." + filepath[-57:]
-    if len(wind_filepath) > 60:
-        wind_filepath = "..." + wind_filepath[-57:]
+    # Build string and return it
     return f"""
 ! Generated by qgis2fds <{plugin_version}> on QGIS <{qgis_version}>
-! QGIS file: <{filepath}>
+! QGIS file: <{filepath_str}>
 ! Selected UTM CRS: <{utm_crs.description()}>
 ! Terrain extent: <{utm_extent.toString(precision=1)}>
 ! DEM layer: <{dem_layer.name()}>
@@ -132,64 +189,8 @@ def _get_comment_str(
 !   {utils.get_lonlat_url(wgs84_origin)}
 ! Fire Origin: <{utm_fire_origin.x():.1f}, {utm_fire_origin.y():.1f}>
 !   {utils.get_lonlat_url(wgs84_fire_origin)}
-! Wind file: <{wind_filepath}>
-! Date: <{time.strftime("%a, %d %b %Y, %H:%M:%S", time.localtime())}>"""
-
-
-def _get_wind_str(wind_filepath):
-    # wind csv file has three columns:
-    # time in seconds, wind speed in m/s, and direction in degrees
-    if not wind_filepath:
-        return f"""! Wind (example)
-&WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
-&RAMP ID='ws', T=   0, F=10. /
-&RAMP ID='ws', T= 600, F=10. /
-&RAMP ID='ws', T=1200, F=20. /
-&RAMP ID='wd', T=   0, F=315. /
-&RAMP ID='wd', T= 600, F=270. /
-&RAMP ID='wd', T=1200, F=360. /"""
-    try:
-        with open(wind_filepath) as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter=",")
-            ws, wd = list(), list()
-            ws.append(
-                f"""! Wind from file
-&WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /"""
-            )
-            line_count = 0
-            for row in csv_reader:
-                if line_count == 0:
-                    line_count += 1
-                    continue
-                else:
-                    ws.append(
-                        f"&RAMP ID='ws', T={float(row[0]):.0f}, F={float(row[1]):.1f} /"
-                    )
-                    wd.append(
-                        f"&RAMP ID='wd', T={float(row[0]):.0f}, F={float(row[2]):.1f} /"
-                    )
-        ws.extend(wd)
-        return "\n".join(ws)
-    except Exception as err:
-        return f"! Wind file ERROR: {err}"
-
-
-def _get_fds_str(
-    comment_str,
-    wgs84_origin,
-    chid,
-    dx,
-    dy,
-    nmesh_x,
-    nmesh_y,
-    ijk,
-    mesh_xb,
-    fire_xb,
-    fire_x,
-    fire_y,
-    wind_str,
-):
-    return f"""{comment_str}
+! Wind file: <{wind_filepath_str or 'None'}>
+! Date: <{time.strftime("%a, %d %b %Y, %H:%M:%S", time.localtime())}>
 
 &HEAD CHID='{chid}' TITLE='Description of {chid}' /
 
@@ -201,8 +202,7 @@ def _get_fds_str(
 
 &MISC ORIGIN_LAT={wgs84_origin.y():.7f} ORIGIN_LON={wgs84_origin.x():.7f} NORTH_BEARING=0.
       TERRAIN_IMAGE='{chid}_tex.png'
-      LEVEL_SET_MODE=4
-      CC_STRESS_METHOD=T /
+      LEVEL_SET_MODE=4 /
 
 ! T_BEGIN for smoother WIND initialization
 &TIME T_BEGIN=-10. T_END=3600. /
@@ -211,16 +211,14 @@ def _get_fds_str(
 &REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
       HEAT_OF_COMBUSTION=17700 /
 
-! Fix numerical instability
-! &PRES VELOCITY_TOLERANCE=1.E-6 MAX_PRESSURE_ITERATIONS=100 /
+! Pressure solver
+!PRES VELOCITY_TOLERANCE=1.E-6 MAX_PRESSURE_ITERATIONS=100 /
 
-! Reduce calculation duration
-! &RADI RADIATION=F /
+! Radiation solver
+!RADI RADIATION=F /
 
 ! Domain and its boundary conditions
-! {nmesh_x:d} x {nmesh_y:d} meshes
-! of {mesh_xb[1]-mesh_xb[0]}m x {mesh_xb[3]-mesh_xb[2]}m x {mesh_xb[5]-mesh_xb[4]}m size
-! and {ijk[0]*ijk[1]*ijk[2]} cells each
+! {nmesh_x:d} x {nmesh_y:d} meshes of {sx}m x {sy}m x {sz}m size and {ncell} cells each
 &MULT ID='Meshes'
       DX={dx:.3f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
       DY={dy:.3f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
@@ -231,20 +229,22 @@ def _get_fds_str(
 &VENT ID='Domain BC YMIN' DB='YMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMAX' DB='YMAX' SURF_ID='OPEN' /
 &VENT ID='Domain BC ZMAX' DB='ZMAX' SURF_ID='OPEN' /
-
 ! Fire origin
 &SURF ID='Ignition' VEG_LSET_IGNITE_TIME=0. COLOR='RED' /
 &VENT ID='Ignition point' SURF_ID='Ignition', GEOM=T
       XB={fire_xb[0]:.3f},{fire_xb[1]:.3f},{fire_xb[2]:.3f},{fire_xb[3]:.3f},{fire_xb[4]:.3f},{fire_xb[5]:.3f} /
- 
+
+! Wind
+&WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
+&RAMP ID='ws', T=-10., F=0. / smooth initialization
+{wind_str}
+
 ! Output quantities
 &SLCF AGL_SLICE=1. QUANTITY='LEVEL SET VALUE' /
 &SLCF AGL_SLICE=2. QUANTITY='VISIBILITY' /
 &SLCF AGL_SLICE=2. QUANTITY='TEMPERATURE' VECTOR=T /
-&SLCF PBX={fire_x:.3f} QUANTITY='TEMPERATURE' /
-&SLCF PBY={fire_y:.3f} QUANTITY='TEMPERATURE' /
-
-{wind_str}
+&SLCF PBX={fire_x:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBY={fire_y:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
 
 ! Output for wind rose at origin
 &DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='U-VELOCITY' /
@@ -282,6 +282,7 @@ def _get_fds_str(
       IS_TERRAIN=T EXTEND_TERRAIN=F /
 
 &TAIL /
+
 """
 
 
@@ -306,38 +307,6 @@ def write_case(
     cell_size,
     wind_filepath,
 ):
-    """
-    Get FDS case.
-    """
-    comment_str = _get_comment_str(
-        utm_crs=utm_crs,
-        utm_extent=utm_extent,
-        dem_layer=dem_layer,
-        landuse_layer=landuse_layer,
-        landuse_type=landuse_type,
-        utm_origin=utm_origin,
-        wgs84_origin=wgs84_origin,
-        utm_fire_origin=utm_fire_origin,
-        wgs84_fire_origin=wgs84_fire_origin,
-        wind_filepath=wind_filepath,
-    )
-    domain_xb, nmesh_x, nmesh_y, mesh_xb, ijk, dx, dy = _calc_domain(
-        utm_extent=utm_extent,
-        utm_origin=utm_origin,
-        verts=verts,
-        nmesh=nmesh,
-        cell_size=cell_size,
-    )
-    fire_x, fire_y, fire_xb = _calc_ignition(
-        utm_fire_origin=utm_fire_origin,
-        utm_origin=utm_origin,
-        cell_size=cell_size,
-        domain_xb=domain_xb,
-    )
-    wind_str = _get_wind_str(wind_filepath)
-    feedback.pushInfo(
-        f"\nNumber of FDS MESHes: {nmesh_x*nmesh_y} ={nmesh_x:d}x{nmesh_y:d}"
-    )
 
     # Write bingeom file
     filepath = os.path.join(path, chid + "_terrain.bingeom")
@@ -360,19 +329,21 @@ def write_case(
     )
 
     # Write FDS file
-    content = _get_fds_str(
-        comment_str=comment_str,
-        wgs84_origin=wgs84_origin,
+    content = _get_fds_case_str(
+        feedback=feedback,
+        dem_layer=dem_layer,
+        landuse_layer=landuse_layer,
         chid=chid,
-        dx=dx,
-        dy=dy,
-        nmesh_x=nmesh_x,
-        nmesh_y=nmesh_y,
-        ijk=ijk,
-        mesh_xb=mesh_xb,
-        fire_xb=fire_xb,
-        fire_x=fire_x,
-        fire_y=fire_y,
-        wind_str=wind_str,
+        wgs84_origin=wgs84_origin,
+        utm_origin=utm_origin,
+        wgs84_fire_origin=wgs84_fire_origin,
+        utm_fire_origin=utm_fire_origin,
+        utm_crs=utm_crs,
+        verts=verts,
+        landuse_type=landuse_type,
+        utm_extent=utm_extent,
+        nmesh=nmesh,
+        cell_size=cell_size,
+        wind_filepath=wind_filepath,
     )
     utils.write_file(feedback=feedback, filepath=f"{path}/{chid}.fds", content=content)
