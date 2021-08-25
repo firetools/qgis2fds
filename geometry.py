@@ -77,7 +77,7 @@ def _get_matrix(feedback, point_layer, utm_origin, landuse_layer):
     Return the matrix of quad faces center points with landuse.
     @param point_layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
-    @param landuse_layer: FIXME.
+    @param landuse_layer: landuse layer.
     @return matrix of quad faces center points with landuse.
     """
     feedback.setProgress(0)
@@ -99,9 +99,10 @@ def _get_matrix(feedback, point_layer, utm_origin, landuse_layer):
             feedback.setProgress(int(i / nfeatures * 100))
     # Fill the array with the landuse
     if landuse_layer:
+        attr_idx = point_layer.fields().indexOf("landuse1")
         for i, f in enumerate(point_layer.getFeatures()):
             a = f.attributes()
-            m[i][3] = a[5] or 0
+            m[i][3] = a[attr_idx] or 0
             if i % partial_progress == 0:
                 feedback.setProgress(int(i / nfeatures * 100))
     # Get point column length and split matrix
@@ -165,7 +166,7 @@ def _get_faces(feedback, m):
                     ),
                 )
             )
-            lu = int(p[3])  # landuse idx
+            lu = int(p[3])
             landuses.extend((lu, lu))
         feedback.setProgress(int(i / len_vrow * 100))
     max_landuses = max(landuses)
