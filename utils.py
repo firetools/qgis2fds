@@ -37,7 +37,7 @@ def write_file(feedback, filepath, content):
             f.write(content)
     except IOError:
         raise QgsProcessingException(
-            f"File not writable at <{filepath}>, cannot proceed."
+            f"File not writable to <{filepath}>, cannot proceed."
         )
     feedback.pushInfo(f"Saved: <{filepath}>")
 
@@ -147,24 +147,29 @@ def write_bingeom(
     @param filepath: destination filepath
     """
 
-    with open(filepath, "wb") as f:
-        _write_record(f, np.array((geom_type,), dtype="int32"))  # was 1 only
-        _write_record(
-            f,
-            np.array(
-                (
-                    len(fds_verts) // 3,
-                    len(fds_faces) // 3,
-                    n_surf_id,
-                    len(fds_volus) // 4,
+    try:
+        with open(filepath, "wb") as f:
+            _write_record(f, np.array((geom_type,), dtype="int32"))  # was 1 only
+            _write_record(
+                f,
+                np.array(
+                    (
+                        len(fds_verts) // 3,
+                        len(fds_faces) // 3,
+                        n_surf_id,
+                        len(fds_volus) // 4,
+                    ),
+                    dtype="int32",
                 ),
-                dtype="int32",
-            ),
+            )
+            _write_record(f, np.array(fds_verts, dtype="float64"))
+            _write_record(f, np.array(fds_faces, dtype="int32"))
+            _write_record(f, np.array(fds_surfs, dtype="int32"))
+            _write_record(f, np.array(fds_volus, dtype="int32"))
+    except IOError:
+        raise QgsProcessingException(
+            f"Bingeom file not writable to <{filepath}>, cannot proceed."
         )
-        _write_record(f, np.array(fds_verts, dtype="float64"))
-        _write_record(f, np.array(fds_faces, dtype="int32"))
-        _write_record(f, np.array(fds_surfs, dtype="int32"))
-        _write_record(f, np.array(fds_volus, dtype="int32"))
     feedback.pushInfo(f"Saved: <{filepath}>")
 
 
