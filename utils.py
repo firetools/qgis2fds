@@ -32,6 +32,7 @@ def write_file(feedback, filepath, content):
     """
     Write a text to filepath.
     """
+    feedback.pushInfo(f"Save file: <{filepath}>")
     try:
         with open(filepath, "w") as f:
             f.write(content)
@@ -39,7 +40,6 @@ def write_file(feedback, filepath, content):
         raise QgsProcessingException(
             f"File not writable to <{filepath}>, cannot proceed."
         )
-    feedback.pushInfo(f"Saved: <{filepath}>")
 
 
 def write_texture(
@@ -54,6 +54,7 @@ def write_texture(
     """
     Crop and save texture to image file.
     """
+    feedback.pushInfo(f"Save texture file: <{filepath}>")
 
     # Calc tex_extent size in meters (it is in utm)
     tex_extent_xm = tex_extent.xMaximum() - tex_extent.xMinimum()
@@ -102,7 +103,7 @@ def write_texture(
         raise QgsProcessingException(
             f"Texture not writable to <{filepath}>, cannot proceed."
         )
-    feedback.pushInfo(f"Saved (in {dt:.2f} s): <{filepath}>")
+    feedback.pushInfo(f"Saved in {dt:.2f} s")
 
 
 # The FDS bingeom file is written from Fortran90 like this:
@@ -133,20 +134,27 @@ def _write_record(f, data):
 
 
 def write_bingeom(
-    feedback, geom_type, n_surf_id, fds_verts, fds_faces, fds_surfs, fds_volus, filepath
+    feedback,
+    filepath,
+    geom_type,
+    n_surf_id,
+    fds_verts,
+    fds_faces,
+    fds_surfs,
+    fds_volus,
 ):
     """!
     Write FDS bingeom file.
     @param feedback: pyqgis feedback
+    @param filepath: destination filepath
     @param geom_type: GEOM type (eg. 1 is manifold, 2 is terrain)
     @param n_surf_id: number of referred boundary conditions
     @param fds_verts: vertices coordinates in FDS flat format, eg. (x0, y0, z0, x1, y1, ...)
     @param fds_faces: faces connectivity in FDS flat format, eg. (i0, j0, k0, i1, ...)
     @param fds_surfs: boundary condition indexes, eg. (i0, i1, ...)
     @param fds_volus: volumes connectivity in FDS flat format, eg. (i0, j0, k0, w0, i1, ...)
-    @param filepath: destination filepath
     """
-
+    feedback.pushInfo(f"Save bingeom file: <{filepath}>")
     try:
         with open(filepath, "wb") as f:
             _write_record(f, np.array((geom_type,), dtype="int32"))  # was 1 only
@@ -170,7 +178,6 @@ def write_bingeom(
         raise QgsProcessingException(
             f"Bingeom file not writable to <{filepath}>, cannot proceed."
         )
-    feedback.pushInfo(f"Saved: <{filepath}>")
 
 
 # Geographic operations

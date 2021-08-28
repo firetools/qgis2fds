@@ -21,6 +21,7 @@ wind_ramp_example_str = f"""! example ramp
 def get_wind_ramp_str(feedback, wind_filepath):
     if not wind_filepath:
         return wind_ramp_example_str
+    feedback.pushInfo(f"Read wind *.csv file: <{wind_filepath}>")
     ws, wd = list(), list()
     try:
         with open(wind_filepath) as csv_file:
@@ -32,8 +33,7 @@ def get_wind_ramp_str(feedback, wind_filepath):
                 ws.append(f"&RAMP ID='ws', T={float(r[0]):.1f}, F={float(r[1]):.1f} /")
                 wd.append(f"&RAMP ID='wd', T={float(r[0]):.1f}, F={float(r[2]):.1f} /")
         ws.extend(wd)
-        feedback.pushInfo(f"Read wind from <{wind_filepath}>")
         return "\n".join(ws)
     except Exception as err:
-        feedback.reportError(f"Error importing wind *.csv file: {err}")
+        feedback.reportError(f"Error importing wind *.csv file:\n{err}")
         return f"! Wind *.csv file import ERROR: {err}"
