@@ -12,8 +12,6 @@ from qgis.core import QgsProcessingException
 import math
 import numpy as np
 
-# Get verts, faces, landuses
-
 
 def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
     """!
@@ -34,13 +32,47 @@ def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
     if feedback.isCanceled():
         return {}
     feedback.pushInfo("Faces with landuse...")
-    faces, landuses, max_landuses = _get_faces(feedback=feedback, m=matrix)
+    faces, landuses = _get_faces(feedback=feedback, m=matrix)
     if feedback.isCanceled():
         return {}
     feedback.pushInfo("Verts...")
     verts = _get_verts(feedback=feedback, m=matrix)
     feedback.pushInfo(f"Terrain ready: {len(verts)} verts, {len(faces)} faces.")
-    return verts, faces, landuses, max_landuses
+    return verts, faces, landuses
+
+
+def get_geom_params(feedback, verts, faces, landuses, landuse_dict):
+    """!
+    Translate verts, faces, landuses to FDS GEOM params for exporting.
+    @feedback: pyqgis feedback obj
+    @param verts: FIXME
+    @param faces: FIXME
+    @param landuses: FIXME
+    @param landuse_dict: FIXME
+    @return n_surf_id, fds_verts, fds_faces, fds_surfs
+    """
+    fds_verts = tuple(v for vs in verts for v in vs)
+    fds_faces = tuple(f for fs in faces for f in fs)
+    fds_surfs = list()
+    if landuse_dict:
+        # translate landuse_layer landuses into FDS SURF index
+        n_surf_id = len(landuse_dict)
+        landuse_list = list(landuse_dict.keys())
+        for i, _ in enumerate(faces):
+            try:
+                fds_surfs.append(landuse_list.index(landuses[i]) + 1)
+            except ValueError:
+                # not available, set FDS default
+                feedback.reportError(
+                    f"Landuse <{landuses[i]}> value unknown, setting FDS default <0>."
+                )
+                fds_surfs.append(0)
+        fds_surfs = tuple(fds_surfs)
+    else:
+        # no landuse, set FDS INERT as landuse
+        n_surf_id = 1
+        fds_surfs = (1,) * len(faces)
+    return n_surf_id, fds_verts, fds_faces, fds_surfs
 
 
 # Prepare the matrix of quad faces center points with landuse
@@ -169,8 +201,7 @@ def _get_faces(feedback, m):
             lu = int(p[3])
             landuses.extend((lu, lu))
         feedback.setProgress(int(i / len_vrow * 100))
-    max_landuses = max(landuses)
-    return faces, landuses, max_landuses
+    return faces, landuses
 
 
 # Getting vertices

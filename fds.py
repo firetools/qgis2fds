@@ -8,111 +8,39 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from math import sqrt
-import csv
+
 
 from qgis.core import QgsExpressionContextUtils, QgsProject
 from qgis.utils import pluginMetadata
 import time, os
-from . import utils
-
-# Config
-
-landuse_types = "Landfire F13", "CIMA Propagator"
-
-landuse_choices = {
-    0: {  # Landfire F13
-        0: 19,
-        1: 1,
-        2: 2,
-        3: 3,
-        4: 4,
-        5: 5,
-        6: 6,
-        7: 7,
-        8: 8,
-        9: 9,
-        10: 10,
-        11: 11,
-        12: 12,
-        13: 13,
-        91: 14,
-        92: 15,
-        93: 16,
-        98: 17,
-        99: 18,
-    },  # Cima Propagator
-    1: {
-        0: 19,
-        1: 5,
-        2: 4,
-        3: 18,
-        4: 10,
-        5: 10,
-        6: 1,
-        7: 1,
-    },
-}
-
-wind_ramp_example_str = f"""! example ramp
-&RAMP ID='ws', T=   0, F=10. /
-&RAMP ID='ws', T= 600, F=10. /
-&RAMP ID='ws', T=1200, F=20. /
-&RAMP ID='wd', T=   0, F=315. /
-&RAMP ID='wd', T= 600, F=270. /
-&RAMP ID='wd', T=1200, F=360. /"""
-
-# Calc
+from . import utils, landuse, geometry, wind
 
 
-def _get_wind_ramp_str(feedback, wind_filepath):
-    if not wind_filepath:
-        return wind_ramp_example_str
-    ws, wd = list(), list()
-    try:
-        with open(wind_filepath) as csv_file:
-            # wind csv file has an header line and three columns:
-            # time in seconds, wind speed in m/s, and direction in degrees
-            csv_reader = csv.reader(csv_file, delimiter=",")
-            next(csv_reader)  # skip header line
-            for r in csv_reader:
-                ws.append(f"&RAMP ID='ws', T={float(r[0]):.1f}, F={float(r[1]):.1f} /")
-                wd.append(f"&RAMP ID='wd', T={float(r[0]):.1f}, F={float(r[2]):.1f} /")
-        ws.extend(wd)
-        return "\n".join(ws)
-    except Exception as err:
-        feedback.reportError(f"Error importing wind *.csv file: {err}")
-        return f"! Wind *.csv file import ERROR: {err}"
-
-
-def _get_fds_case_str(
-    feedback,
-    dem_layer,
-    landuse_layer,
-    chid,
-    wgs84_origin,
-    utm_origin,
-    wgs84_fire_origin,
-    utm_fire_origin,
-    utm_crs,
-    verts,
-    landuse_type,
-    utm_extent,
-    nmesh,
-    cell_size,
-    wind_filepath,
-):
-
-    # Calc header comment
+def _calc_header_comment(landuse_type_filepath, wind_filepath):
     plugin_version = pluginMetadata("qgis2fds", "version")
     qgis_version = (
         QgsExpressionContextUtils.globalScope().variable("qgis_version").encode("utf-8")
     )
-    filepath = QgsProject.instance().fileName() or "not saved"
-    if len(filepath) > 60:
-        filepath_str = "..." + filepath[-57:]
-    if len(wind_filepath) > 60:
+    qgis_filepath = QgsProject.instance().fileName() or "not saved"
+    qgis_filepath_str = qgis_filepath
+    if len(qgis_filepath_str) > 60:
+        qgis_filepath_str = "..." + qgis_filepath[-57:]
+    landuse_type_filepath_str = landuse_type_filepath or ""
+    if len(landuse_type_filepath_str) > 60:
+        landuse_type_filepath_str = "..." + landuse_type_filepath[-57:]
+    wind_filepath_str = wind_filepath or ""
+    if len(wind_filepath_str) > 60:
         wind_filepath_str = "..." + wind_filepath[-57:]
+    return (
+        plugin_version,
+        qgis_version,
+        qgis_filepath_str,
+        landuse_type_filepath_str,
+        wind_filepath_str,
+    )
 
+
+def _calc_domain(feedback, utm_extent, utm_origin, verts, cell_size, nmesh):
     # Calc domain XB, relative to origin
     domain_xb = (
         utm_extent.xMinimum() - utm_origin.x(),
@@ -158,39 +86,78 @@ def _get_fds_case_str(
         round(mesh_xb[5] - mesh_xb[4]),
     )
     ncell = mesh_ijk[0] * mesh_ijk[1] * mesh_ijk[2]
+    return nmesh_x, nmesh_y, mesh_xb, mesh_ijk, mult_dx, mult_dy, mesh_sizes, ncell
 
-    # Calc ignition VENT position and XB, relative to origin
-    fire_x, fire_y = (
-        utm_fire_origin.x() - utm_origin.x(),
-        utm_fire_origin.y() - utm_origin.y(),
+
+def _get_fds_case_str(
+    feedback,
+    dem_layer,
+    landuse_layer,
+    chid,
+    wgs84_origin,
+    utm_origin,
+    utm_crs,
+    verts,
+    landuse_type_filepath,
+    landuse_dict,
+    utm_extent,
+    nmesh,
+    cell_size,
+    wind_filepath,
+    fire_layer,
+):
+    # Calc header comment
+    (
+        plugin_version,
+        qgis_version,
+        qgis_filepath_str,
+        landuse_type_filepath_str,
+        wind_filepath_str,
+    ) = _calc_header_comment(
+        landuse_type_filepath=landuse_type_filepath,
+        wind_filepath=wind_filepath,
     )
-    fire_xb = (
-        fire_x - cell_size / 2,
-        fire_x + cell_size / 2,
-        fire_y - cell_size / 2,
-        fire_y + cell_size / 2,
-        domain_xb[4] + 1.0,  # proj to terrain
-        domain_xb[4] + 1.0,
+
+    # Calc domain
+    (
+        nmesh_x,
+        nmesh_y,
+        mesh_xb,
+        mesh_ijk,
+        mult_dx,
+        mult_dy,
+        mesh_sizes,
+        ncell,
+    ) = _calc_domain(
+        feedback=feedback,
+        utm_extent=utm_extent,
+        utm_origin=utm_origin,
+        verts=verts,
+        cell_size=cell_size,
+        nmesh=nmesh,
     )
+
+    # Calc SURFs and GEOM SURF_ID
+    surfs_str = landuse.get_surfs_str(feedback=feedback, landuse_dict=landuse_dict)
+    surf_id_str = landuse.get_surf_id_str(feedback=feedback, landuse_dict=landuse_dict)
 
     # Get WIND from file
-    wind_ramp_str = _get_wind_ramp_str(feedback, wind_filepath)
+    wind_ramp_str = wind.get_wind_ramp_str(feedback, wind_filepath)
 
     # Build string and return it
     return f"""
 ! Generated by qgis2fds <{plugin_version}> on QGIS <{qgis_version}>
-! QGIS file: <{filepath_str}>
+! QGIS file: <{qgis_filepath_str}>
+! Date: <{time.strftime("%a, %d %b %Y, %H:%M:%S", time.localtime())}>
 ! Selected UTM CRS: <{utm_crs.description()}>
+! Domain origin: <{utm_origin.x():.1f}, {utm_origin.y():.1f}>
+!   {utils.get_lonlat_url(wgs84_origin)}
 ! Terrain extent: <{utm_extent.toString(precision=1)}>
 ! DEM layer: <{dem_layer.name()}>
 ! Landuse layer: <{landuse_layer and landuse_layer.name() or 'None'}>
-! Landuse type: <{landuse_layer and ('Landfire F13', 'CIMA Propagator')[landuse_type] or 'None'}>
-! Domain Origin: <{utm_origin.x():.1f}, {utm_origin.y():.1f}>
-!   {utils.get_lonlat_url(wgs84_origin)}
-! Fire Origin: <{utm_fire_origin.x():.1f}, {utm_fire_origin.y():.1f}>
-!   {utils.get_lonlat_url(wgs84_fire_origin)}
+! Landuse type file: <{landuse_type_filepath_str or 'None'}>
+! Fire layer: <{fire_layer and fire_layer.name() or 'None'}>
 ! Wind file: <{wind_filepath_str or 'None'}>
-! Date: <{time.strftime("%a, %d %b %Y, %H:%M:%S", time.localtime())}>
 
 &HEAD CHID='{chid}' TITLE='Description of {chid}' /
 
@@ -206,7 +173,7 @@ def _get_fds_case_str(
 
 &TIME T_END=3600. /
 
-! Example REAC used in LEVEL_SET_MODE=4
+! Example REAC, used when LEVEL_SET_MODE=4
 &REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
       HEAT_OF_COMBUSTION=17700 /
 
@@ -228,10 +195,6 @@ def _get_fds_case_str(
 &VENT ID='Domain BC YMIN' DB='YMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMAX' DB='YMAX' SURF_ID='OPEN' /
 &VENT ID='Domain BC ZMAX' DB='ZMAX' SURF_ID='OPEN' /
-! Fire origin
-&SURF ID='Ignition' VEG_LSET_IGNITE_TIME=0. COLOR='RED' /
-&VENT ID='Ignition point' SURF_ID='Ignition', GEOM=T
-      XB={fire_xb[0]:.3f},{fire_xb[1]:.3f},{fire_xb[2]:.3f},{fire_xb[3]:.3f},{fire_xb[4]:.3f},{fire_xb[5]:.3f} /
 
 ! Wind
 &WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /
@@ -241,41 +204,22 @@ def _get_fds_case_str(
 &SLCF AGL_SLICE=1. QUANTITY='LEVEL SET VALUE' /
 &SLCF AGL_SLICE=2. QUANTITY='VISIBILITY' /
 &SLCF AGL_SLICE=2. QUANTITY='TEMPERATURE' VECTOR=T /
-&SLCF PBX={fire_x:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
-&SLCF PBY={fire_y:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF AGL_SLICE=12. QUANTITY='VISIBILITY' /
+&SLCF AGL_SLICE=12. QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBX={0.:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBY={0.:.3f} QUANTITY='TEMPERATURE' VECTOR=T /
 
 ! Output for wind rose at origin
-&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='U-VELOCITY' /
-&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='V-VELOCITY' /
-&DEVC XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='W-VELOCITY' /
+&DEVC ID='Origin_UV' XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='U-VELOCITY' /
+&DEVC ID='Origin_VV' XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='V-VELOCITY' /
+&DEVC ID='Origin_WV' XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='W-VELOCITY' /
  
 ! Boundary conditions
-! 13 Anderson Fire Behavior Fuel Models
-&SURF ID='A01' RGB=255,254,212 VEG_LSET_FUEL_INDEX= 1 /
-&SURF ID='A02' RGB=255,253,102 VEG_LSET_FUEL_INDEX= 2 /
-&SURF ID='A03' RGB=236,212, 99 VEG_LSET_FUEL_INDEX= 3 /
-&SURF ID='A04' RGB=254,193,119 VEG_LSET_FUEL_INDEX= 4 /
-&SURF ID='A05' RGB=249,197, 92 VEG_LSET_FUEL_INDEX= 5 /
-&SURF ID='A06' RGB=217,196,152 VEG_LSET_FUEL_INDEX= 6 /
-&SURF ID='A07' RGB=170,155,127 VEG_LSET_FUEL_INDEX= 7 /
-&SURF ID='A08' RGB=229,253,214 VEG_LSET_FUEL_INDEX= 8 /
-&SURF ID='A09' RGB=162,191, 90 VEG_LSET_FUEL_INDEX= 9 /
-&SURF ID='A10' RGB=114,154, 85 VEG_LSET_FUEL_INDEX=10 /
-&SURF ID='A11' RGB=235,212,253 VEG_LSET_FUEL_INDEX=11 /
-&SURF ID='A12' RGB=163,177,243 VEG_LSET_FUEL_INDEX=12 /
-&SURF ID='A13' RGB=  0,  0,  0 VEG_LSET_FUEL_INDEX=13 /
-&SURF ID='Urban' RGB=186,119, 80 /
-&SURF ID='Snow-Ice' RGB=234,234,234 /
-&SURF ID='Agriculture' RGB=253,242,242 /
-&SURF ID='Water' RGB=137,183,221 /
-&SURF ID='Barren' RGB=133,153,156 /
-&SURF ID='NA' RGB=255,255,255 /
+{surfs_str}
 
 ! Terrain
 &GEOM ID='Terrain'
-      SURF_ID='A01','A02','A03','A04','A05','A06','A07',
-              'A08','A09','A10','A11','A12','A13','Urban',
-              'Snow-Ice','Agriculture','Water','Barren','NA'
+      SURF_ID={surf_id_str}
       BINARY_FILE='{chid}_terrain.bingeom'
       IS_TERRAIN=T EXTEND_TERRAIN=F /
 
@@ -288,45 +232,48 @@ def write_case(
     feedback,
     dem_layer,
     landuse_layer,
-    path,
+    fds_path,
     chid,
     wgs84_origin,
     utm_origin,
-    wgs84_fire_origin,
-    utm_fire_origin,
     utm_crs,
-    verts,
-    faces,
-    landuses,
-    landuse_type,
+    point_layer,
+    landuse_type_filepath,
+    landuse_dict,
     utm_extent,
-    max_landuses,
     nmesh,
     cell_size,
     wind_filepath,
+    fire_layer,
 ):
+    # Get geometry and write bingeom file
 
-    # Write bingeom file
-    filepath = os.path.join(path, chid + "_terrain.bingeom")
-    landuse_select = landuse_choices[landuse_type]
-    fds_surfs = tuple(
-        landuse_select.get(landuses[i], landuses[0]) for i, _ in enumerate(faces)
+    verts, faces, landuses = geometry.get_fds_terrain(
+        feedback=feedback,
+        point_layer=point_layer,
+        utm_origin=utm_origin,
+        landuse_layer=landuse_layer,
     )
-    n_surf_id = 19  # max(fds_surfs) FIXME
-    fds_verts = tuple(v for vs in verts for v in vs)
-    fds_faces = tuple(f for fs in faces for f in fs)
+    n_surf_id, fds_verts, fds_faces, fds_surfs = geometry.get_geom_params(
+        feedback=feedback,
+        verts=verts,
+        faces=faces,
+        landuses=landuses,
+        landuse_dict=landuse_dict,
+    )
     utils.write_bingeom(
         feedback=feedback,
+        filepath=os.path.join(fds_path, f"{chid}_terrain.bingeom"),
         geom_type=2,
         n_surf_id=n_surf_id,
         fds_verts=fds_verts,
         fds_faces=fds_faces,
         fds_surfs=fds_surfs,
         fds_volus=list(),
-        filepath=filepath,
     )
 
-    # Write FDS file
+    # Prepare and write FDS file
+
     content = _get_fds_case_str(
         feedback=feedback,
         dem_layer=dem_layer,
@@ -334,14 +281,18 @@ def write_case(
         chid=chid,
         wgs84_origin=wgs84_origin,
         utm_origin=utm_origin,
-        wgs84_fire_origin=wgs84_fire_origin,
-        utm_fire_origin=utm_fire_origin,
         utm_crs=utm_crs,
         verts=verts,
-        landuse_type=landuse_type,
+        landuse_type_filepath=landuse_type_filepath,
+        landuse_dict=landuse_dict,
         utm_extent=utm_extent,
         nmesh=nmesh,
         cell_size=cell_size,
         wind_filepath=wind_filepath,
+        fire_layer=fire_layer,
     )
-    utils.write_file(feedback=feedback, filepath=f"{path}/{chid}.fds", content=content)
+    utils.write_file(
+        feedback=feedback,
+        filepath=os.path.join(fds_path, f"{chid}.fds"),
+        content=content,
+    )

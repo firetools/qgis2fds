@@ -19,8 +19,8 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingAlgorithm,
     QgsProcessingParameterRasterLayer,
+    QgsProcessingParameterVectorLayer,
     QgsProcessingParameterExtent,
-    QgsProcessingParameterEnum,
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterPoint,
@@ -28,13 +28,11 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
     QgsProcessingParameterVectorDestination,
 )
-from qgis.utils import iface
-from qgis.PyQt.QtCore import QVariant
 
-import processing
+import processing, os
 from math import ceil
 
-from . import utils, fds, geometry
+from . import utils, fds, landuse
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -51,14 +49,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         project = QgsProject.instance()
 
-        # Get project crs
-        project_crs = project.crs()
-
         # Check if project crs has changed
+        project_crs = project.crs()
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         project_crs_changed = False
         if prev_project_crs_desc != project_crs.description():
             project_crs_changed = True
+
+        # Define parameters
 
         defaultValue, _ = project.readEntry("qgis2fds", "chid", "terrain")
         self.addParameter(
@@ -71,11 +69,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         defaultValue, _ = project.readEntry(
-            "qgis2fds", "path", QgsProject.instance().readPath("./")
+            "qgis2fds", "fds_path", QgsProject.instance().readPath("./")
         )
         self.addParameter(
             QgsProcessingParameterFile(
-                "path",
+                "fds_path",
                 "Save in folder",
                 behavior=QgsProcessingParameterFile.Folder,
                 fileFilter="All files (*.*)",
@@ -92,6 +90,19 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=defaultValue,
             )
         )
+
+        if project_crs_changed:
+            defaultValue = None
+        else:
+            defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
+        param = QgsProcessingParameterPoint(
+            "origin",
+            "Domain origin (if not set, use terrain extent centroid)",
+            optional=True,
+            defaultValue=defaultValue,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None)
         if not defaultValue:
@@ -111,12 +122,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "dem_sampling", "1")
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", "dem_sampling", 1.0)
         param = QgsProcessingParameterNumber(
             "dem_sampling",
             "DEM layer sampling factor",
+            type=QgsProcessingParameterNumber.Double,
             defaultValue=defaultValue,
-            minValue=1,
+            minValue=0.1,
         )
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
@@ -131,42 +143,48 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readNumEntry("qgis2fds", "landuse_type", 0)
+        defaultValue, _ = project.readEntry("qgis2fds", "landuse_type_filepath", "")
         self.addParameter(
-            QgsProcessingParameterEnum(
-                "landuse_type",
-                "Landuse layer type",
-                options=fds.landuse_types,
-                allowMultiple=False,
+            QgsProcessingParameterFile(
+                "landuse_type_filepath",
+                "Landuse type *.csv file (if not set, landuse is not exported)",
+                behavior=QgsProcessingParameterFile.File,
+                fileFilter="CSV files (*.csv)",
+                optional=True,
                 defaultValue=defaultValue,
             )
         )
 
-        if project_crs_changed:
-            defaultValue = None
-        else:
-            defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
-        param = QgsProcessingParameterPoint(
-            "origin",
-            "Domain origin (if not set, use terrain extent centroid)",
-            optional=True,
-            defaultValue=defaultValue,
+        defaultValue, _ = project.readEntry("qgis2fds", "fire_layer", None)
+        if not defaultValue:
+            try:  # first layer name containing "fire"
+                defaultValue = [
+                    layer.name()
+                    for layer in QgsProject.instance().mapLayers().values()
+                    if "Fire" in layer.name() or "fire" in layer.name()
+                ][0]
+            except IndexError:
+                pass
+        self.addParameter(
+            QgsProcessingParameterVectorLayer(
+                "fire_layer",
+                "Fire layer",
+                optional=True,
+                defaultValue=defaultValue,
+            )
         )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        if project_crs_changed:
-            defaultValue = None
-        else:
-            defaultValue, _ = project.readEntry("qgis2fds", "fire_origin", None)
-        param = QgsProcessingParameterPoint(
-            "fire_origin",
-            "Fire origin (if not set, use domain origin)",
-            optional=True,
-            defaultValue=defaultValue,
+        defaultValue, _ = project.readEntry("qgis2fds", "wind_filepath", "")
+        self.addParameter(
+            QgsProcessingParameterFile(
+                "wind_filepath",
+                "Wind *.csv file",
+                behavior=QgsProcessingParameterFile.File,
+                fileFilter="CSV files (*.csv)",
+                optional=True,
+                defaultValue=defaultValue,
+            )
         )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
         param = QgsProcessingParameterRasterLayer(
@@ -178,7 +196,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readNumEntry("qgis2fds", "tex_pixel_size", 5)
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", "tex_pixel_size", 5.0)
         param = QgsProcessingParameterNumber(
             "tex_pixel_size",
             "Texture layer pixel size (in meters)",
@@ -200,7 +218,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readNumEntry("qgis2fds", "cell_size", 10.0)
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", "cell_size", 10.0)
         param = QgsProcessingParameterNumber(
             "cell_size",
             "Desired FDS MESH cell size (in meters)",
@@ -211,21 +229,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readEntry("qgis2fds", "wind_filepath", "")
-        param = QgsProcessingParameterFile(
-            "wind_filepath",
-            "Wind *.csv file",
-            behavior=QgsProcessingParameterFile.File,
-            fileFilter="CSV files (*.csv)",
-            optional=True,
-            defaultValue=defaultValue,
-        )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-
         param = QgsProcessingParameterVectorDestination(
             "sampling_layer",
-            "Sampling grid layer",
+            "Sampling grid layer [Result]",
             type=QgsProcessing.TypeVectorPoint,
             createByDefault=True,
             defaultValue=None,
@@ -236,7 +242,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if DEBUG:
             param = QgsProcessingParameterVectorDestination(
                 "tex_extent_layer",  # Name
-                "FDS texture",  # Description
+                "FDS texture extent layer [Debug]",  # Description
                 type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
@@ -245,7 +251,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
             param = QgsProcessingParameterVectorDestination(
                 "dem_extent_layer",  # Name
-                "FDS terrain extent layer",  # Description
+                "FDS terrain extent layer [Debug]",  # Description
                 type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
@@ -254,7 +260,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
             param = QgsProcessingParameterVectorDestination(
                 "utm_extent_layer",  # Name
-                "FDS domain extent layer",  # Description
+                "FDS domain extent layer [Debug]",  # Description
                 type=QgsProcessing.TypeVectorPolygon,
                 createByDefault=True,
                 defaultValue=None,
@@ -267,11 +273,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         # Points:
         #  origin: user origin point in proj crs
-        #  fire_origin: user fire origin point in proj crs
         #  wgs84_origin: origin point in wgs84 crs, used for choosing utm_crs
-        #  wgs84_fire_origin: fire origin point in wgs84 crs
         #  utm_origin: origin point in utm crs
-        #  utm_fire_origin: fire origin point in utm crs
 
         # CRSs:
         #  project_crs: project crs
@@ -293,45 +296,79 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         results, outputs, project = {}, {}, QgsProject.instance()
 
-        # Get some of the parameters
+        # Get qgis file path
+        project_path = QgsProject.instance().readPath("./")
+        if not project_path:
+            raise QgsProcessingException(
+                "The qgis project is not saved to disk, cannot proceed."
+            )
+
+        # Get the main parameters, save them to the qgis file
         chid = self.parameterAsString(parameters, "chid", context)
         project.writeEntry("qgis2fds", "chid", parameters["chid"])
+
+        fds_path = self.parameterAsFile(parameters, "fds_path", context)
+        project.writeEntry("qgis2fds", "fds_path", parameters["fds_path"])
+        fds_path = os.path.join(project_path, fds_path)  # abs
+
+        extent = self.parameterAsExtent(parameters, "extent", context)
+        project.writeEntry("qgis2fds", "extent", parameters["extent"])
+
         nmesh = self.parameterAsInt(parameters, "nmesh", context)
         project.writeEntry("qgis2fds", "nmesh", parameters["nmesh"])
+
         cell_size = self.parameterAsDouble(parameters, "cell_size", context)
         project.writeEntryDouble("qgis2fds", "cell_size", parameters["cell_size"])
-        path = self.parameterAsFile(parameters, "path", context)
-        project.writeEntry("qgis2fds", "path", parameters["path"])
+
+        # Get DEM layer and DEM sampling
+        dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
+        project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
+
+        dem_sampling = self.parameterAsDouble(parameters, "dem_sampling", context)
+        project.writeEntryDouble("qgis2fds", "dem_sampling", parameters["dem_sampling"])
+
+        # Get landuse (optional)
+        if parameters["landuse_layer"] and parameters["landuse_type_filepath"]:
+            landuse_layer = self.parameterAsRasterLayer(
+                parameters, "landuse_layer", context
+            )
+            landuse_type_filepath = self.parameterAsFile(
+                parameters, "landuse_type_filepath", context
+            )
+            landuse_type_filepath = os.path.join(
+                project_path, landuse_type_filepath
+            )  # abs
+            landuse_dict = landuse.get_landuse_dict(feedback, landuse_type_filepath)
+        else:
+            landuse_layer, landuse_type_filepath, landuse_dict = None, None, None
+        project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
+        project.writeEntry(
+            "qgis2fds",
+            "landuse_type_filepath",
+            parameters["landuse_type_filepath"] or "",
+        )
+
+        # Get fire_layer (optional)
+        if parameters["fire_layer"]:
+            fire_layer = self.parameterAsVectorLayer(parameters, "fire_layer", context)
+        else:
+            fire_layer = None
+        project.writeEntry("qgis2fds", "fire_layer", parameters["fire_layer"])
+
+        # Get wind .csv filepath (optional)
         wind_filepath = self.parameterAsFile(parameters, "wind_filepath", context)
         project.writeEntry(
             "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
         )
-        landuse_type = self.parameterAsEnum(parameters, "landuse_type", context)
-        project.writeEntry("qgis2fds", "landuse_type", parameters["landuse_type"])
-        dem_sampling = self.parameterAsInt(parameters, "dem_sampling", context)
-        project.writeEntry("qgis2fds", "dem_sampling", parameters["dem_sampling"])
-        extent = self.parameterAsExtent(parameters, "extent", context)
-        project.writeEntry("qgis2fds", "extent", parameters["extent"])
+        if wind_filepath:
+            wind_filepath = os.path.join(project_path, wind_filepath)  # abs
 
-        # Get layers in their respective crs: dem_layer, landuse_layer, tex_layer
-        dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
-        project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
-
-        if not parameters["landuse_layer"]:  # it is optional
-            landuse_layer = None
-        else:
-            landuse_layer = self.parameterAsRasterLayer(
-                parameters, "landuse_layer", context
-            )
-        project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
-
-        if not parameters["tex_layer"]:  # it is optional
-            tex_layer = None
-        else:
+        # Get tex_layer (optional) and tex_pixel_size
+        if parameters["tex_layer"]:
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
+        else:
+            tex_layer = None
         project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
-
-        # Get tex_pixel_size
         tex_pixel_size = self.parameterAsDouble(parameters, "tex_pixel_size", context)
         project.writeEntryDouble(
             "qgis2fds", "tex_pixel_size", parameters["tex_pixel_size"]
@@ -360,6 +397,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     f"Landuse layer CRS <{landuse_crs.description()}> is not valid, cannot proceed."
                 )
 
+        if fire_layer:
+            fire_crs = fire_layer.crs()
+            if not fire_crs.isValid():
+                raise QgsProcessingException(
+                    f"Fire layer CRS <{fire_crs.description()}> is not valid, cannot proceed."
+                )
+
         if tex_layer:
             tex_crs = tex_layer.crs()
             if not tex_crs.isValid():
@@ -372,7 +416,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project_crs, wgs84_crs, QgsProject.instance()
         )
         if parameters["origin"] is not None:
-            # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
+            # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             origin = self.parameterAsPoint(parameters, "origin", context)
             project.writeEntry("qgis2fds", "origin", parameters["origin"])
             wgs84_origin = QgsPoint(origin)
@@ -380,37 +424,24 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         else:  # no origin
             wgs84_origin = QgsPoint(extent.center())
             wgs84_origin.transform(project_to_wgs84_tr)
-        feedback.pushInfo(
-            f"Domain origin: {wgs84_origin.x():.6f}, {wgs84_origin.y():.6f} (WGS 84)"
-        )
-
-        # Get fire origin in WGS84 CRS
-        if parameters["fire_origin"] is not None:
-            # preventing a QGIS bug when using parameterAsPoint with crs=wgs84_crs
-            fire_origin = self.parameterAsPoint(parameters, "fire_origin", context)
-            project.writeEntry("qgis2fds", "fire_origin", parameters["fire_origin"])
-            wgs84_fire_origin = QgsPoint(fire_origin)
-            wgs84_fire_origin.transform(project_to_wgs84_tr)
-        else:  # no fire origin
-            wgs84_fire_origin = wgs84_origin.clone()
-        feedback.pushInfo(
-            f"Fire origin: {wgs84_fire_origin.x():.6f}, {wgs84_fire_origin.y():.6f} (WGS 84)"
-        )
 
         # Calc utm_crs from wgs84_origin
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
 
-        # Feedback on CRSs
-        feedback.pushInfo(f"\nProject CRS: <{project_crs.description()}>")
-        feedback.pushInfo(f"DEM layer CRS: <{dem_crs.description()}>")
+        # Feedback on origin and CRSs
         feedback.pushInfo(
-            f"Landuse layer CRS: <{landuse_layer and landuse_crs.description() or 'no landuse'}>"
+            f"""
+        Domain origin: {wgs84_origin.x():.6f}, {wgs84_origin.y():.6f} (WGS 84)
+        Project CRS: <{project_crs.description()}>
+        DEM layer CRS: <{dem_crs.description()}>
+        Landuse layer CRS: <{landuse_layer and landuse_crs.description() or 'No landuse'}>
+        Fire layer CRS: <{fire_layer and fire_crs.description() or 'No fire'}>
+        Texture layer CRS: <{tex_layer and tex_crs.description() or 'No texture'}>
+        FDS case CRS: <{utm_crs.description()}>
+
+        Press <Cancel> to interrupt the execution."""
         )
-        feedback.pushInfo(
-            f"Texture layer CRS: <{tex_layer and tex_crs.description() or 'no texture'}>"
-        )
-        feedback.pushInfo(f"FDS CRS: <{utm_crs.description()}>")
 
         # Get origin in utm_crs
         wgs84_to_utm_tr = QgsCoordinateTransform(
@@ -424,10 +455,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException(
                 f"[QGIS bug] UTM Origin <{utm_origin}> and WGS84 Origin <{wgs84_origin}> are identical, cannot proceed.\n{wgs84_to_utm_tr}\n{wgs84_crs} {utm_crs}"
             )
-
-        # Get fire origin in utm_crs
-        utm_fire_origin = wgs84_fire_origin.clone()
-        utm_fire_origin.transform(wgs84_to_utm_tr)
 
         # Get utm_extent in utm_crs from extent (for MESH)
         # and dem_extent in dem_crs from utm_extent (for dem_layer sampling to GEOM)
@@ -481,6 +508,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         dem_extent = QgsRectangle(x0, y0, x1, y1)
 
+        # Calc and check dem_sampling
+        dem_layer_res = max(dem_layer_xres, dem_layer_yres)
+        if dem_layer_res < cell_size:
+            feedback.reportError(
+                f"\nDEM layer resolution {dem_layer_res:.1f}m is smaller than FDS MESH cell size {cell_size:.1f}m."
+            )
+
         # Check dem_layer contains updated dem_extent
         if not dem_layer.extent().contains(dem_extent):
             feedback.reportError(
@@ -510,19 +544,23 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utm_extent_xm = utm_extent.xMaximum() - utm_extent.xMinimum()
         utm_extent_ym = utm_extent.yMaximum() - utm_extent.yMinimum()
 
-        # Feedback
-        feedback.pushInfo(f"\nFDS domain (MESH)")
-        feedback.pushInfo(f"size: {utm_extent_xm:.1f} x {utm_extent_ym:.1f} meters")
-        feedback.pushInfo(f"\nDEM layer sampling for FDS terrain (GEOM)")
+        # Feedback on FDS domain
         feedback.pushInfo(
-            f"resolution: {dem_layer_xres:.1f} x {dem_layer_yres:.1f} meters"
+            f"""
+        FDS domain
+        overall size: {utm_extent_xm:.1f} x {utm_extent_ym:.1f} meters
+        cell size: {cell_size} meters
+
+        DEM layer sampling for FDS terrain
+        resolution: {dem_layer_xres:.1f} x {dem_layer_yres:.1f} meters
+        geometry: {nverts} verts, {nfaces} faces
+
+        Press <Cancel> to interrupt the execution."""
         )
-        feedback.pushInfo(f"geometry: {nverts} verts, {nfaces} faces")
-        feedback.pushInfo(f"\nPress <Cancel> to interrupt the execution.")
 
         if DEBUG:
             # Show utm_extent layer
-            feedback.pushInfo(f"\n[DEBUG] Drawing utm_extent...")
+            feedback.pushInfo(f"\n[DEBUG] Draw utm_extent...")
             x0, y0, x1, y1 = (
                 utm_extent.xMinimum(),
                 utm_extent.yMinimum(),
@@ -543,7 +581,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             results["utm_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
 
             # Show dem_extent layer
-            feedback.pushInfo(f"[DEBUG] Drawing dem_extent...")
+            feedback.pushInfo(f"[DEBUG] Draw dem_extent...")
             x0, y0, x1, y1 = (
                 dem_extent.xMinimum(),
                 dem_extent.yMinimum(),
@@ -564,7 +602,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             results["dem_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
 
             # Show tex_extent layer
-            feedback.pushInfo(f"[DEBUG] Drawing tex_extent...")
+            feedback.pushInfo(f"[DEBUG] Draw tex_extent...")
             x0, y0, x1, y1 = (
                 tex_extent.xMinimum(),
                 tex_extent.yMinimum(),
@@ -589,7 +627,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(1/7) Rendering, cropping, and writing texture image, timeout in 30s..."
+            "\n(1/7) Render, crop, and write texture image, timeout in 30s..."
         )
 
         utils.write_texture(
@@ -598,16 +636,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             tex_extent=tex_extent,
             tex_pixel_size=tex_pixel_size,
             utm_crs=utm_crs,
-            filepath=f"{path}/{chid}_tex.png",
+            filepath=os.path.join(fds_path, f"{chid}_tex.png"),
             imagetype="png",
         )
 
         # QGIS geographic transformations
-        # Creating sampling grid in DEM crs
+        # Create sampling grid in DEM crs
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(2/7) Creating sampling grid from DEM layer...")
+        feedback.setProgressText("\n(2/7) Create sampling grid from DEM layer...")
 
         alg_params = {
             "CRS": dem_crs,
@@ -628,12 +666,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # QGIS geographic transformations
-        # Draping Z values to sampling grid in DEM crs
+        # Drape Z values to sampling grid in DEM crs
 
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(3/7) Draping elevations from DEM layer to sampling grid..."
+            "\n(3/7) Drape elevations from DEM layer to sampling grid..."
         )
 
         alg_params = {
@@ -677,13 +715,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             feedback.pushInfo("No landuse layer provided, no sampling.")
 
         # QGIS geographic transformations
-        # Reprojecting sampling grid to UTM CRS
+        # Reproject sampling grid to UTM CRS
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText(
-            "\n(5/7) Reprojecting sampling grid layer to UTM CRS..."
-        )
+        feedback.setProgressText("\n(5/7) Reproject sampling grid layer to UTM CRS...")
 
         alg_params = {
             "INPUT": landuse_layer
@@ -709,45 +745,68 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 f"[QGIS bug] Too few features in sampling layer, cannot proceed.\n{point_layer.featureCount()}"
             )
 
-        # Prepare geometry
+        # QGIS geographic transformations
+        # Reproject fire_layer to UTM CRS
+        # and sample fire_layer for ignition lines and burned areas
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(6/7) Building FDS geometry...")
-
-        verts, faces, landuses, max_landuses = geometry.get_fds_terrain(
-            feedback=feedback,
-            point_layer=point_layer,
-            utm_origin=utm_origin,
-            landuse_layer=landuse_layer,
+        feedback.setProgressText(
+            "\n(6/7) Reproject fire layer to UTM CRS and set bcs..."
         )
+
+        if fire_layer:
+            # Reproject fire_layer to UTM CRS
+            alg_params = {
+                "INPUT": fire_layer,
+                "TARGET_CRS": utm_crs,
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            }
+            outputs["ReprojectFireLayer"] = processing.run(
+                "native:reprojectlayer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            fire_layer_utm = context.getMapLayer(
+                outputs["ReprojectFireLayer"]["OUTPUT"]
+            )
+            landuse.apply_fire_layer_bcs_to_point_layer(
+                feedback=feedback,
+                point_layer=point_layer,
+                fire_layer_utm=fire_layer_utm,
+                dem_layer_res=dem_layer_res,
+                landuse_dict=landuse_dict,
+            )
+        else:
+            feedback.pushInfo("No fire layer provided, no fire in the domain.")
 
         # Write the FDS case file
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(7/7) Writing the FDS case file...")
+        feedback.setProgressText(
+            "\n(7/7) Prepare geometry and write the FDS case file..."
+        )
 
         fds.write_case(
             feedback=feedback,
             dem_layer=dem_layer,
             landuse_layer=landuse_layer,
-            path=path,
+            fds_path=fds_path,
             chid=chid,
             wgs84_origin=wgs84_origin,
             utm_origin=utm_origin,
-            wgs84_fire_origin=wgs84_fire_origin,
-            utm_fire_origin=utm_fire_origin,
             utm_crs=utm_crs,
-            verts=verts,
-            faces=faces,
-            landuses=landuses,
-            landuse_type=landuse_type,
+            point_layer=point_layer,
+            landuse_type_filepath=landuse_type_filepath,
+            landuse_dict=landuse_dict,
             utm_extent=utm_extent,
-            max_landuses=max_landuses,
             nmesh=nmesh,
             cell_size=cell_size,
             wind_filepath=wind_filepath,
+            fire_layer=fire_layer,
         )
 
         return results
