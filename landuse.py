@@ -29,7 +29,12 @@ def get_surf_id_str(feedback, landuse_dict):
     if landuse_dict:
         surf_id = list()
         for l in landuse_dict.values():
-            surf_id.append(re.search(_scan_id, l).groups()[0])
+            s = re.search(_scan_id, l)
+            if not s:
+                raise QgsProcessingException(
+                    f"No FDS ID found in <{l}> from landuse type *.csv file."
+                )
+            surf_id.append(s.groups()[0])
         return ",".join((f"'{s}'" for s in surf_id))
     else:
         return "'INERT'"
@@ -68,7 +73,7 @@ def apply_fire_layer_bcs_to_point_layer(
 ):
     # Sample fire_layer for ignition lines and burned areas
     landuse_idx = point_layer.fields().indexOf("landuse1")
-    border_distance = dem_layer_res  # size of border
+    distance = dem_layer_res  # size of border
     # Get bcs to be set
     # default for Ignition and Burned
     bc_out_default, bc_in_default = list(landuse_dict)[-2:]
@@ -76,9 +81,6 @@ def apply_fire_layer_bcs_to_point_layer(
     bc_out_idx = fire_layer_utm.fields().indexOf("bc_out")
     with edit(point_layer):
         for fire_feat in fire_layer_utm.getFeatures():
-            # Get fire feature geometry and bbox
-            fire_geom = fire_feat.geometry()
-            fire_geom_bbox = fire_geom.boundingBox()
             # Check if user specified bcs available
             if bc_in_idx != -1:  # found
                 bc_in = fire_feat[bc_in_idx]
@@ -88,20 +90,23 @@ def apply_fire_layer_bcs_to_point_layer(
                 bc_out = fire_feat[bc_out_idx]
             else:
                 bc_out = bc_out_default
-            # Check bbox min size
-            if (
-                fire_geom_bbox.height() < border_distance
-                and fire_geom_bbox.width() < border_distance
-            ):
-                # Replaced by its centroid
+            # Get fire feature geometry and bbox
+            fire_geom = fire_feat.geometry()
+            fire_geom_bbox = fire_geom.boundingBox()
+            distance = dem_layer_res
+            h, w = fire_geom_bbox.height(), fire_geom_bbox.width()
+            if h < dem_layer_res and w < dem_layer_res:
+                # if small, replaced by its centroid
+                # to simplify 1 cell ignition
                 fire_geom = fire_geom.centroid()
+                distance *= 0.6
             # Feedback
             feedback.pushInfo(
                 f"Set <bc_in={bc_in}> and <bc_out={bc_out}> bcs to the terrain from fire layer <{fire_feat.id()}> feature"
             )
             # Set new bcs in point layer
             # for speed, preselect points with grown bbox
-            fire_geom_bbox.grow(delta=border_distance * 2.0)
+            fire_geom_bbox.grow(delta=distance * 2.0)
             for point_feat in point_layer.getFeatures(
                 QgsFeatureRequest(fire_geom_bbox)
             ):
@@ -113,10 +118,7 @@ def apply_fire_layer_bcs_to_point_layer(
                             point_feat.id(), landuse_idx, bc_in
                         )
                 else:
-                    if (
-                        bc_out != NULL
-                        and point_geom.distance(fire_geom) < border_distance
-                    ):
+                    if bc_out != NULL and point_geom.distance(fire_geom) < distance:
                         # Set border bc
                         point_layer.changeAttributeValue(
                             point_feat.id(), landuse_idx, bc_out
