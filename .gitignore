@@ -29,7 +29,6 @@ deploy_qgis2fds
 *.ge
 *.ge2
 *.ter
-*.csv
 *.ini
 *.bingeom
 *.sf
