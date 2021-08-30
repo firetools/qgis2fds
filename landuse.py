@@ -35,6 +35,10 @@ def get_surf_id_str(feedback, landuse_dict):
                     f"No FDS ID found in <{l}> from landuse type *.csv file."
                 )
             surf_id.append(s.groups()[0])
+        if len(set(surf_id)) != len(surf_id):
+            raise QgsProcessingException(
+                f"Duplicated FDS ID in landuse type *.csv file not allowed."
+            )
         return ",".join((f"'{s}'" for s in surf_id))
     else:
         return "'INERT'"
