@@ -27,6 +27,7 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterVectorDestination,
+    QgsProcessingParameterBoolean,
 )
 
 import processing, os
@@ -239,6 +240,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", False)
+        param = QgsProcessingParameterBoolean(
+            "export_obst",
+            "Export FDS OBSTs",
+            defaultValue=defaultValue,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
         if DEBUG:
             param = QgsProcessingParameterVectorDestination(
                 "tex_extent_layer",  # Name
@@ -338,9 +348,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type_filepath = os.path.join(
                 project_path, landuse_type_filepath
             )  # abs
-            landuse_dict = landuse.get_landuse_dict(feedback, landuse_type_filepath)
+            landuse_type = landuse.LanduseType(feedback, landuse_type_filepath)
         else:
-            landuse_layer, landuse_type_filepath, landuse_dict = None, None, None
+            landuse_layer, landuse_type_filepath, landuse_type = None, None, None
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
         project.writeEntry(
             "qgis2fds",
@@ -373,6 +383,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntryDouble(
             "qgis2fds", "tex_pixel_size", parameters["tex_pixel_size"]
         )
+
+        # Get type of export (FDS GEOM or OBSTs)
+        export_obst = False
+        if parameters["export_obst"]:
+            export_obst = True
+        project.writeEntryBool("qgis2fds", "export_obst", parameters["export_obst"])
 
         # Prepare CRSs and check their validity
         project_crs = QgsProject.instance().crs()
@@ -772,12 +788,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fire_layer_utm = context.getMapLayer(
                 outputs["ReprojectFireLayer"]["OUTPUT"]
             )
-            landuse.apply_fire_layer_bcs_to_point_layer(
+            landuse_type.apply_fire_layer_bcs(
                 feedback=feedback,
                 point_layer=point_layer,
                 fire_layer_utm=fire_layer_utm,
                 dem_layer_res=dem_layer_res,
-                landuse_dict=landuse_dict,
             )
         else:
             feedback.pushInfo("No fire layer provided, no fire in the domain.")
@@ -800,13 +815,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             utm_crs=utm_crs,
             point_layer=point_layer,
-            landuse_type_filepath=landuse_type_filepath,
-            landuse_dict=landuse_dict,
+            landuse_type=landuse_type,
             utm_extent=utm_extent,
             nmesh=nmesh,
             cell_size=cell_size,
             wind_filepath=wind_filepath,
             fire_layer=fire_layer,
+            export_obst=export_obst,
         )
 
         return results
