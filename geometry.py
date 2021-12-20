@@ -9,19 +9,20 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import QgsProcessingException
 
-import math
+from . import utils
+import os
 import numpy as np
 
 
-def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
-    """!
-    Get verts, faces, and landuses from sampling point layer.
-    @feedback: pyqgis feedback obj
-    @param point_layer: QGIS vector layer of quad faces center points with landuse.
-    @param utm_origin: domain origin in UTM CRS.
-    @param landuse_layer: landuse layer
-    @return verts, faces, landuses
-    """
+def write_geom_terrain(
+    feedback,
+    fds_path,
+    chid,
+    point_layer,
+    utm_origin,
+    landuse_layer,
+    landuse_dict,
+):
     feedback.pushInfo("Point and landuse matrix...")
     matrix = _get_matrix(
         feedback,
@@ -36,21 +37,8 @@ def get_fds_terrain(feedback, point_layer, utm_origin, landuse_layer):
     if feedback.isCanceled():
         return {}
     feedback.pushInfo("Verts...")
-    verts = _get_verts(feedback=feedback, m=matrix)
-    feedback.pushInfo(f"Terrain ready: {len(verts)} verts, {len(faces)} faces.")
-    return verts, faces, landuses
-
-
-def get_geom_params(feedback, verts, faces, landuses, landuse_dict):
-    """!
-    Translate verts, faces, landuses to FDS GEOM params for exporting.
-    @feedback: pyqgis feedback obj
-    @param verts: FIXME
-    @param faces: FIXME
-    @param landuses: FIXME
-    @param landuse_dict: FIXME
-    @return n_surf_id, fds_verts, fds_faces, fds_surfs
-    """
+    verts, min_z, max_z = _get_verts(feedback=feedback, m=matrix)
+    # Format in fds notation
     fds_verts = tuple(v for vs in verts for v in vs)
     fds_faces = tuple(f for fs in faces for f in fs)
     fds_surfs = list()
@@ -62,17 +50,30 @@ def get_geom_params(feedback, verts, faces, landuses, landuse_dict):
             try:
                 fds_surfs.append(landuse_list.index(landuses[i]) + 1)
             except ValueError:
-                # not available, set FDS default
+                # Not available, set FDS default
                 feedback.reportError(
                     f"Landuse <{landuses[i]}> value unknown, setting FDS default <0>."
                 )
                 fds_surfs.append(0)
         fds_surfs = tuple(fds_surfs)
     else:
-        # no landuse, set FDS INERT as landuse
+        # No landuse, set FDS INERT as landuse
         n_surf_id = 1
         fds_surfs = (1,) * len(faces)
-    return n_surf_id, fds_verts, fds_faces, fds_surfs
+    # Write bingeom
+    utils.write_bingeom(
+        feedback=feedback,
+        filepath=os.path.join(fds_path, f"{chid}_terrain.bingeom"),
+        geom_type=2,
+        n_surf_id=n_surf_id,
+        fds_verts=fds_verts,
+        fds_faces=fds_faces,
+        fds_surfs=fds_surfs,
+        fds_volus=list(),
+    )
+    # Feedback
+    feedback.pushInfo(f"GEOM terrain ready: {len(verts)} verts, {len(faces)} faces.")
+    return min_z, max_z
 
 
 # Prepare the matrix of quad faces center points with landuse
@@ -107,6 +108,7 @@ def get_geom_params(feedback, verts, faces, landuses, landuse_dict):
 def _get_matrix(feedback, point_layer, utm_origin, landuse_layer):
     """
     Return the matrix of quad faces center points with landuse.
+    @feedback: pyqgis feedback obj
     @param point_layer: QGIS vector layer of quad faces center points with landuse.
     @param utm_origin: domain origin in UTM CRS.
     @param landuse_layer: landuse layer.
@@ -171,6 +173,7 @@ def _get_vert_index(i, j, len_vcol):
 def _get_faces(feedback, m):
     """
     Get face connectivity and landuses.
+    @feedback: pyqgis feedback obj
     @param m: matrix of quad faces center points with landuse.
     @return faces and landuses
     """
@@ -202,6 +205,48 @@ def _get_faces(feedback, m):
             landuses.extend((lu, lu))
         feedback.setProgress(int(i / len_vrow * 100))
     return faces, landuses
+
+
+# Getting OBST XBs and their landuse
+
+#        j   j  j+1
+#        *-------* i
+#        |       |
+# xb     |       | i
+#        |       |
+#        *-------* i+1
+
+
+def _get_obst_params(feedback, m):
+    """
+    Get xbs and landuses.
+    @feedback: pyqgis feedback obj
+    @param m: matrix of quad faces center points with landuse.
+    @return faces and landuses
+    """
+    feedback.setProgress(0)
+    xbs, landuses = list(), list()
+    if m.shape[0] < 3 or m.shape[1] < 3:
+        raise QgsProcessingException(
+            f"[QGIS bug] Too small point matrix, cannot proceed with xbs building: {m.shape[0]}x{m.shape[1]}\nMatrix m: {m}"
+        )
+    len_vrow = m.shape[0]
+    dx, dy = (m[0, 1] - m[0, 0]) / 2.0, (m[1, 0] - m[0, 0]) / 2.0  # half displacements
+    for i, row in enumerate(m):
+        for j, p in enumerate(row):
+            xbs.append(
+                (
+                    p[0] - dx,
+                    p[0] + dx,
+                    p[1] - dy,
+                    p[1] + dy,
+                    0.0,
+                    p[2],
+                )
+            )
+            landuses.append(int(p[3]))
+        feedback.setProgress(int(i / len_vrow * 100))
+    return xbs, landuses
 
 
 # Getting vertices
@@ -262,4 +307,8 @@ def _get_verts(feedback, m):
         )
         if ip % partial_progress == 0:
             feedback.setProgress(int(ip / ncenters * 100))
-    return verts
+
+    # Calc min and max z for domain
+    min_z = min(v[2] for v in verts)
+    max_z = max(v[2] for v in verts)
+    return verts, min_z, max_z
