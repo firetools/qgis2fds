@@ -54,7 +54,7 @@ class LanduseType:
             raise QgsProcessingException(
                 f"Error importing landuse type *.csv file from <{filepath}>:\n{err}"
             )
-        if len(self._landuse) < 2:
+        if len(self._id_dict) < 2:
             raise QgsProcessingException(
                 f"At least two lines required in landuse type file <{filepath}>."
             )
