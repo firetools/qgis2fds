@@ -33,7 +33,7 @@ from qgis.core import (
 import processing, os
 from math import ceil
 
-from . import utils, fds, landuse
+from . import utils, fds, landuse, wind
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -345,12 +345,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type_filepath = self.parameterAsFile(
                 parameters, "landuse_type_filepath", context
             )
-            landuse_type_filepath = os.path.join(
-                project_path, landuse_type_filepath
-            )  # abs
         else:
             landuse_layer, landuse_type_filepath = None, None
-        landuse_type = landuse.LanduseType(feedback, landuse_type_filepath)
+        landuse_type = landuse.LanduseType(
+            feedback, project_path, landuse_type_filepath
+        )
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
         project.writeEntry(
             "qgis2fds",
@@ -370,8 +369,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry(
             "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
         )
-        if wind_filepath:
-            wind_filepath = os.path.join(project_path, wind_filepath)  # abs
+        wind_ramp = wind.WindRamp(feedback, project_path, wind_filepath)
 
         # Get tex_layer (optional) and tex_pixel_size
         if parameters["tex_layer"]:
@@ -819,7 +817,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_extent=utm_extent,
             nmesh=nmesh,
             cell_size=cell_size,
-            wind_filepath=wind_filepath,
+            wind_ramp=wind_ramp,  # FIXME FIXME FIXME
             fire_layer=fire_layer,
             export_obst=export_obst,
         )
