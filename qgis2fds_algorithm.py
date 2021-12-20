@@ -348,9 +348,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type_filepath = os.path.join(
                 project_path, landuse_type_filepath
             )  # abs
-            landuse_type = landuse.LanduseType(feedback, landuse_type_filepath)
         else:
-            landuse_layer, landuse_type_filepath, landuse_type = None, None, None
+            landuse_layer, landuse_type_filepath = None, None
+        landuse_type = landuse.LanduseType(feedback, landuse_type_filepath)
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
         project.writeEntry(
             "qgis2fds",

@@ -28,9 +28,11 @@ class LanduseType:
     )  # no MULTILINE, so that $ is the end of the file
 
     def __init__(self, feedback, filepath) -> None:
-        self._filepath = filepath
+        self._filepath = filepath or str()
         self._surf_dict = dict()
         self._id_dict = dict()
+        if not filepath:
+            return
         feedback.pushInfo(f"Read landuse type *.csv file: <{filepath}>")
         try:
             with open(filepath) as csv_file:
