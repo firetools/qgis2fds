@@ -16,7 +16,7 @@ import time, os
 from . import utils, landuse, geometry, wind
 
 
-def _get_header_comment(landuse_type_filepath, wind_filepath):
+def _get_header_comment(landuse_type, wind_filepath):
     plugin_version = pluginMetadata("qgis2fds", "version")
     qgis_version = (
         QgsExpressionContextUtils.globalScope().variable("qgis_version").encode("utf-8")
@@ -25,9 +25,9 @@ def _get_header_comment(landuse_type_filepath, wind_filepath):
     qgis_filepath_str = qgis_filepath
     if len(qgis_filepath_str) > 60:
         qgis_filepath_str = "..." + qgis_filepath[-57:]
-    landuse_type_filepath_str = landuse_type_filepath or ""
+    landuse_type_filepath_str = landuse_type.filepath
     if len(landuse_type_filepath_str) > 60:
-        landuse_type_filepath_str = "..." + landuse_type_filepath[-57:]
+        landuse_type_filepath_str = "..." + landuse_type.filepath[-57:]
     wind_filepath_str = wind_filepath or ""
     if len(wind_filepath_str) > 60:
         wind_filepath_str = "..." + wind_filepath[-57:]
@@ -91,36 +91,55 @@ def _get_domain(feedback, utm_extent, utm_origin, min_z, max_z, cell_size, nmesh
 
 def _get_terrain_str(
     feedback,
-    export_obst,
+    fds_path,
     chid,
-    landuse_dict,
+    point_layer,
+    utm_origin,
+    landuse_layer,
+    landuse_type,
+    export_obst,
 ):
     """Get terrain str and export related files, if needed."""
     if export_obst:
-        return """&OBST FIXME /"""
-    else:
-        surf_id_str = landuse.get_surf_id_str(
-            feedback=feedback, landuse_dict=landuse_dict
+        return geometry.get_obst_str(
+            feedback=feedback,
+            point_layer=point_layer,
+            utm_origin=utm_origin,
+            landuse_layer=landuse_layer,
+            landuse_type=landuse_type,
         )
-
+    else:
+        (
+            min_z,
+            max_z,
+        ) = geometry.write_geom_terrain(  # FIXME how to pass both in GEOM and OBSTs?
+            feedback=feedback,
+            fds_path=fds_path,
+            chid=chid,
+            point_layer=point_layer,
+            utm_origin=utm_origin,
+            landuse_layer=landuse_layer,
+            landuse_type=landuse_type,
+        )
         return f"""&GEOM ID='Terrain'
-      SURF_ID={surf_id_str}
+      SURF_ID={landuse_type.id_str}
       BINARY_FILE='{chid}_terrain.bingeom'
       IS_TERRAIN=T EXTEND_TERRAIN=F /"""
 
 
 def _get_fds_case_str(
     feedback,
+    fds_path,
     dem_layer,
     landuse_layer,
     chid,
+    point_layer,
     wgs84_origin,
     utm_origin,
     utm_crs,
     min_z,
     max_z,
-    landuse_type_filepath,
-    landuse_dict,
+    landuse_type,
     utm_extent,
     nmesh,
     cell_size,
@@ -136,7 +155,7 @@ def _get_fds_case_str(
         landuse_type_filepath_str,
         wind_filepath_str,
     ) = _get_header_comment(
-        landuse_type_filepath=landuse_type_filepath,
+        landuse_type=landuse_type,
         wind_filepath=wind_filepath,
     )
 
@@ -160,18 +179,19 @@ def _get_fds_case_str(
         nmesh=nmesh,
     )
 
-    # Calc SURFs
-    surfs_str = landuse.get_surfs_str(feedback=feedback, landuse_dict=landuse_dict)
-
     # Get WIND from file
     wind_ramp_str = wind.get_wind_ramp_str(feedback, wind_filepath)
 
     # Get terrain OBSTs or GEOM and bingeom
     terrain_str = _get_terrain_str(
         feedback=feedback,
-        export_obst=export_obst,
+        fds_path=fds_path,
         chid=chid,
-        landuse_dict=landuse_dict,
+        point_layer=point_layer,
+        utm_origin=utm_origin,
+        landuse_layer=landuse_layer,
+        landuse_type=landuse_type,
+        export_obst=export_obst,
     )
 
     # Build string and return it
@@ -245,7 +265,7 @@ def _get_fds_case_str(
 &DEVC ID='Origin_WV' XYZ=0.,0.,{(mesh_xb[5]-1.):.3f} QUANTITY='W-VELOCITY' /
  
 ! Boundary conditions
-{surfs_str}
+{landuse_type.surf_str}
 
 ! Terrain
 {terrain_str}
@@ -265,8 +285,7 @@ def write_case(
     utm_origin,
     utm_crs,
     point_layer,
-    landuse_type_filepath,
-    landuse_dict,
+    landuse_type,
     utm_extent,
     nmesh,
     cell_size,
@@ -277,30 +296,32 @@ def write_case(
 
     # Prepare and write bingeom file
 
-    min_z, max_z = geometry.write_geom_terrain(
-        feedback=feedback,
-        fds_path=fds_path,
-        chid=chid,
-        point_layer=point_layer,
-        utm_origin=utm_origin,
-        landuse_layer=landuse_layer,
-        landuse_dict=landuse_dict,
-    )
+    min_z, max_z = 0.0, 200.0  # FIXME FIXME FIXME
+    # geometry.write_geom_terrain(
+    #    feedback=feedback,
+    #    fds_path=fds_path,
+    #    chid=chid,
+    #    point_layer=point_layer,
+    #    utm_origin=utm_origin,
+    #    landuse_layer=landuse_layer,
+    #    landuse_type=landuse_type,
+    # )
 
     # Prepare and write FDS file
 
     content = _get_fds_case_str(
         feedback=feedback,
+        fds_path=fds_path,
         dem_layer=dem_layer,
         landuse_layer=landuse_layer,
         chid=chid,
+        point_layer=point_layer,
         wgs84_origin=wgs84_origin,
         utm_origin=utm_origin,
         utm_crs=utm_crs,
         min_z=min_z,
         max_z=max_z,
-        landuse_type_filepath=landuse_type_filepath,
-        landuse_dict=landuse_dict,
+        landuse_type=landuse_type,
         utm_extent=utm_extent,
         nmesh=nmesh,
         cell_size=cell_size,

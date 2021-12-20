@@ -7,6 +7,7 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+from math import sqrt
 from qgis.core import QgsProcessingException
 
 from . import utils
@@ -21,7 +22,7 @@ def write_geom_terrain(
     point_layer,
     utm_origin,
     landuse_layer,
-    landuse_dict,
+    landuse_type,
 ):
     feedback.pushInfo("Point and landuse matrix...")
     matrix = _get_matrix(
@@ -42,13 +43,14 @@ def write_geom_terrain(
     fds_verts = tuple(v for vs in verts for v in vs)
     fds_faces = tuple(f for fs in faces for f in fs)
     fds_surfs = list()
-    if landuse_dict:
-        # translate landuse_layer landuses into FDS SURF index
-        n_surf_id = len(landuse_dict)
-        landuse_list = list(landuse_dict.keys())
+    if landuse_type:
+        # Translate landuse_layer landuses into FDS SURF index
+        surf_dict = landuse_type.surf_dict
+        surf_list = list(surf_dict)
+        n_surf_id = len(surf_list)
         for i, _ in enumerate(faces):
             try:
-                fds_surfs.append(landuse_list.index(landuses[i]) + 1)
+                fds_surfs.append(surf_list.index(landuses[i]) + 1)
             except ValueError:
                 # Not available, set FDS default
                 feedback.reportError(
@@ -71,9 +73,37 @@ def write_geom_terrain(
         fds_surfs=fds_surfs,
         fds_volus=list(),
     )
-    # Feedback
     feedback.pushInfo(f"GEOM terrain ready: {len(verts)} verts, {len(faces)} faces.")
     return min_z, max_z
+
+
+def get_obst_str(
+    feedback,
+    point_layer,
+    utm_origin,
+    landuse_layer,
+    landuse_type,
+):
+    feedback.pushInfo("Point and landuse matrix...")
+    matrix = _get_matrix(
+        feedback,
+        point_layer=point_layer,
+        utm_origin=utm_origin,
+        landuse_layer=landuse_layer,
+    )
+    if feedback.isCanceled():
+        return {}
+    feedback.pushInfo("Building OBSTs...")
+    xbs, landuses = _get_obst_params(feedback=feedback, m=matrix)
+    obsts = list()
+    id_dict = landuse_type.id_dict
+    for i, xb in enumerate(xbs):
+        id_str = id_dict[landuses[i]]
+        obsts.append(
+            f"&OBST XB={xb[0]:.6f},{xb[1]:.6f},{xb[2]:.6f},{xb[3]:.6f},{xb[4]:.6f},{xb[5]:.6f} SURF_ID='{id_str}' /"
+        )
+    feedback.pushInfo(f"OBST terrain ready: {len(xbs)} OBST lines.")
+    return "\n".join(obsts)
 
 
 # Prepare the matrix of quad faces center points with landuse
@@ -231,9 +261,10 @@ def _get_obst_params(feedback, m):
             f"[QGIS bug] Too small point matrix, cannot proceed with xbs building: {m.shape[0]}x{m.shape[1]}\nMatrix m: {m}"
         )
     len_vrow = m.shape[0]
-    dx, dy = (m[0, 1] - m[0, 0]) / 2.0, (m[1, 0] - m[0, 0]) / 2.0  # half displacements
+    dx = (m[1, 1][0] - m[1, 0][0]) / sqrt(2)  # / 2.0 # overlapping FIXME
+    dy = (m[1, 1][1] - m[0, 1][1]) / sqrt(2)  # / 2.0 # overlapping FIXME
     for i, row in enumerate(m):
-        for j, p in enumerate(row):
+        for p in row:
             xbs.append(
                 (
                     p[0] - dx,
@@ -245,6 +276,8 @@ def _get_obst_params(feedback, m):
                 )
             )
             landuses.append(int(p[3]))
+            # feedback.pushInfo(f"p: {p}")  # FIXME remove
+            # feedback.pushInfo(f"xbs[-1]: {xbs[-1]}")
         feedback.setProgress(int(i / len_vrow * 100))
     return xbs, landuses
 
