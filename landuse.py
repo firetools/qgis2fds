@@ -7,7 +7,7 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-import csv, re
+import csv, re, os
 
 from qgis.core import QgsProcessingException, NULL, edit, QgsFeatureRequest
 
@@ -27,8 +27,8 @@ class LanduseType:
         re.VERBOSE | re.DOTALL | re.IGNORECASE,
     )  # no MULTILINE, so that $ is the end of the file
 
-    def __init__(self, feedback, filepath) -> None:
-        self._filepath = filepath or str()
+    def __init__(self, feedback, project_path, filepath) -> None:
+        self._filepath = filepath and os.path.join(project_path, filepath) or str()
         self._surf_dict = dict()
         self._id_dict = dict()
         if not filepath:
@@ -78,20 +78,29 @@ class LanduseType:
                 f"Landuse type *.csv file <{filepath}> should contain index 1000 and 1001"  # FIXME error msg
             )
 
+    def __str__(self):
+        return "\n".join(self._surf_dict.values())
+
+    @property
+    def comment(self):
+        c = (
+            len(self._filepath) > 60
+            and self._filepath[-57:] + "..."
+            or self._filepath
+            or "None"
+        )
+        return f"! Landuse type file: <{c}>"
+
     @property
     def surf_dict(self):
         return self._surf_dict
-
-    @property
-    def surf_str(self):
-        return "\n".join(self._surf_dict.values())
 
     @property
     def id_dict(self):
         return self._id_dict
 
     @property
-    def id_str(self):
+    def surf_id_str(self):
         return ",".join((f"'{s}'" for s in self._id_dict.values())) or "'INERT'"
 
     @property

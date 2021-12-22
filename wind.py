@@ -13,15 +13,6 @@ from qgis.core import QgsProcessingException
 
 
 class WindRamp:
-
-    _example_str = f"""! example ramp
-&RAMP ID='ws', T=   0, F=10. /
-&RAMP ID='ws', T= 600, F=10. /
-&RAMP ID='ws', T=1200, F=20. /
-&RAMP ID='wd', T=   0, F=315. /
-&RAMP ID='wd', T= 600, F=270. /
-&RAMP ID='wd', T=1200, F=360. /"""
-
     def __init__(self, feedback, project_path, filepath) -> None:
         self._filepath = filepath and os.path.join(project_path, filepath) or str()
         self._ws, self._wd = list(), list()
@@ -46,16 +37,28 @@ class WindRamp:
                 f"Error importing wind *.csv file from <{filepath}>:\n{err}"
             )
 
+    def __str__(self):
+        example = f"""! example
+&RAMP ID='ws', T=   0, F=10. /
+&RAMP ID='ws', T= 600, F=10. /
+&RAMP ID='ws', T=1200, F=20. /
+&RAMP ID='wd', T=   0, F=315. /
+&RAMP ID='wd', T= 600, F=270. /
+&RAMP ID='wd', T=1200, F=360. /"""
+        return "&WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /\n" + (
+            ("\n".join(self._ws) + "\n".join(self._wd)) or example
+        )
+
     @property
-    def ramp_str(self):
-        return "\n".join(self._ws) + "\n".join(self._wd) or self._example_str
+    def comment(self):
+        c = (
+            len(self._filepath) > 60
+            and self._filepath[-57:] + "..."
+            or self._filepath
+            or "None"
+        )
+        return f"! Wind file: <{c}>"
 
     @property
     def filepath(self):
         return self._filepath
-
-    @property
-    def filepath_str(self):
-        return (
-            len(self._filepath) > 60 and self._filepath[-57:] + "..." or self._filepath
-        )
