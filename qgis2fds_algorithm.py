@@ -33,7 +33,7 @@ from qgis.core import (
 import processing, os
 from math import ceil
 
-from . import utils, fds, landuse, wind
+from . import utils, fds, domain, terrain, landuse, wind
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -369,7 +369,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry(
             "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
         )
-        wind_ramp = wind.WindRamp(feedback, project_path, wind_filepath)
+        wind_ramp = wind.Wind(feedback, project_path, wind_filepath)
 
         # Get tex_layer (optional) and tex_pixel_size
         if parameters["tex_layer"]:
@@ -786,13 +786,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fire_layer_utm = context.getMapLayer(
                 outputs["ReprojectFireLayer"]["OUTPUT"]
             )
-            landuse_type.apply_fire_layer_bcs(
-                feedback=feedback,
-                point_layer=point_layer,
-                fire_layer_utm=fire_layer_utm,
-                dem_layer_res=dem_layer_res,
-            )
         else:
+            fire_layer_utm = None
             feedback.pushInfo("No fire layer provided, no fire in the domain.")
 
         # Write the FDS case file
@@ -803,24 +798,46 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             "\n(7/7) Prepare geometry and write the FDS case file..."
         )
 
-        fds.write_case(
+        if export_obst:
+            Terrain = terrain.OBSTTerrain
+        else:
+            Terrain = terrain.GEOMTerrain
+
+        terrain0 = Terrain(
             feedback=feedback,
+            chid=chid,
             dem_layer=dem_layer,
+            dem_layer_res=dem_layer_res,
+            point_layer=point_layer,
+            utm_origin=utm_origin,
             landuse_layer=landuse_layer,
+            landuse_type=landuse_type,
+            fire_layer=fire_layer,
+            fire_layer_utm=fire_layer_utm,
+        )
+
+        domain0 = domain.Domain(
+            feedback=feedback,
+            wgs84_origin=wgs84_origin,
+            utm_crs=utm_crs,
+            utm_extent=utm_extent,
+            utm_origin=utm_origin,
+            min_z=terrain0.min_z,
+            max_z=terrain0.max_z,
+            cell_size=cell_size,
+            nmesh=nmesh,
+        )
+
+        fds_case = fds.FDSCase(
+            feedback=feedback,
             fds_path=fds_path,
             chid=chid,
-            wgs84_origin=wgs84_origin,
-            utm_origin=utm_origin,
-            utm_crs=utm_crs,
-            point_layer=point_layer,
-            landuse_type=landuse_type,
-            utm_extent=utm_extent,
-            nmesh=nmesh,
-            cell_size=cell_size,
-            wind_ramp=wind_ramp,  # FIXME FIXME FIXME
-            fire_layer=fire_layer,
-            export_obst=export_obst,
+            domain=domain0,
+            terrain=terrain0,
+            wind=wind_ramp,
         )
+
+        fds_case.write()
 
         return results
 
