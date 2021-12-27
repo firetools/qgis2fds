@@ -338,6 +338,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntryDouble("qgis2fds", "dem_sampling", parameters["dem_sampling"])
 
         # Get landuse (optional)
+        landuse_layer, landuse_type_filepath = None, None
         if parameters["landuse_layer"] and parameters["landuse_type_filepath"]:
             landuse_layer = self.parameterAsRasterLayer(
                 parameters, "landuse_layer", context
@@ -345,11 +346,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             landuse_type_filepath = self.parameterAsFile(
                 parameters, "landuse_type_filepath", context
             )
-        else:
-            landuse_layer, landuse_type_filepath = None, None
-        landuse_type = landuse.LanduseType(
-            feedback, project_path, landuse_type_filepath
-        )
         project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
         project.writeEntry(
             "qgis2fds",
@@ -369,13 +365,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry(
             "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
         )
-        wind_ramp = wind.Wind(feedback, project_path, wind_filepath)
 
         # Get tex_layer (optional) and tex_pixel_size
+        tex_layer = None
         if parameters["tex_layer"]:
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
-        else:
-            tex_layer = None
         project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
         tex_pixel_size = self.parameterAsDouble(parameters, "tex_pixel_size", context)
         project.writeEntryDouble(
@@ -790,13 +784,19 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fire_layer_utm = None
             feedback.pushInfo("No fire layer provided, no fire in the domain.")
 
-        # Write the FDS case file
+        # Build the classes and write the FDS case file
 
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
             "\n(7/7) Prepare geometry and write the FDS case file..."
         )
+
+        landuse_type = landuse.LanduseType(
+            feedback, project_path, landuse_type_filepath
+        )
+
+        wind0 = wind.Wind(feedback, project_path, wind_filepath)
 
         if export_obst:
             Terrain = terrain.OBSTTerrain
@@ -834,7 +834,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             chid=chid,
             domain=domain0,
             terrain=terrain0,
-            wind=wind_ramp,
+            wind=wind0,
         )
 
         fds_case.write()
