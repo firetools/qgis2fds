@@ -56,16 +56,17 @@ class Texture:
                 dem_crs, utm_crs, QgsProject.instance()
             )
             self.tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
+        # Write
+        self.write()
 
-    def get_comment(self):  # FIXME
-        return ""
+    def get_comment(self):
+        return f"! Terrain texture file: <{self.filepath}>"
 
     def get_fds(self):
         return f"TERRAIN_IMAGE='{self.filepath}'"
 
-    def save(self, path):
-        filepath = self.get_filepath(path)
-        self.feedback.pushInfo(f"Save texture file: <{filepath}>")
+    def write(self):
+        self.feedback.pushInfo(f"Save texture file: <{self.filepath}>")
         # Calc tex_extent size in meters (it is in utm)
         tex_extent_xm = self.tex_extent.xMaximum() - self.tex_extent.xMinimum()
         tex_extent_ym = self.tex_extent.yMaximum() - self.tex_extent.yMinimum()
@@ -106,7 +107,7 @@ class Texture:
                 return
         image = render.renderedImage()
         try:
-            image.save(filepath, self.image_type)
+            image.save(self.filepath, self.image_type)
         except IOError:
-            raise QgsProcessingException(f"Texture not writable to <{filepath}>.")
+            raise QgsProcessingException(f"Texture not writable to <{self.filepath}>.")
         self.feedback.pushInfo(f"Texture saved in {dt:.2f} s")

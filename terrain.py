@@ -20,7 +20,8 @@ class _Terrain:
     def __init__(
         self,
         feedback,
-        chid,
+        path,
+        name,
         dem_layer,
         dem_layer_res,
         point_layer,
@@ -31,7 +32,6 @@ class _Terrain:
         fire_layer_utm,
     ) -> None:
         self.feedback = feedback
-        self.chid = chid
         self.dem_layer = dem_layer
         self.dem_layer_res = dem_layer_res
         self.point_layer = point_layer
@@ -41,15 +41,19 @@ class _Terrain:
         self.fire_layer = fire_layer
         self.fire_layer_utm = fire_layer_utm
 
+        # Init file
+        self.filename = f"{name}_terrain.bingeom"
+        self.filepath = os.path.join(path, self.filename)
+        # Init geometry
         self._matrix = None
         self.min_z = 0.0
         self.max_z = 0.0
-
+        # Apply fire layer bcs
         if fire_layer:
             self._apply_fire_layer_bcs()
             if self.feedback.isCanceled():
                 return {}
-
+        # Init matrix
         self._init_matrix()
         if self.feedback.isCanceled():
             return {}
@@ -205,6 +209,8 @@ class GEOMTerrain(_Terrain):
         if self.feedback.isCanceled():
             return {}
 
+        self.write()
+
         self.feedback.pushInfo(
             f"GEOM terrain ready: {len(self._verts)} verts, {len(self._faces)} faces."
         )
@@ -214,11 +220,11 @@ class GEOMTerrain(_Terrain):
 ! Terrain
 &GEOM ID='Terrain'
       SURF_ID={self.landuse_type.surf_id_str}
-      BINARY_FILE='{self.chid}_terrain.bingeom'
+      BINARY_FILE='{self.filename}'
       IS_TERRAIN=T EXTEND_TERRAIN=F /"""
 
-    def write_bingeom(self, path) -> None:
-        self.feedback.pushInfo("Write GEOM terrain bingeom...")
+    def write(self) -> None:
+        self.feedback.pushInfo(f"Save bingeom file: <{self.filepath}>")
         # Format in fds notation
         fds_verts = tuple(v for vs in self._verts for v in vs)
         fds_faces = tuple(f for fs in self._faces for f in fs)
@@ -242,11 +248,10 @@ class GEOMTerrain(_Terrain):
             # No landuse, set default as landuse
             n_surf_id = 1
             fds_surfs = (1,) * len(self._faces)
-
         # Write bingeom
         utils.write_bingeom(
             feedback=self.feedback,
-            filepath=os.path.join(path, f"{self.chid}_terrain.bingeom"),
+            filepath=self.filepath,
             geom_type=2,
             n_surf_id=n_surf_id,
             fds_verts=fds_verts,
