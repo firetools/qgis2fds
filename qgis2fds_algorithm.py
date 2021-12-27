@@ -33,7 +33,13 @@ from qgis.core import (
 import processing, os
 from math import ceil
 
-from . import utils, fds, domain, terrain, landuse, wind
+from . import utils
+from .fds import FDSCase
+from .domain import Domain
+from .terrain import OBSTTerrain, GEOMTerrain
+from .landuse import LanduseType
+from .texture import Texture
+from .wind import Wind
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -543,11 +549,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         nverts = (dem_sampling_xn + 1) * (dem_sampling_yn + 1)
         nfaces = dem_sampling_xn * dem_sampling_yn * 2
 
-        # Get tex_extent in utm_crs from dem_crs,
-        # texture shall be aligned to MESH, and exactly cover the GEOM terrain
-        dem_to_utm_tr = QgsCoordinateTransform(dem_crs, utm_crs, QgsProject.instance())
-        tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
-
         # Get FDS domain size in meters
         utm_extent_xm = utm_extent.xMaximum() - utm_extent.xMinimum()
         utm_extent_ym = utm_extent.yMaximum() - utm_extent.yMinimum()
@@ -609,51 +610,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
             results["dem_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
 
-            # Show tex_extent layer
-            feedback.pushInfo(f"[DEBUG] Draw tex_extent...")
-            x0, y0, x1, y1 = (
-                tex_extent.xMinimum(),
-                tex_extent.yMinimum(),
-                tex_extent.xMaximum(),
-                tex_extent.yMaximum(),
-            )
-            alg_params = {
-                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{utm_crs.authid()}]",
-                "OUTPUT": parameters["tex_extent_layer"],
-            }
-            outputs["CreateLayerFromExtent"] = processing.run(
-                "native:extenttolayer",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
-            )
-            results["tex_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
-
-        # Writing texture image to disk
-
-        if feedback.isCanceled():
-            return {}
-        feedback.setProgressText(
-            "\n(1/7) Render, crop, and write texture image, timeout in 30s..."
-        )
-
-        utils.write_texture(
-            feedback=feedback,
-            tex_layer=tex_layer,
-            tex_extent=tex_extent,
-            tex_pixel_size=tex_pixel_size,
-            utm_crs=utm_crs,
-            filepath=os.path.join(fds_path, f"{chid}_tex.png"),
-            imagetype="png",
-        )
-
         # QGIS geographic transformations
         # Create sampling grid in DEM crs
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(2/7) Create sampling grid from DEM layer...")
+        feedback.setProgressText("\n(1/6) Create sampling grid from DEM layer...")
 
         alg_params = {
             "CRS": dem_crs,
@@ -679,7 +641,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(3/7) Drape elevations from DEM layer to sampling grid..."
+            "\n(2/6) Drape elevations from DEM layer to sampling grid..."
         )
 
         alg_params = {
@@ -703,7 +665,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(4/7) Sampling landuse layer...")
+        feedback.setProgressText("\n(3/6) Sampling landuse layer...")
 
         if landuse_layer:
             alg_params = {
@@ -727,7 +689,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(5/7) Reproject sampling grid layer to UTM CRS...")
+        feedback.setProgressText("\n(4/6) Reproject sampling grid layer to UTM CRS...")
 
         alg_params = {
             "INPUT": landuse_layer
@@ -760,7 +722,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(6/7) Reproject fire layer to UTM CRS and set bcs..."
+            "\n(5/6) Reproject fire layer to UTM CRS and set bcs..."
         )
 
         if fire_layer:
@@ -789,23 +751,36 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
         feedback.setProgressText(
-            "\n(7/7) Prepare geometry and write the FDS case file..."
+            "\n(6/6) Prepare geometry and write the FDS case file..."
         )
 
-        landuse_type = landuse.LanduseType(
-            feedback, project_path, landuse_type_filepath
-        )
+        landuse_type = LanduseType(feedback, project_path, landuse_type_filepath)
 
-        wind0 = wind.Wind(feedback, project_path, wind_filepath)
+        wind = Wind(feedback, project_path, wind_filepath)
+
+        texture = Texture(
+            feedback=feedback,
+            path=fds_path,
+            name=chid,
+            image_type="png",
+            pixel_size=tex_pixel_size,
+            layer=tex_layer,
+            utm_extent=utm_extent,
+            utm_crs=utm_crs,
+            dem_extent=dem_extent,
+            dem_crs=dem_crs,
+            export_obst=export_obst,
+        )
 
         if export_obst:
-            Terrain = terrain.OBSTTerrain
+            Terrain = OBSTTerrain
         else:
-            Terrain = terrain.GEOMTerrain
+            Terrain = GEOMTerrain
 
-        terrain0 = Terrain(
+        terrain = Terrain(
             feedback=feedback,
-            chid=chid,
+            path=fds_path,
+            name=chid,
             dem_layer=dem_layer,
             dem_layer_res=dem_layer_res,
             point_layer=point_layer,
@@ -816,25 +791,25 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             fire_layer_utm=fire_layer_utm,
         )
 
-        domain0 = domain.Domain(
+        domain = Domain(
             feedback=feedback,
             wgs84_origin=wgs84_origin,
             utm_crs=utm_crs,
             utm_extent=utm_extent,
             utm_origin=utm_origin,
-            min_z=terrain0.min_z,
-            max_z=terrain0.max_z,
+            min_z=terrain.min_z,
+            max_z=terrain.max_z,
             cell_size=cell_size,
             nmesh=nmesh,
         )
 
-        fds_case = fds.FDSCase(
+        fds_case = FDSCase(
             feedback=feedback,
             fds_path=fds_path,
             chid=chid,
-            domain=domain0,
-            terrain=terrain0,
-            wind=wind0,
+            domain=domain,
+            terrain=terrain,
+            wind=wind,
         )
 
         fds_case.write()
