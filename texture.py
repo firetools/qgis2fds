@@ -19,8 +19,13 @@ from qgis.core import (
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QSize, QCoreApplication
 
+from . import utils
+
 
 class Texture:
+
+    timeout = 30.0
+
     def __init__(
         self,
         feedback,
@@ -41,10 +46,8 @@ class Texture:
         self.layer = layer
         self.utm_crs = utm_crs
 
-        # Init file
         self.filename = f"{name}_tex.{self.image_type}"
         self.filepath = os.path.join(path, self.filename)
-        # Init extent
         if export_obst:
             # Get tex_extent in utm_crs from utm_extent,
             # texture shall be aligned to MESH, and exactly cover the OBST terrain
@@ -56,17 +59,16 @@ class Texture:
                 dem_crs, utm_crs, QgsProject.instance()
             )
             self.tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
-        # Write
-        self.write()
+        self._save()
 
     def get_comment(self):
-        return f"! Terrain texture file: <{self.filepath}>"
+        return f"! Terrain texture file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self):
-        return f"TERRAIN_IMAGE='{self.filepath}'"
+        return f"TERRAIN_IMAGE='{self.filename}'"
 
-    def write(self):
-        self.feedback.pushInfo(f"Save texture file: <{self.filepath}>")
+    def _save(self):
+        self.feedback.pushInfo(f"Save terrain texture file: <{self.filepath}>")
         # Calc tex_extent size in meters (it is in utm)
         tex_extent_xm = self.tex_extent.xMaximum() - self.tex_extent.xMinimum()
         tex_extent_ym = self.tex_extent.yMaximum() - self.tex_extent.yMinimum()
@@ -85,12 +87,6 @@ class Texture:
         settings.setExtent(self.tex_extent)  # in utm_crs
         settings.setOutputSize(QSize(tex_extent_xpix, tex_extent_ypix))
         settings.setLayers(layers)
-        self.feedback.pushInfo(
-            f"Texture size: {tex_extent_xpix} x {tex_extent_ypix} pixels"
-        )
-        self.feedback.pushInfo(
-            f"Texture size: {tex_extent_xm:.1f} x {tex_extent_ym:.1f} meters"
-        )
         # Render and save image
         render = QgsMapRendererParallelJob(settings)
         render.start()
@@ -101,7 +97,7 @@ class Texture:
             if self.feedback.isCanceled():
                 render.cancelWithoutBlocking()
                 return
-            if dt >= 30.0:
+            if dt >= self.timeout:
                 render.cancelWithoutBlocking()
                 self.feedback.reportError("Texture render timed out, no texture saved.")
                 return

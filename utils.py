@@ -7,22 +7,15 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-import time
-
-from qgis.core import (
-    QgsProcessingException,
-    QgsMapSettings,
-    QgsMapRendererParallelJob,
-    QgsMapRendererSequentialJob,
-    QgsCoordinateTransform,
-    QgsRectangle,
-    QgsProject,
-    QgsDistanceArea,
-    QgsPointXY,
-)
+from qgis.core import QgsProcessingException
 from qgis.utils import iface
-from qgis.PyQt.QtGui import QColor
-from qgis.PyQt.QtCore import QSize, QCoreApplication
+
+
+# Text util
+
+
+def shorten(text):
+    return len(text) > 60 and f"...{text[-57:]}" or text or "none"
 
 
 # Write to file

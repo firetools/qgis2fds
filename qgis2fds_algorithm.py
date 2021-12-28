@@ -257,15 +257,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if DEBUG:
             param = QgsProcessingParameterVectorDestination(
-                "tex_extent_layer",  # Name
-                "FDS texture extent layer [Debug]",  # Description
-                type=QgsProcessing.TypeVectorPolygon,
-                createByDefault=True,
-                defaultValue=None,
-            )
-            self.addParameter(param)
-
-            param = QgsProcessingParameterVectorDestination(
                 "dem_extent_layer",  # Name
                 "FDS terrain extent layer [Debug]",  # Description
                 type=QgsProcessing.TypeVectorPolygon,
@@ -665,7 +656,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(3/6) Sampling landuse layer...")
+        feedback.setProgressText("\n(3/6) Sample landuse layer...")
 
         if landuse_layer:
             alg_params = {
@@ -754,9 +745,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             "\n(6/6) Prepare geometry and write the FDS case file..."
         )
 
-        landuse_type = LanduseType(feedback, project_path, landuse_type_filepath)
+        landuse_type = LanduseType(
+            feedback=feedback, project_path=project_path, filepath=landuse_type_filepath
+        )
 
-        wind = Wind(feedback, project_path, wind_filepath)
+        wind = Wind(
+            feedback=feedback, project_path=project_path, filepath=wind_filepath
+        )
 
         texture = Texture(
             feedback=feedback,
@@ -803,16 +798,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             nmesh=nmesh,
         )
 
-        fds_case = FDSCase(
+        FDSCase(
             feedback=feedback,
-            fds_path=fds_path,
-            chid=chid,
+            path=fds_path,
+            name=chid,
             domain=domain,
             terrain=terrain,
+            texture=texture,
             wind=wind,
         )
-
-        fds_case.write()
 
         return results
 

@@ -11,6 +11,8 @@ import csv, re, os
 
 from qgis.core import QgsProcessingException
 
+from . import utils
+
 
 class LanduseType:
 
@@ -28,13 +30,18 @@ class LanduseType:
     )  # no MULTILINE, so that $ is the end of the file
 
     def __init__(self, feedback, project_path, filepath) -> None:
+        self.feedback = feedback
         self.filepath = filepath and os.path.join(project_path, filepath) or str()
         self.surf_dict = dict()
         self.surf_id_dict = dict()
         if not filepath:
+            self.feedback.pushInfo(f"No landuse type *.csv file.")
             self.surf_id_dict[0] = "INERT"
             return
-        feedback.pushInfo(f"Read landuse type *.csv file: <{self.filepath}>")
+        self._import()
+
+    def _import(self) -> None:
+        self.feedback.pushInfo(f"Import landuse type *.csv file: <{self.filepath}>")
         try:
             with open(self.filepath) as csv_file:
                 # landuse csv file has an header line and two columns:
@@ -65,37 +72,27 @@ class LanduseType:
             raise QgsProcessingException(
                 f"Duplicated FDS ID in landuse type *.csv file not allowed."
             )
-        feedback.pushInfo(
-            f"Default boundary conditions for the fire layer: <{self.bc_in_default}>, <{self.bc_out_default}>."
+        self.feedback.pushInfo(
+            f"Default boundary conditions for the fire layer: bc_in=<{self.bc_in_default}>, bc_out=<{self.bc_out_default}>."
         )
 
-    def get_comment(self):
-        filepath_str = (
-            len(self.filepath) > 60
-            and "..." + self.filepath[-57:]
-            or self.filepath
-            or "None"
-        )
-        return f"! Landuse type file: <{filepath_str}>"
+    def get_comment(self) -> str:
+        return f"! Landuse type file: <{utils.shorten(self.filepath)}>"
 
-    def get_fds(self):
-        surfs_str = "\n".join(self.surf_dict.values())
-        return (
-            surfs_str
-            and f"""
+    def get_fds(self) -> str:
+        result = "\n".join(self.surf_dict.values())
+        return f"""
 ! Landuse boundary conditions
-{surfs_str}"""
-            or str()
-        )
+{result}"""
 
     @property
     def surf_id_str(self):
-        return ",".join((f"'{s}'" for s in self.surf_id_dict.values())) or "'INERT'"
+        return ",".join((f"'{s}'" for s in self.surf_id_dict.values()))
 
     @property
-    def bc_out_default(self):
+    def bc_out_default(self) -> str:
         return list(self.surf_id_dict)[-2]
 
     @property
-    def bc_in_default(self):
+    def bc_in_default(self) -> str:
         return list(self.surf_id_dict)[-1]

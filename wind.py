@@ -11,14 +11,21 @@ import csv, os
 
 from qgis.core import QgsProcessingException
 
+from . import utils
+
 
 class Wind:
     def __init__(self, feedback, project_path, filepath) -> None:
+        self.feedback = feedback
         self.filepath = filepath and os.path.join(project_path, filepath) or str()
         self._ws, self._wd = list(), list()
         if not filepath:
+            self.feedback.pushInfo(f"No wind *.csv file.")
             return
-        feedback.pushInfo(f"Import wind *.csv file: <{self.filepath}>")
+        self._import()
+
+    def _import(self) -> None:
+        self.feedback.pushInfo(f"Import wind *.csv file: <{self.filepath}>")
         try:
             with open(self.filepath) as csv_file:
                 # wind csv file has an header line and three columns:
@@ -38,26 +45,20 @@ class Wind:
             )
 
     def get_comment(self) -> str:
-        filepath_str = (
-            len(self.filepath) > 60
-            and "..." + self.filepath[-57:]
-            or self.filepath
-            or "none"
-        )
-        return f"! Wind file: <{filepath_str}>"
+        return f"! Wind file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self) -> str:
-        wind_str = f"""
+        result = f"""
 ! Wind
 &WIND SPEED=1., RAMP_SPEED='ws', RAMP_DIRECTION='wd' /\n"""
         if self._ws:
-            wind_str += "\n".join(("\n".join(self._ws), "\n".join(self._wd)))
+            result += "\n".join(("\n".join(self._ws), "\n".join(self._wd)))
         else:
-            wind_str += f"""! Example ramps for wind speed and direction
+            result += f"""! Example ramps for wind speed and direction
 &RAMP ID='ws', T=   0, F= 10. /
 &RAMP ID='ws', T= 600, F= 10. /
 &RAMP ID='ws', T=1200, F= 20. /
 &RAMP ID='wd', T=   0, F=315. /
 &RAMP ID='wd', T= 600, F=270. /
 &RAMP ID='wd', T=1200, F=360. /"""
-        return wind_str
+        return result

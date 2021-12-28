@@ -10,10 +10,10 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 from math import sqrt
 from qgis.core import QgsProcessingException, NULL, edit, QgsFeatureRequest
 
-from . import utils
-
 import os
 import numpy as np
+
+from . import utils
 
 
 class _Terrain:
@@ -41,31 +41,27 @@ class _Terrain:
         self.fire_layer = fire_layer
         self.fire_layer_utm = fire_layer_utm
 
-        # Init file
         self.filename = f"{name}_terrain.bingeom"
         self.filepath = os.path.join(path, self.filename)
-        # Init geometry
         self._matrix = None
         self.min_z = 0.0
         self.max_z = 0.0
-        # Apply fire layer bcs
         if fire_layer:
             self._apply_fire_layer_bcs()
-            if self.feedback.isCanceled():
-                return {}
-        # Init matrix
+        if self.feedback.isCanceled():
+            return {}
         self._init_matrix()
         if self.feedback.isCanceled():
             return {}
 
     def get_comment(self) -> str:
-        return f"""! Terrain:
-!   DEM layer: <{self.dem_layer.name()}> with {self.dem_layer_res:.1f}m resolution
-!   Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
-!   Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
+        return f"""\
+! DEM layer: <{self.dem_layer.name()}> with {self.dem_layer_res:.1f}m resolution
+! Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
+! Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
 
-    def _apply_fire_layer_bcs(self):
-        self.feedback.pushInfo(f"Apply fire layer bcs to the terrain...")
+    def _apply_fire_layer_bcs(self) -> None:
+        self.feedback.pushInfo(f"Apply fire layer bcs...")
         # Sample fire_layer for ignition lines and burned areas
         landuse_idx = self.point_layer.fields().indexOf("landuse1")
         distance = self.dem_layer_res  # size of border
@@ -116,7 +112,7 @@ class _Terrain:
                                 point_feat.id(), landuse_idx, bc_out
                             )
                 self.feedback.pushInfo(
-                    f"Applied <bc_in={bc_in}> and <bc_out={bc_out}> bcs to the terrain from fire layer <{fire_feat.id()}> feature"
+                    f"<bc_in={bc_in}> and <bc_out={bc_out}> bcs applyed from fire layer <{fire_feat.id()}> feature"
                 )
         self.point_layer.updateFields()
 
@@ -145,7 +141,7 @@ class _Terrain:
     # · center points of quad faces
     # o verts
 
-    def _init_matrix(self):
+    def _init_matrix(self) -> None:
         self.feedback.pushInfo(
             "Init the matrix of quad faces center points with landuse..."
         )
@@ -204,50 +200,39 @@ class GEOMTerrain(_Terrain):
         self._init_faces_and_landuses()
         if self.feedback.isCanceled():
             return {}
-
         self._init_verts()
         if self.feedback.isCanceled():
             return {}
-
-        self.write()
-
+        self._save()
         self.feedback.pushInfo(
-            f"GEOM terrain ready: {len(self._verts)} verts, {len(self._faces)} faces."
+            f"GEOM terrain saved ({len(self._verts)} verts, {len(self._faces)} faces)."
         )
 
     def get_fds(self) -> str:
         return f"""
-! Terrain
+! Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
 &GEOM ID='Terrain'
       SURF_ID={self.landuse_type.surf_id_str}
       BINARY_FILE='{self.filename}'
       IS_TERRAIN=T EXTEND_TERRAIN=F /"""
 
-    def write(self) -> None:
-        self.feedback.pushInfo(f"Save bingeom file: <{self.filepath}>")
+    def _save(self) -> None:
         # Format in fds notation
         fds_verts = tuple(v for vs in self._verts for v in vs)
         fds_faces = tuple(f for fs in self._faces for f in fs)
         fds_surfs = list()
-        if self.landuse_type:
-            # Translate landuse_layer landuses into FDS SURF index
-            surf_dict = self.landuse_type.surf_dict
-            surf_list = list(surf_dict)
-            n_surf_id = len(surf_list)
-            for i, _ in enumerate(self._faces):
-                try:
-                    fds_surfs.append(surf_list.index(self._landuses[i]) + 1)
-                except ValueError:
-                    # Not available, set FDS default
-                    self.feedback.reportError(
-                        f"Landuse <{self._landuses[i]}> value unknown, setting FDS default <0>."
-                    )
-                    fds_surfs.append(0)
-            fds_surfs = tuple(fds_surfs)
-        else:
-            # No landuse, set default as landuse
-            n_surf_id = 1
-            fds_surfs = (1,) * len(self._faces)
+        # Translate landuse_layer landuses into FDS SURF index
+        surf_id_list = list(self.landuse_type.surf_id_dict)
+        n_surf_id = len(surf_id_list)
+        for i, _ in enumerate(self._faces):
+            try:
+                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
+            except ValueError:
+                self.feedback.reportError(
+                    f"Landuse <{self._landuses[i]}> value unknown, setting FDS default <0>."
+                )
+                fds_surfs.append(0)
+        fds_surfs = tuple(fds_surfs)
         # Write bingeom
         utils.write_bingeom(
             feedback=self.feedback,
@@ -268,9 +253,6 @@ class GEOMTerrain(_Terrain):
     #        *------>* i+1
 
     def _get_vert_index(self, i, j, len_vcol):
-        """
-        Get vert index in fds_vert vector notation.
-        """
         return i * len_vcol + j + 1  # F90 indexes start from 1
 
     def _init_faces_and_landuses(self):
@@ -368,7 +350,7 @@ class OBSTTerrain(_Terrain):
         self._init_xbs_and_landuses()
         if self.feedback.isCanceled():
             return {}
-        self.feedback.pushInfo(f"OBST terrain ready: {len(self._xbs)} OBST lines.")
+        self.feedback.pushInfo(f"OBST terrain ready ({len(self._xbs)} OBSTs).")
 
     def get_fds(self) -> str:
         obsts = list()
@@ -381,7 +363,7 @@ class OBSTTerrain(_Terrain):
             )
         obsts_str = "\n".join(obsts)
         return f"""
-! Terrain
+! Terrain ({len(self._xbs)} OBSTs)
 {obsts_str}"""
 
     #        j   j  j+1
