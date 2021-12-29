@@ -101,7 +101,10 @@ class Texture:
                 return
         image = render.renderedImage()
         try:
+            os.makedirs(os.path.dirname(self.filepath), exist_ok=True)
             image.save(self.filepath, self.image_type)
-        except IOError:
-            raise QgsProcessingException(f"Texture not writable to <{self.filepath}>.")
+        except Exception as err:
+            raise QgsProcessingException(
+                f"Texture file not writable to <{self.filepath}>.\n{err}"
+            )
         self.feedback.pushInfo(f"Texture saved in {dt:.2f} s")

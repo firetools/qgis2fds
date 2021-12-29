@@ -7,6 +7,7 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+import os
 from qgis.core import QgsProcessingException
 from qgis.utils import iface
 
@@ -26,12 +27,13 @@ def write_file(feedback, filepath, content):
     Write a text to filepath.
     """
     feedback.pushInfo(f"Save file: <{filepath}>")
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     try:
         with open(filepath, "w") as f:
             f.write(content)
-    except IOError:
+    except Exception as err:
         raise QgsProcessingException(
-            f"File not writable to <{filepath}>, cannot proceed."
+            f"File not writable to <{filepath}>, cannot proceed.\n{err}"
         )
 
 
@@ -85,6 +87,7 @@ def write_bingeom(
     """
     feedback.pushInfo(f"Save bingeom file: <{filepath}>")
     try:
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "wb") as f:
             _write_record(f, np.array((geom_type,), dtype="int32"))  # was 1 only
             _write_record(
@@ -103,9 +106,9 @@ def write_bingeom(
             _write_record(f, np.array(fds_faces, dtype="int32"))
             _write_record(f, np.array(fds_surfs, dtype="int32"))
             _write_record(f, np.array(fds_volus, dtype="int32"))
-    except IOError:
+    except Exception as err:
         raise QgsProcessingException(
-            f"Bingeom file not writable to <{filepath}>, cannot proceed."
+            f"Bingeom file not writable to <{filepath}>, cannot proceed.\n{err}"
         )
 
 
