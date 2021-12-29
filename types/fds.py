@@ -53,7 +53,6 @@ class FDSCase:
 ! Date: <{date}>
 {self.domain.get_comment()}
 {self.terrain.get_comment()}
-{self.texture.get_comment()}
 {self.terrain.landuse_type.get_comment()}
 {self.wind.get_comment()}
 
