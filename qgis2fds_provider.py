@@ -2,7 +2,7 @@
 
 """qgis2fds"""
 
-__author__ = "Emanuele Gissi, Ruggero Poletto"
+__author__ = "Emanuele Gissi"
 __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1

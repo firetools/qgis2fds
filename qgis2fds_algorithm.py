@@ -2,7 +2,7 @@
 
 """qgis2fds"""
 
-__author__ = "Emanuele Gissi, Ruggero Poletto"
+__author__ = "Emanuele Gissi"
 __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
@@ -32,14 +32,16 @@ from qgis.core import (
 
 import processing, os
 from math import ceil
-
-from . import utils
-from .fds import FDSCase
-from .domain import Domain
-from .terrain import OBSTTerrain, GEOMTerrain
-from .landuse import LanduseType
-from .texture import Texture
-from .wind import Wind
+from .types import (
+    utils,
+    FDSCase,
+    Domain,
+    OBSTTerrain,
+    GEOMTerrain,
+    LanduseType,
+    Texture,
+    Wind,
+)
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):

@@ -2,16 +2,13 @@
 
 """qgis2fds"""
 
-__author__ = "Emanuele Gissi, Ruggero Poletto"
+__author__ = "Emanuele Gissi"
 __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-import os
-import sys
-import inspect
-
-from qgis.core import QgsProcessingAlgorithm, QgsApplication
+import os, sys, inspect
+from qgis.core import QgsApplication
 from .qgis2fds_provider import qgis2fdsProvider
 
 cmd_folder = os.path.split(inspect.getfile(inspect.currentframe()))[0]

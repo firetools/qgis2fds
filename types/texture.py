@@ -8,7 +8,6 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import os, time
-
 from qgis.core import (
     QgsProject,
     QgsProcessingException,
@@ -18,7 +17,6 @@ from qgis.core import (
 )
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QSize, QCoreApplication
-
 from . import utils
 
 

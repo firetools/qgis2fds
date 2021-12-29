@@ -8,9 +8,7 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import csv, os
-
 from qgis.core import QgsProcessingException
-
 from . import utils
 
 
