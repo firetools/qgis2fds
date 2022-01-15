@@ -248,7 +248,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", False)
+        defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", True)
         param = QgsProcessingParameterBoolean(
             "export_obst",
             "Export FDS OBSTs",
