@@ -357,7 +357,7 @@ class OBSTTerrain(_Terrain):
         for i, xb in enumerate(self._xbs):
             surf_id_str = surf_id_dict[landuses[i]]
             obsts.append(
-                f"&OBST XB={xb[0]:.6f},{xb[1]:.6f},{xb[2]:.6f},{xb[3]:.6f},{xb[4]:.6f},{xb[5]:.6f} SURF_ID='{surf_id_str}' /"
+                f"&OBST XB={xb[0]:.1f},{xb[1]:.1f},{xb[2]:.1f},{xb[3]:.1f},{xb[4]:.1f},{xb[5]:.1f} SURF_ID='{surf_id_str}' /"
             )
         obsts_str = "\n".join(obsts)
         return f"""

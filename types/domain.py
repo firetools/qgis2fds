@@ -100,10 +100,10 @@ class Domain:
 ! Domain and its boundary conditions
 ! {nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
 &MULT ID='Meshes'
-      DX={mult_dx:.3f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
-      DY={mult_dy:.3f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
+      DX={mult_dx:.1f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
+      DY={mult_dy:.1f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
 &MESH IJK={mesh_ijk[0]:d},{mesh_ijk[1]:d},{mesh_ijk[2]:d} MULT_ID='Meshes'
-      XB={self.mesh_xb[0]:.3f},{self.mesh_xb[1]:.3f},{self.mesh_xb[2]:.3f},{self.mesh_xb[3]:.3f},{self.mesh_xb[4]:.3f},{self.mesh_xb[5]:.3f} /
+      XB={self.mesh_xb[0]:.1f},{self.mesh_xb[1]:.1f},{self.mesh_xb[2]:.1f},{self.mesh_xb[3]:.1f},{self.mesh_xb[4]:.1f},{self.mesh_xb[5]:.1f} /
 &VENT ID='Domain BC XMIN' DB='XMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC XMAX' DB='XMAX' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMIN' DB='YMIN' SURF_ID='OPEN' /
