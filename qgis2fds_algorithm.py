@@ -7,12 +7,11 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
-DEBUG = False
+DEBUG = True
 
 from qgis.core import (
     QgsProject,
     QgsPoint,
-    QgsRectangle,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsProcessing,
@@ -27,11 +26,13 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterVectorDestination,
+    QgsProcessingParameterRasterDestination,
     QgsProcessingParameterBoolean,
+    QgsRasterLayer,
+    QgsVectorLayer,
 )
 
 import processing, os
-from math import ceil
 from .types import (
     utils,
     FDSCase,
@@ -42,6 +43,7 @@ from .types import (
     Texture,
     Wind,
 )
+from . import algos
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -100,6 +102,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", "dem_layer_res", 30.0)
+        self.addParameter(
+            QgsProcessingParameterNumber(
+                "dem_layer_res",
+                "Terrain resolution",
+                type=QgsProcessingParameterNumber.Double,
+                defaultValue=defaultValue,
+                minValue=0.1,
+            )
+        )
+
         if project_crs_changed:
             defaultValue = None
         else:
@@ -130,17 +143,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=defaultValue,
             )
         )
-
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", "dem_sampling", 1.0)
-        param = QgsProcessingParameterNumber(
-            "dem_sampling",
-            "DEM layer sampling factor",
-            type=QgsProcessingParameterNumber.Double,
-            defaultValue=defaultValue,
-            minValue=0.1,
-        )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None)
         self.addParameter(
@@ -227,27 +229,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", "cell_size", 10.0)
-        param = QgsProcessingParameterNumber(
-            "cell_size",
-            "Desired FDS MESH cell size (in meters)",
-            type=QgsProcessingParameterNumber.Double,
-            defaultValue=defaultValue,
-            minValue=0.1,
-        )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-
-        param = QgsProcessingParameterVectorDestination(
-            "sampling_layer",
-            "Sampling grid layer [Result]",
-            type=QgsProcessing.TypeVectorPoint,
-            createByDefault=True,
-            defaultValue=None,
-        )
-        self.addParameter(param)
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-
         defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", True)
         param = QgsProcessingParameterBoolean(
             "export_obst",
@@ -257,7 +238,25 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        param = QgsProcessingParameterVectorDestination(
+            "grid",  # Name
+            "Grid [Debug]",  # Description
+            type=QgsProcessing.TypeVectorPoint,
+            createByDefault=True,
+            defaultValue=None,
+        )
+        self.addParameter(param)
+
+        param = QgsProcessingParameterRasterDestination(
+            "i_dem_layer",  # Name
+            "Interpolated DEM Layer [Debug]",  # Description
+            createByDefault=True,
+            defaultValue=None,
+        )
+        self.addParameter(param)
+
         if DEBUG:
+
             param = QgsProcessingParameterVectorDestination(
                 "dem_extent_layer",  # Name
                 "FDS terrain extent layer [Debug]",  # Description
@@ -289,19 +288,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         #  project_crs: project crs
         #  wgs84_crs:  wgs84 crs
         #  utm_crs:  utm crs, calculated from wgs84_origin
-        #  dem_crs:  dem crs, used for grid alignment
 
         # Extents:
         #  extent:      user selected terrain extent in its own crs.
         #  utm_extent:  extent to utm crs, used for FDS domain (MESH),
         #               contains the extent, contained in the following dem_extent.
-        #  dem_extent:  utm_extent to dem crs, used for FDS terrain (GEOM),
-        #               contains the utm_extent, contained in the following tex_extent.
-        #               Required for sampling grid alignment with dem raster data.
-        #  tex_extent:  dem_extent to utm crs, used for FDS terrain texture crop,
-        #               contains dem_extent.
-        #               Required because the texture should be oriented as utm and
-        #               perfectly overlapping to dem_extent
 
         results, outputs, project = {}, {}, QgsProject.instance()
 
@@ -323,18 +314,19 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         extent = self.parameterAsExtent(parameters, "extent", context)
         project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
+        dem_layer_res = self.parameterAsDouble(parameters, "dem_layer_res", context)
+        project.writeEntryDouble(
+            "qgis2fds",
+            "dem_layer_res",
+            parameters.get("dem_layer_res", 10.0),  # FIXME same with others
+        )
+
         nmesh = self.parameterAsInt(parameters, "nmesh", context)
         project.writeEntry("qgis2fds", "nmesh", parameters["nmesh"])
 
-        cell_size = self.parameterAsDouble(parameters, "cell_size", context)
-        project.writeEntryDouble("qgis2fds", "cell_size", parameters["cell_size"])
-
-        # Get DEM layer and DEM sampling
+        # Get DEM layer
         dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
         project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
-
-        dem_sampling = self.parameterAsDouble(parameters, "dem_sampling", context)
-        project.writeEntryDouble("qgis2fds", "dem_sampling", parameters["dem_sampling"])
 
         # Get landuse (optional)
         landuse_layer, landuse_type_filepath = None, None
@@ -382,7 +374,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntryBool("qgis2fds", "export_obst", parameters["export_obst"])
 
         # Prepare CRSs and check their validity
-        project_crs = QgsProject.instance().crs()
+        project_crs = QgsProject.instance().crs()  # FIXME it is project
         project.writeEntry("qgis2fds", "project_crs", project_crs.description())
         if not project_crs.isValid():
             raise QgsProcessingException(
@@ -464,273 +456,142 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
 
         # Get utm_extent in utm_crs from extent (for MESH)
-        # and dem_extent in dem_crs from utm_extent (for dem_layer sampling to GEOM)
         utm_extent = self.parameterAsExtent(
             parameters,
             "extent",
             context,
             crs=utm_crs,
         )
-        utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_crs, QgsProject.instance())
-        dem_extent = utm_to_dem_tr.transformBoundingBox(utm_extent)
 
-        # Get dem_layer resolution and top left extent corner coordinates,
-        # because raster grid starts from top left corner of dem_layer extent
-        dem_layer_xres = dem_layer.rasterUnitsPerPixelX()
-        dem_layer_yres = dem_layer.rasterUnitsPerPixelY()
-        dem_layer_x0, dem_layer_y1 = (
-            dem_layer.extent().xMinimum(),
-            dem_layer.extent().yMaximum(),
-        )
-
-        # Aligning dem_extent top left corner to dem_layer resolution,
-        # never reduce its size
-        x0, y0, x1, y1 = (
-            dem_extent.xMinimum(),
-            dem_extent.yMinimum(),
-            dem_extent.xMaximum(),
-            dem_extent.yMaximum(),
-        )
-        x0 = (
-            dem_layer_x0  # start lower
-            + int((x0 - dem_layer_x0) / dem_layer_xres) * dem_layer_xres  # align
-            - dem_layer_xres / 2.0  # to previous raster pixel center
-        )
-        y1 = (
-            dem_layer_y1  # start upper
-            - int((dem_layer_y1 - y1) / dem_layer_yres) * dem_layer_yres  # align
-            + dem_layer_yres / 2.0  # to following raster pixel center
-        )
-        dem_layer_xres *= dem_sampling  # down sampling, if requested
-        dem_layer_yres *= dem_sampling
-        x1 = (
-            x0  # start lower
-            + (ceil((x1 - x0) / dem_layer_xres) + 0.000001)  # prevent rounding errors
-            * dem_layer_xres  # ceil multiple of xres
-        )
-        y0 = (
-            y1  # start upper
-            - (ceil((y1 - y0) / dem_layer_yres) + 0.000001)  # prevent rounding errors
-            * dem_layer_yres  # ceil multiple of yres
-        )
-        dem_extent = QgsRectangle(x0, y0, x1, y1)
-
-        # Calc and check dem_sampling
-        dem_layer_res = max(dem_layer_xres, dem_layer_yres)
-        if dem_layer_res < cell_size:
-            feedback.reportError(
-                f"\nDEM layer resolution {dem_layer_res:.1f}m is smaller than FDS MESH cell size {cell_size:.1f}m."
-            )
-
-        # Check dem_layer contains updated dem_extent
-        if not dem_layer.extent().contains(dem_extent):
-            feedback.reportError(
-                "Terrain extent (GEOM) is larger than DEM layer extent, unknown elevations will be set to zero."
-            )
-
-        # Calc and check number of dem sampling point
-        dem_sampling_xn = int((x1 - x0) / dem_layer_xres) + 1
-        dem_sampling_yn = int((y1 - y0) / dem_layer_yres) + 1
-        if dem_sampling_xn < 3:
-            raise QgsProcessingException(
-                f"Too few sampling points <{dem_sampling_xn}> along x axis, cannot proceed."
-            )
-        if dem_sampling_yn < 3:
-            raise QgsProcessingException(
-                f"Too few sampling points <{dem_sampling_yn}> along y axis, cannot proceed."
-            )
-        nverts = (dem_sampling_xn + 1) * (dem_sampling_yn + 1)
-        nfaces = dem_sampling_xn * dem_sampling_yn * 2
-
-        # Get FDS domain size in meters
-        utm_extent_xm = utm_extent.xMaximum() - utm_extent.xMinimum()
-        utm_extent_ym = utm_extent.yMaximum() - utm_extent.yMinimum()
-
-        # Feedback on FDS domain
-        feedback.pushInfo(
-            f"""
-        FDS domain
-        overall size: {utm_extent_xm:.1f} x {utm_extent_ym:.1f} meters
-        cell size: {cell_size} meters
-
-        DEM layer sampling for FDS terrain
-        resolution: {dem_layer_xres:.1f} x {dem_layer_yres:.1f} meters
-        geometry: {nverts} verts, {nfaces} faces
-
-        Press <Cancel> to interrupt the execution."""
-        )
-
-        if DEBUG:
-            # Show utm_extent layer
-            feedback.pushInfo(f"\n[DEBUG] Draw utm_extent...")
-            x0, y0, x1, y1 = (
-                utm_extent.xMinimum(),
-                utm_extent.yMinimum(),
-                utm_extent.xMaximum(),
-                utm_extent.yMaximum(),
-            )
-            alg_params = {
-                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{utm_crs.authid()}]",
-                "OUTPUT": parameters["utm_extent_layer"],
-            }
-            outputs["CreateLayerFromExtent"] = processing.run(
-                "native:extenttolayer",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
-            )
-            results["utm_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
-
-            # Show dem_extent layer
-            feedback.pushInfo(f"[DEBUG] Draw dem_extent...")
-            x0, y0, x1, y1 = (
-                dem_extent.xMinimum(),
-                dem_extent.yMinimum(),
-                dem_extent.xMaximum(),
-                dem_extent.yMaximum(),
-            )
-            alg_params = {
-                "INPUT": f"{x0}, {x1}, {y0}, {y1} [{dem_crs.authid()}]",
-                "OUTPUT": parameters["dem_extent_layer"],
-            }
-            outputs["CreateLayerFromExtent"] = processing.run(
-                "native:extenttolayer",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
-            )
-            results["dem_extent_layer"] = outputs["CreateLayerFromExtent"]["OUTPUT"]
-
-        # QGIS geographic transformations
-        # Create sampling grid in DEM crs
+        # Interpolate dem to desired resolution:
+        # - build sampling grid aligned to dem pixels
+        # - drape z elevations to grid points
+        # - reproject grid to utm
+        # - build new interpolated dem at desired resolution in utm
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(1/6) Create sampling grid from DEM layer...")
 
-        alg_params = {
-            "CRS": dem_crs,
-            "EXTENT": dem_extent,
-            "HOVERLAY": 0,
-            "HSPACING": dem_layer_xres,
-            "TYPE": 0,  # Points
-            "VOVERLAY": 0,
-            "VSPACING": dem_layer_yres,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["CreateGrid"] = processing.run(
-            "native:creategrid",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
+        outputs["i_grid"] = algos.get_raster_sampling_grid_layer(
+            context,
+            feedback,
+            text="Create DEM layer sampling grid...",
+            raster_layer=dem_layer,
+            extent=utm_extent,
+            extent_crs=utm_crs,
         )
-
-        # QGIS geographic transformations
-        # Drape Z values to sampling grid in DEM crs
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText(
-            "\n(2/6) Drape elevations from DEM layer to sampling grid..."
-        )
 
-        alg_params = {
-            "BAND": 1,
-            "INPUT": outputs["CreateGrid"]["OUTPUT"],
-            "NODATA": 0,
-            "RASTER": dem_layer,
-            "SCALE": 1,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["DrapeSetZValueFromRaster"] = processing.run(
-            "native:setzfromraster",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
+        outputs["i_draped_grid"] = algos.set_grid_layer_z(
+            context,
+            feedback,
+            text="Drape DEM layer elevations to sampling grid...",
+            grid_layer=outputs["i_grid"]["OUTPUT"],
+            raster_layer=dem_layer,
         )
-
-        # QGIS geographic transformations
-        # Sampling landuse layer with sampling grid in UTM CRS
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText("\n(3/6) Sample landuse layer...")
+
+        outputs["iw_draped_grid"] = algos.reproject_vector_layer(
+            context,
+            feedback,
+            text="Reproject sampling grid...",
+            vector_layer=outputs["i_draped_grid"]["OUTPUT"],
+            destination_crs=utm_crs,
+        )
+
+        if feedback.isCanceled():
+            return {}
+
+        outputs["iw_dem_layer"] = algos.create_raster_from_grid(
+            context,
+            feedback,
+            text="Interpolate DEM layer sampling grid...",
+            grid_layer=outputs["iw_draped_grid"]["OUTPUT"],
+            extent=utm_extent,
+            pixel_size=dem_layer_res,
+        )
+
+        if feedback.isCanceled():
+            return {}
+
+        utm_extent = algos.get_pixel_aligned_extent(
+            context,
+            feedback,
+            text="Align UTM extent to interpolated raster pixels...",
+            raster_layer=outputs["iw_dem_layer"]["OUTPUT"],
+            extent=utm_extent,
+            extent_crs=utm_crs,
+        )
+
+        # Build OBST/GEOM
+        # - build utm grid at desired resolution
+        # - drape z elevations to grid points
+        # - sample landuse to grid points
+        # - build OBST/GEOM
+
+        if feedback.isCanceled():
+            return {}
+
+        outputs["grid"] = algos.get_grid_layer(
+            context,
+            feedback,
+            text="Create terrain sampling grid...",
+            crs=utm_crs,
+            extent=utm_extent,
+            xres=dem_layer_res,
+            yres=dem_layer_res,
+        )
+
+        if feedback.isCanceled():
+            return {}
+
+        outputs["draped_grid"] = algos.set_grid_layer_z(
+            context,
+            feedback,
+            text="Drape interpolated DEM layer elevations to terrain grid...",
+            grid_layer=outputs["grid"]["OUTPUT"],
+            raster_layer=outputs["iw_dem_layer"]["OUTPUT"],
+        )
+
+        if feedback.isCanceled():
+            return {}
 
         if landuse_layer:
-            alg_params = {
-                "COLUMN_PREFIX": "landuse",
-                "INPUT": outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
-                "RASTERCOPY": parameters["landuse_layer"],
-                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-            }
-            outputs["RasterSampling"] = processing.run(
-                "qgis:rastersampling",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
+            outputs["draped_landused_grid"] = algos.set_grid_layer_value(
+                context,
+                feedback,
+                text="Sample landuse layer to terrain grid...",
+                grid_layer=outputs["draped_grid"]["OUTPUT"],
+                raster_layer=parameters["landuse_layer"],
+                column_prefix="landuse",
             )
+            point_layer = context.getMapLayer(outputs["draped_landused_grid"]["OUTPUT"])
         else:
-            feedback.pushInfo("No landuse layer provided, no sampling.")
+            feedback.pushInfo("No landuse layer provided.")
+            point_layer = context.getMapLayer(outputs["draped_grid"]["OUTPUT"])
 
-        # QGIS geographic transformations
-        # Reproject sampling grid to UTM CRS
-
-        if feedback.isCanceled():
-            return {}
-        feedback.setProgressText("\n(4/6) Reproject sampling grid layer to UTM CRS...")
-
-        alg_params = {
-            "INPUT": landuse_layer
-            and outputs["RasterSampling"]["OUTPUT"]
-            or outputs["DrapeSetZValueFromRaster"]["OUTPUT"],
-            "TARGET_CRS": utm_crs,
-            "OUTPUT": parameters["sampling_layer"],
-        }
-        outputs["ReprojectLayer"] = processing.run(
-            "native:reprojectlayer",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-        results["sampling_layer"] = outputs["ReprojectLayer"]["OUTPUT"]
-
-        # Get point_layer and check it
-
-        point_layer = context.getMapLayer(results["sampling_layer"])
         if point_layer.featureCount() < 9:
             raise QgsProcessingException(
                 f"[QGIS bug] Too few features in sampling layer, cannot proceed.\n{point_layer.featureCount()}"
             )
 
-        # QGIS geographic transformations
         # Reproject fire_layer to UTM CRS
-        # and sample fire_layer for ignition lines and burned areas
+        # FIXME FIXME FIXME How to put the fire layer bc on landuse raster?
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText(
-            "\n(5/6) Reproject fire layer to UTM CRS and set bcs..."
-        )
 
         if fire_layer:
-            # Reproject fire_layer to UTM CRS
-            alg_params = {
-                "INPUT": fire_layer,
-                "TARGET_CRS": utm_crs,
-                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-            }
-            outputs["ReprojectFireLayer"] = processing.run(
-                "native:reprojectlayer",
-                alg_params,
-                context=context,
-                feedback=feedback,
-                is_child_algorithm=True,
+            outputs["ReprojectFireLayer"] = algos.reproject_vector_layer(
+                context,
+                feedback,
+                text="Reproject fire layer...",
+                vector_layer=fire_layer,
+                destination_crs=utm_crs,
             )
             fire_layer_utm = context.getMapLayer(
                 outputs["ReprojectFireLayer"]["OUTPUT"]
@@ -743,9 +604,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-        feedback.setProgressText(
-            "\n(6/6) Prepare geometry and write the FDS case file..."
-        )
+
+        feedback.setProgressText("Prepare geometry and write the FDS case file...")
 
         landuse_type = LanduseType(
             feedback=feedback, project_path=project_path, filepath=landuse_type_filepath
@@ -764,8 +624,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             layer=tex_layer,
             utm_extent=utm_extent,
             utm_crs=utm_crs,
-            dem_extent=dem_extent,
-            dem_crs=dem_crs,
+            dem_extent=utm_extent,
+            dem_crs=utm_crs,
             export_obst=export_obst,
         )
 
@@ -796,7 +656,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             min_z=terrain.min_z,
             max_z=terrain.max_z,
-            cell_size=cell_size,
+            cell_size=dem_layer_res,  # FIXME
             nmesh=nmesh,
         )
 
@@ -809,6 +669,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             texture=texture,
             wind=wind,
         )
+
+        # QgsProject.instance().removeMapLayer(dem_layer)
 
         return results
 
