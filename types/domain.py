@@ -100,10 +100,10 @@ Domain extent: <{self.utm_extent.toString(precision=1)}>"""
 Domain and its boundary conditions
 {nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
 &MULT ID='Meshes'
-      DX={mult_dx:.1f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
-      DY={mult_dy:.1f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
+      DX={mult_dx:.2f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
+      DY={mult_dy:.2f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
 &MESH IJK={mesh_ijk[0]:d},{mesh_ijk[1]:d},{mesh_ijk[2]:d} MULT_ID='Meshes'
-      XB={self.mesh_xb[0]:.1f},{self.mesh_xb[1]:.1f},{self.mesh_xb[2]:.1f},{self.mesh_xb[3]:.1f},{self.mesh_xb[4]:.1f},{self.mesh_xb[5]:.1f} /
+      XB={self.mesh_xb[0]:.2f},{self.mesh_xb[1]:.2f},{self.mesh_xb[2]:.2f},{self.mesh_xb[3]:.2f},{self.mesh_xb[4]:.2f},{self.mesh_xb[5]:.2f} /
 &VENT ID='Domain BC XMIN' DB='XMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC XMAX' DB='XMAX' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMIN' DB='YMIN' SURF_ID='OPEN' /

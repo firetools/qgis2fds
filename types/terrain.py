@@ -10,12 +10,13 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 import os
 import numpy as np
 from math import sqrt
-from qgis.core import QgsProcessingException, NULL, edit, QgsFeatureRequest
+from qgis.core import QgsProcessingException
+
 from . import utils
-from .. import algos
+from qgis.core import NULL
 
 
-class _Terrain:
+class GEOMTerrain:
     def __init__(
         self,
         feedback,
@@ -28,7 +29,6 @@ class _Terrain:
         landuse_layer,
         landuse_type,
         fire_layer,
-        fire_layer_utm,
     ) -> None:
         self.feedback = feedback
         self.dem_layer = dem_layer
@@ -38,24 +38,83 @@ class _Terrain:
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
-        self.fire_layer_utm = fire_layer_utm
 
         self.filename = f"{name}_terrain.bingeom"
         self.filepath = os.path.join(path, self.filename)
         self._matrix = None
         self.min_z = 0.0
         self.max_z = 0.0
-        if self.feedback.isCanceled():
-            return {}
-        self._init_matrix()
+
         if self.feedback.isCanceled():
             return {}
 
+        self._init_matrix()
+
+        if self.feedback.isCanceled():
+            return {}
+
+        self._faces = list()
+        self._landuses = list()
+        self._verts = list()
+
+        self._init_faces_and_landuses()
+
+        if self.feedback.isCanceled():
+            return {}
+
+        self._init_verts()
+
+        if self.feedback.isCanceled():
+            return {}
+
+        self._save()
+
+        self.feedback.pushInfo(
+            f"GEOM terrain saved ({len(self._verts)} verts, {len(self._faces)} faces)."
+        )
+
     def get_comment(self) -> str:
         return f"""\
-! DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
-! Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
-! Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
+DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
+Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
+Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
+
+    def get_fds(self) -> str:
+        return f"""
+Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
+&GEOM ID='Terrain'
+      SURF_ID={self.landuse_type.surf_id_str}
+      BINARY_FILE='{self.filename}'
+      IS_TERRAIN=T EXTEND_TERRAIN=T /"""
+
+    def _save(self) -> None:
+        # Format in fds notation
+        fds_verts = tuple(v for vs in self._verts for v in vs)
+        fds_faces = tuple(f for fs in self._faces for f in fs)
+        fds_surfs = list()
+        # Translate landuse_layer landuses into FDS SURF index
+        surf_id_list = list(self.landuse_type.surf_id_dict)
+        n_surf_id = len(surf_id_list)
+        for i, _ in enumerate(self._faces):
+            try:
+                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
+            except ValueError:
+                self.feedback.reportError(
+                    f"Landuse <{self._landuses[i]}> value unknown, setting FDS default <0>."
+                )
+                fds_surfs.append(0)
+        fds_surfs = tuple(fds_surfs)
+        # Write bingeom
+        utils.write_bingeom(
+            feedback=self.feedback,
+            filepath=self.filepath,
+            geom_type=2,
+            n_surf_id=n_surf_id,
+            fds_verts=fds_verts,
+            fds_faces=fds_faces,
+            fds_surfs=fds_surfs,
+            fds_volus=list(),
+        )
 
     # The layer is a flat list of quad faces center points (z, x, y, landuse)
     # ordered by column. The original flat list is cut in columns, when three consecutive points
@@ -87,10 +146,12 @@ class _Terrain:
             "Init the matrix of quad faces center points with landuse..."
         )
         self.feedback.setProgress(0)
+
         # Allocate the np array
         nfeatures = self.sampling_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
         m = np.empty((nfeatures, 4))
+
         # Fill the array with point coordinates, points are listed by column
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
         for i, f in enumerate(self.sampling_layer.getFeatures()):
@@ -103,14 +164,26 @@ class _Terrain:
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
+
         # Fill the array with the landuse
         if self.landuse_layer:
-            attr_idx = self.sampling_layer.fields().indexOf("landuse1")
+            landuse_idx = self.sampling_layer.fields().indexOf("landuse1")
             for i, f in enumerate(self.sampling_layer.getFeatures()):
                 a = f.attributes()
-                m[i][3] = a[attr_idx] or 0
+                m[i][3] = a[landuse_idx] or 0
                 if i % partial_progress == 0:
                     self.feedback.setProgress(int(i / nfeatures * 100))
+
+        # FIll the array with the fire layer bcs
+        if self.fire_layer:
+            bc_idx = self.sampling_layer.fields().indexOf("bc")
+            for i, f in enumerate(self.sampling_layer.getFeatures()):
+                a = f.attributes()
+                if a[bc_idx]:
+                    m[i][3] = a[bc_idx]
+                if i % partial_progress == 0:
+                    self.feedback.setProgress(int(i / nfeatures * 100))
+
         # Get point column length and split matrix
         column_len = 2
         p0, p1 = m[0, :2], m[1, :2]
@@ -129,72 +202,6 @@ class _Terrain:
                 f"[QGIS bug] Sampling matrix is too small: {m.shape[0]}x{m.shape[1]}"
             )
         self._matrix = m
-
-
-class GEOMTerrain(_Terrain):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._faces = list()
-        self._landuses = list()
-        self._verts = list()
-
-        self._init_faces_and_landuses()
-        if self.feedback.isCanceled():
-            return {}
-        self._init_verts()
-        if self.feedback.isCanceled():
-            return {}
-        self._save()
-        self.feedback.pushInfo(
-            f"GEOM terrain saved ({len(self._verts)} verts, {len(self._faces)} faces)."
-        )
-
-    def get_fds(self) -> str:
-        return f"""
-! Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
-&GEOM ID='Terrain'
-      SURF_ID={self.landuse_type.surf_id_str}
-      BINARY_FILE='{self.filename}'
-      IS_TERRAIN=T EXTEND_TERRAIN=F /"""
-
-    def _save(self) -> None:
-        # Format in fds notation
-        fds_verts = tuple(v for vs in self._verts for v in vs)
-        fds_faces = tuple(f for fs in self._faces for f in fs)
-        fds_surfs = list()
-        # Translate landuse_layer landuses into FDS SURF index
-        surf_id_list = list(self.landuse_type.surf_id_dict)
-        n_surf_id = len(surf_id_list)
-        for i, _ in enumerate(self._faces):
-            try:
-                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
-            except ValueError:
-                self.feedback.reportError(
-                    f"Landuse <{self._landuses[i]}> value unknown, setting FDS default <0>."
-                )
-                fds_surfs.append(0)
-        fds_surfs = tuple(fds_surfs)
-        # Write bingeom
-        utils.write_bingeom(
-            feedback=self.feedback,
-            filepath=self.filepath,
-            geom_type=2,
-            n_surf_id=n_surf_id,
-            fds_verts=fds_verts,
-            fds_faces=fds_faces,
-            fds_surfs=fds_surfs,
-            fds_volus=list(),
-        )
-
-    #        j   j  j+1
-    #        *<------* i
-    #        | f1 // |
-    # faces  |  /·/  | i
-    #        | // f2 |
-    #        *------>* i+1
-
-    def _get_vert_index(self, i, j, len_vcol):
-        return i * len_vcol + j + 1  # F90 indexes start from 1
 
     def _init_faces_and_landuses(self):
         self.feedback.pushInfo("Init GEOM faces and their landuses...")
@@ -281,13 +288,21 @@ class GEOMTerrain(_Terrain):
         self.min_z = min(v[2] for v in self._verts)
         self.max_z = max(v[2] for v in self._verts)
 
+    #        j   j  j+1
+    #        *<------* i
+    #        | f1 // |
+    # faces  |  /·/  | i
+    #        | // f2 |
+    #        *------>* i+1
 
-class OBSTTerrain(_Terrain):
+    def _get_vert_index(self, i, j, len_vcol):
+        return i * len_vcol + j + 1  # F90 indexes start from 1
+
+
+class OBSTTerrain:
     def __init__(
         self,
         feedback,
-        path,  # FIXME remove
-        name,  # FIXME remove
         dem_layer,
         pixel_size,
         sampling_layer,
@@ -305,17 +320,8 @@ class OBSTTerrain(_Terrain):
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
 
-        self.min_z = 0.0
-        self.max_z = 0.0
-
-        self._obsts, self.min_z, self.max_z = algos.get_obsts(
-            context=None,
-            feedback=self.feedback,
-            utm_origin=self.utm_origin,
-            sampling_layer=self.sampling_layer,
-            surf_id_dict=self.landuse_type.surf_id_dict,
-            pixel_size=pixel_size,
-        )
+        self._obsts, self.min_z, self.max_z = self._get_obsts()
+        self.feedback.pushInfo(f"OBST terrain saved ({len(self._obsts)} OBSTs).")
 
     def get_comment(self) -> str:
         return f"""\
@@ -329,3 +335,60 @@ Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
 Terrain ({len(self._obsts)} OBSTs)
 {obsts_str}
 """
+
+    def _get_obsts(self):
+        """Get formatted OBSTs from sampling layer."""
+
+        # Init
+        sampling_layer = self.sampling_layer
+        nfeatures = sampling_layer.featureCount()
+        partial_progress = nfeatures // 100 or 1
+
+        left_idx = sampling_layer.fields().indexOf("left")
+        right_idx = sampling_layer.fields().indexOf("right")
+        top_idx = sampling_layer.fields().indexOf("top")
+        bottom_idx = sampling_layer.fields().indexOf("bottom")
+        landuse_idx = sampling_layer.fields().indexOf("landuse1")
+        bc_idx = sampling_layer.fields().indexOf("bc")
+
+        ox, oy = self.utm_origin.x(), self.utm_origin.y()
+        overlap = 0.01
+
+        # Read values
+        xbs, lus, bcs = list(), list(), list()
+        for i, f in enumerate(sampling_layer.getFeatures()):
+            if i % partial_progress == 0:
+                self.feedback.setProgress(int(i / nfeatures * 100))
+            g, a = f.geometry().get(), f.attributes()
+            xbs.append(
+                tuple(
+                    (
+                        a[left_idx] - ox - overlap,
+                        a[right_idx] - ox + overlap,
+                        a[bottom_idx] - oy - overlap,
+                        a[top_idx] - oy + overlap,
+                        0.0,
+                        g.z(),
+                    )
+                )
+            )
+            lus.append(a[landuse_idx])
+            bcs.append(a[bc_idx])
+
+        # Calc min and max z (also for MESH)
+        min_z = min(xb[5] for xb in xbs) - self.pixel_size
+        max_z = max(xb[5] for xb in xbs)
+
+        # Prepare OBSTs
+        obsts = list()
+        for i in range(len(xbs)):
+            xb = xbs[i]
+            if bcs[i] == NULL:
+                surf_id = self.landuse_type.surf_id_dict[lus[i]]
+            else:
+                surf_id = self.landuse_type.surf_id_dict[bcs[i]]
+            obsts.append(
+                f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
+            )
+
+        return obsts, min_z, max_z

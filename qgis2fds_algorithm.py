@@ -27,6 +27,7 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
     QgsProcessingParameterVectorDestination,
     QgsProcessingParameterRasterDestination,
+    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterLayer,
     QgsVectorLayer,
@@ -267,7 +268,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        param = QgsProcessingParameterRasterDestination(
+        param = QgsProcessingParameterFeatureSink(
             "utm_dem_layer",  # Name
             "Interpolated DEM Layer",  # Description
             createByDefault=False,
@@ -275,7 +276,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(param)
 
-        param = QgsProcessingParameterVectorDestination(
+        param = QgsProcessingParameterFeatureSink(
             "sampling_layer",  # Name
             "Sampling Layer",  # Description
             type=QgsProcessing.TypeVectorPoint,
@@ -284,7 +285,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(param)
 
-        param = QgsProcessingParameterVectorDestination(
+        param = QgsProcessingParameterFeatureSink(
             "utm_extent_layer",  # Name
             "FDS domain extent layer",  # Description
             type=QgsProcessing.TypeVectorPolygon,
@@ -535,13 +536,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_b_fire_layer=utm_b_fire_layer,
             bc_in_default=landuse_type.bc_in_default,  # eg. burned
             bc_out_default=landuse_type.bc_out_default,  # eg. ignition
-            output=parameters["sampling_layer"],
+            # output=parameters["sampling_layer"],  # DEBUG
         )
 
         if feedback.isCanceled():
             return {}
 
-        results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]
+        # results["sampling_layer"] = outputs["sampling_layer"]["OUTPUT"]  # DEBUG
         sampling_layer = context.getMapLayer(outputs["sampling_layer"]["OUTPUT"])
 
         if sampling_layer.featureCount() < 9:
@@ -590,18 +591,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             name=chid,
             image_type="png",
             pixel_size=tex_pixel_size,
-            layer=tex_layer,
-            utm_extent=utm_extent,  # FIXME unify?
+            tex_layer=tex_layer,
+            utm_extent=utm_extent,
             utm_crs=utm_crs,
-            dem_extent=utm_extent,
-            dem_crs=utm_crs,
-            export_obst=export_obst,
         )
 
         terrain = OBSTTerrain(
             feedback=feedback,
-            path=fds_path,  # FIXME unused
-            name=chid,  # FIXME unused
             dem_layer=dem_layer,
             pixel_size=pixel_size,
             sampling_layer=sampling_layer,

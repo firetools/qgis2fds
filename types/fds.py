@@ -54,6 +54,7 @@ class FDSCase:
 {self.domain.get_comment()}
 {self.terrain.get_comment()}
 {self.terrain.landuse_type.get_comment()}
+{self.texture.get_comment()}
 {self.wind.get_comment()}
 
 &HEAD CHID='{self.name}' TITLE='Description of {self.name}' /
@@ -82,13 +83,13 @@ _REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
 Output quantities
 &SLCF AGL_SLICE=5. QUANTITY='LEVEL SET VALUE' /
 &SLCF AGL_SLICE=5. QUANTITY='TEMPERATURE' VECTOR=T /
-&SLCF PBX={0.:.1f} QUANTITY='TEMPERATURE' VECTOR=T /
-&SLCF PBY={0.:.1f} QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBX={0.:.2f} QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBY={0.:.2f} QUANTITY='TEMPERATURE' VECTOR=T /
 
 Output for wind rose at origin
-&DEVC ID='Origin_UV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.1f} QUANTITY='U-VELOCITY' /
-&DEVC ID='Origin_VV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.1f} QUANTITY='V-VELOCITY' /
-&DEVC ID='Origin_WV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.1f} QUANTITY='W-VELOCITY' /
+&DEVC ID='Origin_UV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.2f} QUANTITY='U-VELOCITY' /
+&DEVC ID='Origin_VV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.2f} QUANTITY='V-VELOCITY' /
+&DEVC ID='Origin_WV' XYZ=0.,0.,{(self.domain.mesh_xb[5]-1.):.2f} QUANTITY='W-VELOCITY' /
 {self.wind.get_fds()}
 {self.terrain.get_fds()}
 

@@ -31,36 +31,24 @@ class Texture:
         name,
         image_type,
         pixel_size,
-        layer,
+        tex_layer,
         utm_extent,
         utm_crs,  # destination_crs
-        dem_extent,
-        dem_crs,
-        export_obst,
     ) -> None:
         self.feedback = feedback
         self.image_type = image_type
         self.pixel_size = pixel_size
-        self.layer = layer
+        self.tex_layer = tex_layer
         self.utm_crs = utm_crs
 
         self.filename = f"{name}_tex.{self.image_type}"
         self.filepath = os.path.join(path, self.filename)
-        if export_obst:
-            # Get tex_extent in utm_crs from utm_extent,
-            # texture shall be aligned to MESH, and exactly cover the OBST terrain
-            self.tex_extent = utm_extent
-        else:
-            # Get tex_extent in utm_crs from dem_extent,
-            # texture shall be aligned to MESH, and exactly cover the GEOM terrain
-            dem_to_utm_tr = QgsCoordinateTransform(
-                dem_crs, utm_crs, QgsProject.instance()
-            )
-            self.tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
+        self.tex_extent = utm_extent
+
         self._save()
 
-    def get_comment(self):  # FIXME remove !
-        return f"! Terrain texture file: <{utils.shorten(self.filepath)}>"
+    def get_comment(self):
+        return f"Terrain texture layer: <{self.tex_layer and self.tex_layer.name() or 'map canvas'}>"
 
     def get_fds(self):
         return f"TERRAIN_IMAGE='{self.filename}'"
@@ -74,8 +62,8 @@ class Texture:
         tex_extent_xpix = int(tex_extent_xm / self.pixel_size)
         tex_extent_ypix = int(tex_extent_ym / self.pixel_size)
         # Choose exporting layers
-        if self.layer:  # use user tex layer
-            layers = (self.layer,)
+        if self.tex_layer:  # use user tex layer
+            layers = (self.tex_layer,)
         else:  # no user tex layer, use map canvas
             canvas = iface.mapCanvas()
             layers = canvas.layers()
