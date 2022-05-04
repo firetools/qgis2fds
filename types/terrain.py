@@ -12,6 +12,7 @@ import numpy as np
 from math import sqrt
 from qgis.core import QgsProcessingException, NULL, edit, QgsFeatureRequest
 from . import utils
+from .. import algos
 
 
 class _Terrain:
@@ -21,8 +22,8 @@ class _Terrain:
         path,
         name,
         dem_layer,
-        dem_layer_res,
-        point_layer,
+        pixel_size,
+        sampling_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
@@ -31,8 +32,8 @@ class _Terrain:
     ) -> None:
         self.feedback = feedback
         self.dem_layer = dem_layer
-        self.dem_layer_res = dem_layer_res
-        self.point_layer = point_layer
+        self.pixel_size = pixel_size
+        self.sampling_layer = sampling_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
@@ -44,8 +45,6 @@ class _Terrain:
         self._matrix = None
         self.min_z = 0.0
         self.max_z = 0.0
-        if fire_layer:
-            self._apply_fire_layer_bcs()
         if self.feedback.isCanceled():
             return {}
         self._init_matrix()
@@ -54,65 +53,9 @@ class _Terrain:
 
     def get_comment(self) -> str:
         return f"""\
-! DEM layer: <{self.dem_layer.name()}> with {self.dem_layer_res:.1f}m resolution
+! DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
 ! Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
 ! Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
-
-    def _apply_fire_layer_bcs(self) -> None:
-        self.feedback.pushInfo(f"Apply fire layer bcs...")
-        # Sample fire_layer for ignition lines and burned areas
-        landuse_idx = self.point_layer.fields().indexOf("landuse1")
-        distance = self.dem_layer_res  # size of border
-        # Get bcs to be set
-        # default for Ignition and Burned
-        bc_out_default = self.landuse_type.bc_out_default
-        bc_in_default = self.landuse_type.bc_in_default
-        bc_in_idx = self.fire_layer_utm.fields().indexOf("bc_in")
-        bc_out_idx = self.fire_layer_utm.fields().indexOf("bc_out")
-        with edit(self.point_layer):
-            for fire_feat in self.fire_layer_utm.getFeatures():
-                # Check if user specified bcs available
-                if bc_in_idx != -1:  # found user defined?
-                    bc_in = fire_feat[bc_in_idx]  # yes
-                else:
-                    bc_in = bc_in_default  # set default
-                if bc_out_idx != -1:  # found user defined?
-                    bc_out = fire_feat[bc_out_idx]  # yes
-                else:
-                    bc_out = bc_out_default  # set default
-                # Get fire feature geometry and bbox
-                fire_geom = fire_feat.geometry()
-                fire_geom_bbox = fire_geom.boundingBox()
-                distance = self.dem_layer_res
-                h, w = fire_geom_bbox.height(), fire_geom_bbox.width()
-                if h < self.dem_layer_res and w < self.dem_layer_res:
-                    # if small, replaced by its centroid
-                    # to simplify 1 cell ignition
-                    fire_geom = fire_geom.centroid()
-                    distance *= 0.6
-                # Set new bcs in point layer
-                # for speed, preselect points with grown bbox
-                fire_geom_bbox.grow(delta=distance * 2.0)
-                for point_feat in self.point_layer.getFeatures(
-                    QgsFeatureRequest(fire_geom_bbox)
-                ):
-                    point_geom = point_feat.geometry()
-                    if fire_geom.contains(point_geom):
-                        if bc_in != NULL:
-                            # Set inside bc
-                            self.point_layer.changeAttributeValue(
-                                point_feat.id(), landuse_idx, bc_in
-                            )
-                    else:
-                        if bc_out != NULL and point_geom.distance(fire_geom) < distance:
-                            # Set border bc
-                            self.point_layer.changeAttributeValue(
-                                point_feat.id(), landuse_idx, bc_out
-                            )
-                self.feedback.pushInfo(
-                    f"<bc_in={bc_in}> and <bc_out={bc_out}> bcs applyed from fire layer <{fire_feat.id()}> feature"
-                )
-        self.point_layer.updateFields()
 
     # The layer is a flat list of quad faces center points (z, x, y, landuse)
     # ordered by column. The original flat list is cut in columns, when three consecutive points
@@ -145,12 +88,12 @@ class _Terrain:
         )
         self.feedback.setProgress(0)
         # Allocate the np array
-        nfeatures = self.point_layer.featureCount()
+        nfeatures = self.sampling_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
         m = np.empty((nfeatures, 4))
         # Fill the array with point coordinates, points are listed by column
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
-        for i, f in enumerate(self.point_layer.getFeatures()):
+        for i, f in enumerate(self.sampling_layer.getFeatures()):
             g = f.geometry().get()  # QgsPoint
             m[i] = (
                 g.x() - ox,  # x, relative to origin
@@ -162,8 +105,8 @@ class _Terrain:
                 self.feedback.setProgress(int(i / nfeatures * 100))
         # Fill the array with the landuse
         if self.landuse_layer:
-            attr_idx = self.point_layer.fields().indexOf("landuse1")
-            for i, f in enumerate(self.point_layer.getFeatures()):
+            attr_idx = self.sampling_layer.fields().indexOf("landuse1")
+            for i, f in enumerate(self.sampling_layer.getFeatures()):
                 a = f.attributes()
                 m[i][3] = a[attr_idx] or 0
                 if i % partial_progress == 0:
@@ -183,7 +126,7 @@ class _Terrain:
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
-                f"[QGIS bug] Point matrix is too small: {m.shape[0]}x{m.shape[1]}"
+                f"[QGIS bug] Sampling matrix is too small: {m.shape[0]}x{m.shape[1]}"
             )
         self._matrix = m
 
@@ -340,80 +283,49 @@ class GEOMTerrain(_Terrain):
 
 
 class OBSTTerrain(_Terrain):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._xbs = list()
-        self._landuses = list()
+    def __init__(
+        self,
+        feedback,
+        path,  # FIXME remove
+        name,  # FIXME remove
+        dem_layer,
+        pixel_size,
+        sampling_layer,
+        utm_origin,
+        landuse_layer,
+        landuse_type,
+        fire_layer,
+    ) -> None:
+        self.feedback = feedback
+        self.dem_layer = dem_layer
+        self.pixel_size = pixel_size
+        self.sampling_layer = sampling_layer
+        self.utm_origin = utm_origin
+        self.landuse_layer = landuse_layer
+        self.landuse_type = landuse_type
+        self.fire_layer = fire_layer
 
-        self._init_xbs_and_landuses()
-        if self.feedback.isCanceled():
-            return {}
-        self.feedback.pushInfo(f"OBST terrain ready ({len(self._xbs)} OBSTs).")
+        self.min_z = 0.0
+        self.max_z = 0.0
+
+        self._obsts, self.min_z, self.max_z = algos.get_obsts(
+            context=None,
+            feedback=self.feedback,
+            utm_origin=self.utm_origin,
+            sampling_layer=self.sampling_layer,
+            surf_id_dict=self.landuse_type.surf_id_dict,
+            pixel_size=pixel_size,
+        )
+
+    def get_comment(self) -> str:
+        return f"""\
+DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
+Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
+Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
 
     def get_fds(self) -> str:
-        obsts = list()
-        surf_id_dict = self.landuse_type.surf_id_dict
-        landuses = self._landuses
-        for i, xb in enumerate(self._xbs):
-            surf_id_str = surf_id_dict[landuses[i]]
-            obsts.append(
-                f"&OBST XB={xb[0]:.1f},{xb[1]:.1f},{xb[2]:.1f},{xb[3]:.1f},{xb[4]:.1f},{xb[5]:.1f} SURF_ID='{surf_id_str}' /"
-            )
-        obsts_str = "\n".join(obsts)
+        obsts_str = "\n".join(self._obsts)
         return f"""
-! Terrain ({len(self._xbs)} OBSTs)
-{obsts_str}"""
-
-    #        j   j  j+1
-    #        *-------* i
-    #        |       |
-    # xb     |       | i
-    #        |       |
-    #        *-------* i+1
-
-    def _init_xbs_and_landuses(self):
-        self.feedback.pushInfo("Init OBST XBs and their landuses...")
-        self.feedback.setProgress(0)
-        m = self._matrix
-        xbs = self._xbs
-        landuses = self._landuses
-        len_vrow = m.shape[0]
-        epsilon = 1.0e-6
-        dx = (m[1, 1][0] - m[1, 0][0]) / 2.0  # overlapping
-        dy = (m[1, 1][1] - m[0, 1][1]) / 2.0  # overlapping
-        dxc = m[1, 0][0] - m[0, 0][0]
-        # Create xbs
-        for i, row in enumerate(m):
-            for j, p in enumerate(row):
-                xbs.append(
-                    (
-                        p[0] - dx - epsilon,
-                        p[0] + dx + epsilon,
-                        p[1] - dy - epsilon,
-                        p[1] + dy + epsilon,
-                        0.0,
-                        p[2],
-                    )
-                )
-                landuses.append(int(p[3]))
-            self.feedback.setProgress(int(i / len_vrow * 100))
-        # Fill the voids due to grid rotation
-        if dxc < 0.0:
-            epsilon *= -1
-        for i, row in enumerate(m[:-1, :-1]):  # except last row and col
-            for j, p in enumerate(row):
-                xbs.append(
-                    (
-                        p[0] + dx - epsilon,
-                        m[i + 1, j + 1][0] - dx + epsilon,
-                        m[i + 1, j + 1][1] - dy + epsilon,
-                        p[1] + dy - epsilon,
-                        0.0,
-                        p[2],
-                    )
-                )
-                landuses.append(int(p[3]))
-            self.feedback.setProgress(int(i / len_vrow * 100))
-        # Calc min and max z for domain
-        self.min_z = min(xb[5] for xb in xbs)
-        self.max_z = max(xb[5] for xb in xbs)
+Terrain ({len(self._obsts)} OBSTs)
+{obsts_str}
+"""

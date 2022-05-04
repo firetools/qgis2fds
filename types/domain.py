@@ -37,10 +37,10 @@ class Domain:
 
     def get_comment(self) -> str:
         return f"""\
-! Selected UTM CRS: <{self.utm_crs.description()}>
-! Domain origin: <{self.utm_origin.x():.1f}, {self.utm_origin.y():.1f}>
-!   <{utils.get_lonlat_url(self.wgs84_origin)}>
-! Domain extent: <{self.utm_extent.toString(precision=1)}>"""
+Selected UTM CRS: <{self.utm_crs.description()}>
+Domain origin: <{self.utm_origin.x():.1f}, {self.utm_origin.y():.1f}>
+  <{utils.get_lonlat_url(self.wgs84_origin)}>
+Domain extent: <{self.utm_extent.toString(precision=1)}>"""
 
     def get_fds(self) -> str:
         self.feedback.pushInfo("Init MESHes...")
@@ -50,7 +50,7 @@ class Domain:
             self.utm_extent.xMaximum() - self.utm_origin.x(),
             self.utm_extent.yMinimum() - self.utm_origin.y(),
             self.utm_extent.yMaximum() - self.utm_origin.y(),
-            self.min_z - 2.0,
+            self.min_z,
             self.max_z + self.cell_size * 10,  # 10 cells over max z
         )
 
@@ -97,8 +97,8 @@ class Domain:
 
         # Prepare str
         return f"""
-! Domain and its boundary conditions
-! {nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
+Domain and its boundary conditions
+{nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
 &MULT ID='Meshes'
       DX={mult_dx:.1f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
       DY={mult_dy:.1f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /

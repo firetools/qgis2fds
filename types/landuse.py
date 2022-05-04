@@ -75,12 +75,12 @@ class LanduseType:
         )
 
     def get_comment(self) -> str:
-        return f"! Landuse type file: <{utils.shorten(self.filepath)}>"
+        return f"Landuse type file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self) -> str:
         result = "\n".join(self.surf_dict.values())
         return f"""
-! Landuse boundary conditions
+Landuse boundary conditions
 {result}"""
 
     @property

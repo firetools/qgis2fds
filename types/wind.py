@@ -43,11 +43,11 @@ class Wind:
             )
 
     def get_comment(self) -> str:
-        return f"! Wind file: <{utils.shorten(self.filepath)}>"
+        return f"Wind file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self) -> str:
         result = f"""
-! Wind
+Wind
 &WIND SPEED=1., RAMP_SPEED_T='ws', RAMP_DIRECTION_T='wd' /\n"""
         if self._ws:
             result += "\n".join(("\n".join(self._ws), "\n".join(self._wd)))

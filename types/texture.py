@@ -59,7 +59,7 @@ class Texture:
             self.tex_extent = dem_to_utm_tr.transformBoundingBox(dem_extent)
         self._save()
 
-    def get_comment(self):
+    def get_comment(self):  # FIXME remove !
         return f"! Terrain texture file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self):
