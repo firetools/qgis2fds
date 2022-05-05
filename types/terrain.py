@@ -9,11 +9,8 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import os
 import numpy as np
-from math import sqrt
-from qgis.core import QgsProcessingException
-
+from qgis.core import QgsProcessingException, NULL
 from . import utils
-from qgis.core import NULL
 
 
 class GEOMTerrain:
@@ -41,6 +38,7 @@ class GEOMTerrain:
 
         self.filename = f"{name}_terrain.bingeom"
         self.filepath = os.path.join(path, self.filename)
+
         self._matrix = None
         self.min_z = 0.0
         self.max_z = 0.0
@@ -85,7 +83,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
 &GEOM ID='Terrain'
       SURF_ID={self.landuse_type.surf_id_str}
       BINARY_FILE='{self.filename}'
-      IS_TERRAIN=T EXTEND_TERRAIN=T /"""
+      IS_TERRAIN=T EXTEND_TERRAIN=F /"""
 
     def _save(self) -> None:
         # Format in fds notation
@@ -142,18 +140,18 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
     # o verts
 
     def _init_matrix(self) -> None:
-        self.feedback.pushInfo(
-            "Init the matrix of quad faces center points with landuse..."
-        )
+        """Init the matrix from the sampling layer."""
+        self.feedback.pushInfo("Init the matrix of sampling points...")
         self.feedback.setProgress(0)
 
-        # Allocate the np array
-        nfeatures = self.sampling_layer.featureCount()
+        # Init
+        sampling_layer = self.sampling_layer
+        nfeatures = sampling_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
-        m = np.empty((nfeatures, 4))
+        m = np.empty((nfeatures, 4))  # allocate the np array
+        ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
 
         # Fill the array with point coordinates, points are listed by column
-        ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
         for i, f in enumerate(self.sampling_layer.getFeatures()):
             g = f.geometry().get()  # QgsPoint
             m[i] = (
@@ -174,7 +172,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
                 if i % partial_progress == 0:
                     self.feedback.setProgress(int(i / nfeatures * 100))
 
-        # FIll the array with the fire layer bcs
+        # Fill the array with the fire layer bcs
         if self.fire_layer:
             bc_idx = self.sampling_layer.fields().indexOf("bc")
             for i, f in enumerate(self.sampling_layer.getFeatures()):
@@ -219,9 +217,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
                             self._get_vert_index(i, j + 1, len_vcol),
                         ),
                         (
-                            self._get_vert_index(
-                                i + 1, j + 1, len_vcol
-                            ),  # 2nd tri face
+                            self._get_vert_index(i + 1, j + 1, len_vcol),  # 2nd face
                             self._get_vert_index(i, j + 1, len_vcol),
                             self._get_vert_index(i + 1, j, len_vcol),
                         ),
@@ -299,6 +295,9 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
         return i * len_vcol + j + 1  # F90 indexes start from 1
 
 
+# OBST terrain
+
+
 class OBSTTerrain:
     def __init__(
         self,
@@ -320,7 +319,7 @@ class OBSTTerrain:
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
 
-        self._obsts, self.min_z, self.max_z = self._get_obsts()
+        self._init_obsts()
         self.feedback.pushInfo(f"OBST terrain saved ({len(self._obsts)} OBSTs).")
 
     def get_comment(self) -> str:
@@ -336,8 +335,11 @@ Terrain ({len(self._obsts)} OBSTs)
 {obsts_str}
 """
 
-    def _get_obsts(self):
+    def _init_obsts(self):
         """Get formatted OBSTs from sampling layer."""
+        feedback = self.feedback
+        feedback.pushInfo("Prepare OBSTs...")
+        feedback.setProgress(0)
 
         # Init
         sampling_layer = self.sampling_layer
@@ -358,7 +360,7 @@ Terrain ({len(self._obsts)} OBSTs)
         xbs, lus, bcs = list(), list(), list()
         for i, f in enumerate(sampling_layer.getFeatures()):
             if i % partial_progress == 0:
-                self.feedback.setProgress(int(i / nfeatures * 100))
+                feedback.setProgress(int(i / nfeatures * 100))
             g, a = f.geometry().get(), f.attributes()
             xbs.append(
                 tuple(
@@ -376,19 +378,18 @@ Terrain ({len(self._obsts)} OBSTs)
             bcs.append(a[bc_idx])
 
         # Calc min and max z (also for MESH)
-        min_z = min(xb[5] for xb in xbs) - self.pixel_size
-        max_z = max(xb[5] for xb in xbs)
+        self.min_z = min(xb[5] for xb in xbs) - self.pixel_size
+        self.max_z = max(xb[5] for xb in xbs)
 
         # Prepare OBSTs
-        obsts = list()
+        self._obsts, surf_id_dict = list(), self.landuse_type.surf_id_dict
+        min_z = self.min_z
         for i in range(len(xbs)):
             xb = xbs[i]
             if bcs[i] == NULL:
-                surf_id = self.landuse_type.surf_id_dict[lus[i]]
+                surf_id = surf_id_dict[lus[i]]
             else:
-                surf_id = self.landuse_type.surf_id_dict[bcs[i]]
-            obsts.append(
+                surf_id = surf_id_dict[bcs[i]]
+            self._obsts.append(
                 f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
             )
-
-        return obsts, min_z, max_z

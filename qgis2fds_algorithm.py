@@ -25,12 +25,9 @@ from qgis.core import (
     QgsProcessingParameterPoint,
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
-    QgsProcessingParameterVectorDestination,
-    QgsProcessingParameterRasterDestination,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterLayer,
-    QgsVectorLayer,
 )
 
 import os
@@ -51,9 +48,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
     """
     qgis2fds algorithm.
     """
-
-    OUTPUT = "OUTPUT"
-    INPUT = "INPUT"
 
     def initAlgorithm(self, config=None):
         """!
@@ -276,23 +270,23 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(param)
 
-        param = QgsProcessingParameterFeatureSink(
-            "sampling_layer",  # Name
-            "Sampling Layer",  # Description
-            type=QgsProcessing.TypeVectorPoint,
-            createByDefault=False,
-            defaultValue=None,
-        )
-        self.addParameter(param)
+        # param = QgsProcessingParameterFeatureSink(  # DEBUG
+        #     "sampling_layer",  # Name
+        #     "Sampling Layer",  # Description
+        #     type=QgsProcessing.TypeVectorPoint,
+        #     createByDefault=False,
+        #     defaultValue=None,
+        # )
+        # self.addParameter(param)
 
-        param = QgsProcessingParameterFeatureSink(
-            "utm_extent_layer",  # Name
-            "FDS domain extent layer",  # Description
-            type=QgsProcessing.TypeVectorPolygon,
-            createByDefault=False,
-            defaultValue=None,
-        )
-        self.addParameter(param)
+        # param = QgsProcessingParameterFeatureSink(  # DEBUG
+        #     "utm_extent_layer",  # Name
+        #     "FDS domain extent layer",  # Description
+        #     type=QgsProcessing.TypeVectorPolygon,
+        #     createByDefault=False,
+        #     defaultValue=None,
+        # )
+        # self.addParameter(param)
 
     def processAlgorithm(self, parameters, context, feedback):
         """
@@ -456,11 +450,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             export_obst = True
         project.writeEntryBool("qgis2fds", "export_obst", parameters["export_obst"])
 
-        if not export_obst:
-            raise QgsProcessingException(
-                "GEOM interpolation not implemented yet, sorry."
-            )
-
         # Feedback
         feedback.pushInfo(
             f"""
@@ -565,18 +554,18 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        outputs["utm_extent_layer"] = algos.create_extent_layer(
-            context,
-            feedback,
-            extent=utm_extent,
-            extent_crs=utm_crs,
-            output=parameters["utm_extent_layer"],
-        )
+        # outputs["utm_extent_layer"] = algos.create_extent_layer(
+        #     context,
+        #     feedback,
+        #     extent=utm_extent,
+        #     extent_crs=utm_crs,
+        #     output=parameters["utm_extent_layer"],
+        # )
 
-        if feedback.isCanceled():
-            return {}
+        # if feedback.isCanceled():
+        #     return {}
 
-        results["utm_extent_layer"] = outputs["utm_extent_layer"]["OUTPUT"]
+        # results["utm_extent_layer"] = outputs["utm_extent_layer"]["OUTPUT"]
 
         # Build the classes and write the FDS case file
         feedback.setProgressText("\nWrite the FDS case file...")
@@ -596,16 +585,30 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_crs=utm_crs,
         )
 
-        terrain = OBSTTerrain(
-            feedback=feedback,
-            dem_layer=dem_layer,
-            pixel_size=pixel_size,
-            sampling_layer=sampling_layer,
-            utm_origin=utm_origin,
-            landuse_layer=landuse_layer,
-            landuse_type=landuse_type,
-            fire_layer=fire_layer,
-        )
+        if export_obst:
+            terrain = OBSTTerrain(
+                feedback=feedback,
+                dem_layer=dem_layer,
+                pixel_size=pixel_size,
+                sampling_layer=sampling_layer,
+                utm_origin=utm_origin,
+                landuse_layer=landuse_layer,
+                landuse_type=landuse_type,
+                fire_layer=fire_layer,
+            )
+        else:
+            terrain = GEOMTerrain(
+                feedback=feedback,
+                dem_layer=dem_layer,
+                pixel_size=pixel_size,
+                sampling_layer=sampling_layer,
+                utm_origin=utm_origin,
+                landuse_layer=landuse_layer,
+                landuse_type=landuse_type,
+                fire_layer=fire_layer,
+                path=fds_path,
+                name=chid,
+            )
 
         domain = Domain(
             feedback=feedback,
