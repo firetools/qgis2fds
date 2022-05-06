@@ -17,13 +17,12 @@ from .utils import (
 )
 
 
-def prepare_fire_layers(
+def get_utm_fire_layers(
     context,
     feedback,
     fire_layer,
     destination_crs,
     pixel_size,
-    output=QgsProcessing.TEMPORARY_OUTPUT,
 ):
     text = f"\nReproject and buffer <{fire_layer}> fire layer..."
     feedback.setProgressText(text)
@@ -34,26 +33,23 @@ def prepare_fire_layers(
         return {}
 
     # Internal (burned area)
-    outputs["w_fire_layer"] = reproject_vector_layer(
+    tmp = reproject_vector_layer(
         context,
         feedback,
         vector_layer=fire_layer,
         destination_crs=destination_crs,
     )
 
-    if feedback.isCanceled():
-        return {}
-
     # External (fire front)
-    outputs["w_buffer_fire_layer"] = get_buffered_vector_layer(
+    tmp2 = get_buffered_vector_layer(
         context,
         feedback,
-        vector_layer=outputs["w_fire_layer"]["OUTPUT"],
+        vector_layer=tmp["OUTPUT"],
         distance=pixel_size,
         dissolve=False,
     )
 
-    return outputs["w_fire_layer"], outputs["w_buffer_fire_layer"]
+    return context.getMapLayer(tmp["OUTPUT"]), context.getMapLayer(tmp2["OUTPUT"])
 
 
 def get_sampling_point_grid_layer(
@@ -61,10 +57,9 @@ def get_sampling_point_grid_layer(
     feedback,
     utm_dem_layer,
     landuse_layer,
+    landuse_type,
     utm_fire_layer,
     utm_b_fire_layer,
-    bc_in_default,
-    bc_out_default,
     output=QgsProcessing.TEMPORARY_OUTPUT,
 ):
     text = f"\nCreate sampling grid layer for FDS geometry..."
@@ -94,6 +89,7 @@ def get_sampling_point_grid_layer(
         return {}
 
     if landuse_layer:
+        # Set landuse
         tmp = set_grid_layer_value(
             context,
             feedback,
@@ -102,6 +98,33 @@ def get_sampling_point_grid_layer(
             column_prefix="landuse",
             output=output,
         )
+        if utm_fire_layer:
+            # Set fire
+            _load_fire_layer_bc(
+                context,
+                feedback,
+                sampling_layer=tmp["OUTPUT"],
+                fire_layer=utm_b_fire_layer,
+                bc_field="bc_out",
+                bc_default=landuse_type.bc_out_default,
+            )
+
+            if feedback.isCanceled():
+                return {}
+
+            _load_fire_layer_bc(
+                context,
+                feedback,
+                sampling_layer=tmp["OUTPUT"],
+                fire_layer=utm_fire_layer,
+                bc_field="bc_in",
+                bc_default=landuse_type.bc_in_default,
+            )
+
+            if feedback.isCanceled():
+                return {}
+        else:
+            feedback.pushInfo("No fire layer provided.")
     else:
         feedback.pushInfo("No landuse layer provided.")
         # Add NULL field
@@ -110,30 +133,6 @@ def get_sampling_point_grid_layer(
             attributes = list((QgsField("landuse1", QVariant.Int),))
             tmp_layer.dataProvider().addAttributes(attributes)
             tmp_layer.updateFields()
-
-    if feedback.isCanceled():
-        return {}
-
-    _load_fire_layer_bc(
-        context,
-        feedback,
-        sampling_layer=tmp["OUTPUT"],
-        fire_layer=utm_b_fire_layer,
-        bc_field="bc_out",
-        bc_default=bc_out_default,
-    )
-
-    if feedback.isCanceled():
-        return {}
-
-    _load_fire_layer_bc(
-        context,
-        feedback,
-        sampling_layer=tmp["OUTPUT"],
-        fire_layer=utm_fire_layer,
-        bc_field="bc_in",
-        bc_default=bc_in_default,
-    )
 
     if feedback.isCanceled():
         return {}
@@ -182,7 +181,9 @@ def _load_fire_layer_bc(
                     g = f.geometry()
                     if fire_geom.contains(g):
                         if bc != NULL:
-                            sampling_layer.changeAttributeValue(f.id(), output_bc_idx, bc)
+                            sampling_layer.changeAttributeValue(
+                                f.id(), output_bc_idx, bc
+                            )
                 feedback.pushInfo(
                     f"<bc={bc}> applyed from fire layer <{fire_feat.id()}> feature"
                 )

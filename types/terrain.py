@@ -43,9 +43,6 @@ class GEOMTerrain:
         self.min_z = 0.0
         self.max_z = 0.0
 
-        if self.feedback.isCanceled():
-            return {}
-
         self._init_matrix()
 
         if self.feedback.isCanceled():
@@ -271,7 +268,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
         partial_progress = ncenters // 100 or 1
         for ip, idxs in enumerate(
             np.ndindex(m.shape[0] - 1, m.shape[1] - 1)
-        ):  # skip last row and col
+        ):  # skip last row and last col
             i, j = idxs
             self._verts.append(
                 (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
@@ -298,7 +295,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
 # OBST terrain
 
 
-class OBSTTerrain:
+class OBSTTerrain(GEOMTerrain):
     def __init__(
         self,
         feedback,
@@ -319,7 +316,19 @@ class OBSTTerrain:
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
 
+        self.min_z = 0.0
+        self.max_z = 0.0
+
+        self._init_matrix()
+        if self.feedback.isCanceled():
+            return {}
+
+        self._inject_ghost_centers()
         self._init_obsts()
+
+        if self.feedback.isCanceled():
+            return {}
+
         self.feedback.pushInfo(f"OBST terrain saved ({len(self._obsts)} OBSTs).")
 
     def get_comment(self) -> str:
@@ -335,7 +344,78 @@ Terrain ({len(self._obsts)} OBSTs)
 {obsts_str}
 """
 
+    def _inject_ghost_centers(self):
+        feedback = self.feedback
+        feedback.pushInfo("Inject ghost centers in matrix...")
+        feedback.setProgress(0)
+        m = self._matrix
+
+        # Init
+        dx, dy = m[0, 1] - m[0, 0], m[1, 0] - m[0, 0]  # displacements
+        dx[2], dy[2] = 0.0, 0.0  # correct, no z displacement
+        dx[3], dy[3] = 0.0, 0.0  # correct, no landuse change
+
+        # Inject first row
+        row = tuple(c - dy for c in m[0, :])
+        m = np.insert(m, 0, row, axis=0)
+
+        # Append last row
+        row = tuple((tuple(c + dy for c in m[-1, :]),))
+        m = np.append(m, row, axis=0)
+
+        # Inject first col
+        col = tuple(c - dx for c in m[:, 0])
+        m = np.insert(m, 0, col, axis=1)
+
+        # Append last col
+        col = tuple(
+            tuple((c + dx,) for c in m[:, -1]),
+        )
+        m = np.append(m, col, axis=1)
+
+        self._matrix = m
+
     def _init_obsts(self):
+        """Get formatted OBSTs from sampling layer."""
+        feedback = self.feedback
+        feedback.pushInfo("Prepare OBSTs...")
+        feedback.setProgress(0)
+        m = self._matrix
+        _obsts = list()
+
+        # Init
+        ncenters = m.shape[0] * m.shape[1]
+        partial_progress = ncenters // 100 or 1
+        surf_id_dict = self.landuse_type.surf_id_dict
+
+        # Calc min and max z
+        min_z = 0.0
+        max_z = 400.0  # FIXME
+        #        min_z = np.min(m, axis=2) - self.pixel_size
+        #        max_z = np.max(m, axis=2)
+
+        # Skip last two rows and last two cols
+        for ip, idxs in enumerate(np.ndindex(m.shape[0] - 2, m.shape[1] - 2)):
+            i, j = idxs
+            p0 = (m[i + 2, j, :2] + m[i + 1, j + 1, :2]) / 2.0
+            p1 = (m[i + 1, j + 1, :2] + m[i, j + 2, :2]) / 2.0
+            z = m[i + 1, j + 1, 2]
+            lu = m[i + 1, j + 1, 3]
+            xb = tuple((p0[0], p1[0], p0[1], p1[1], min_z, z))
+            surf_id = surf_id_dict.get(lu, "INERT")  # FIXME protect and warn!
+            _obsts.append(
+                f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{xb[4]:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
+            )
+            if ip % partial_progress == 0:
+                self.feedback.setProgress(int(ip / ncenters * 100))
+
+        # Save min and max z for domain
+        self.min_z = min_z
+        self.max_z = max_z
+
+        self._obsts = _obsts
+
+    def _init_obsts_orig(self):
         """Get formatted OBSTs from sampling layer."""
         feedback = self.feedback
         feedback.pushInfo("Prepare OBSTs...")
@@ -387,9 +467,11 @@ Terrain ({len(self._obsts)} OBSTs)
         for i in range(len(xbs)):
             xb = xbs[i]
             if bcs[i] == NULL:
-                surf_id = surf_id_dict[lus[i]]
+                surf_id = surf_id_dict.get(lus[i], 0)
             else:
-                surf_id = surf_id_dict[bcs[i]]
+                surf_id = surf_id_dict.get(
+                    bcs[i],
+                )
             self._obsts.append(
                 f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
             )
