@@ -149,8 +149,15 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
 
         # Fill the array with point coordinates, points are listed by column
+        # calc min and max z
+        min_z, max_z = 1e6, -1e6
         for i, f in enumerate(self.sampling_layer.getFeatures()):
             g = f.geometry().get()  # QgsPoint
+            z = g.z()
+            if z > max_z:
+                max_z = z
+            if z < min_z:
+                min_z = z
             m[i] = (
                 g.x() - ox,  # x, relative to origin
                 g.y() - oy,  # y, relative to origin
@@ -159,6 +166,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
+        self.max_z, self.min_z = max_z, min_z
 
         # Fill the array with the landuse
         if self.landuse_layer:
@@ -277,10 +285,6 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
             if ip % partial_progress == 0:
                 self.feedback.setProgress(int(ip / ncenters * 100))
 
-        # Calc min and max z for domain
-        self.min_z = min(v[2] for v in self._verts)
-        self.max_z = max(v[2] for v in self._verts)
-
     #        j   j  j+1
     #        *<------* i
     #        | f1 // |
@@ -388,13 +392,8 @@ Terrain ({len(self._obsts)} OBSTs)
         partial_progress = ncenters // 100 or 1
         surf_id_dict = self.landuse_type.surf_id_dict
 
-        # Calc min and max z
-        min_z = 0.0
-        max_z = 400.0  # FIXME
-        #        min_z = np.min(m, axis=2) - self.pixel_size
-        #        max_z = np.max(m, axis=2)
-
         # Skip last two rows and last two cols
+        min_z = self.min_z
         for ip, idxs in enumerate(np.ndindex(m.shape[0] - 2, m.shape[1] - 2)):
             i, j = idxs
             p0 = (m[i + 2, j, :2] + m[i + 1, j + 1, :2]) / 2.0
@@ -409,69 +408,65 @@ Terrain ({len(self._obsts)} OBSTs)
             if ip % partial_progress == 0:
                 self.feedback.setProgress(int(ip / ncenters * 100))
 
-        # Save min and max z for domain
-        self.min_z = min_z
-        self.max_z = max_z
-
         self._obsts = _obsts
 
-    def _init_obsts_orig(self):
-        """Get formatted OBSTs from sampling layer."""
-        feedback = self.feedback
-        feedback.pushInfo("Prepare OBSTs...")
-        feedback.setProgress(0)
+    # def _init_obsts_orig(self):
+    #     """Get formatted OBSTs from sampling layer."""
+    #     feedback = self.feedback
+    #     feedback.pushInfo("Prepare OBSTs...")
+    #     feedback.setProgress(0)
 
-        # Init
-        sampling_layer = self.sampling_layer
-        nfeatures = sampling_layer.featureCount()
-        partial_progress = nfeatures // 100 or 1
+    #     # Init
+    #     sampling_layer = self.sampling_layer
+    #     nfeatures = sampling_layer.featureCount()
+    #     partial_progress = nfeatures // 100 or 1
 
-        left_idx = sampling_layer.fields().indexOf("left")
-        right_idx = sampling_layer.fields().indexOf("right")
-        top_idx = sampling_layer.fields().indexOf("top")
-        bottom_idx = sampling_layer.fields().indexOf("bottom")
-        landuse_idx = sampling_layer.fields().indexOf("landuse1")
-        bc_idx = sampling_layer.fields().indexOf("bc")
+    #     left_idx = sampling_layer.fields().indexOf("left")
+    #     right_idx = sampling_layer.fields().indexOf("right")
+    #     top_idx = sampling_layer.fields().indexOf("top")
+    #     bottom_idx = sampling_layer.fields().indexOf("bottom")
+    #     landuse_idx = sampling_layer.fields().indexOf("landuse1")
+    #     bc_idx = sampling_layer.fields().indexOf("bc")
 
-        ox, oy = self.utm_origin.x(), self.utm_origin.y()
-        overlap = 0.01
+    #     ox, oy = self.utm_origin.x(), self.utm_origin.y()
+    #     overlap = 0.01
 
-        # Read values
-        xbs, lus, bcs = list(), list(), list()
-        for i, f in enumerate(sampling_layer.getFeatures()):
-            if i % partial_progress == 0:
-                feedback.setProgress(int(i / nfeatures * 100))
-            g, a = f.geometry().get(), f.attributes()
-            xbs.append(
-                tuple(
-                    (
-                        a[left_idx] - ox - overlap,
-                        a[right_idx] - ox + overlap,
-                        a[bottom_idx] - oy - overlap,
-                        a[top_idx] - oy + overlap,
-                        0.0,
-                        g.z(),
-                    )
-                )
-            )
-            lus.append(a[landuse_idx])
-            bcs.append(a[bc_idx])
+    #     # Read values
+    #     xbs, lus, bcs = list(), list(), list()
+    #     for i, f in enumerate(sampling_layer.getFeatures()):
+    #         if i % partial_progress == 0:
+    #             feedback.setProgress(int(i / nfeatures * 100))
+    #         g, a = f.geometry().get(), f.attributes()
+    #         xbs.append(
+    #             tuple(
+    #                 (
+    #                     a[left_idx] - ox - overlap,
+    #                     a[right_idx] - ox + overlap,
+    #                     a[bottom_idx] - oy - overlap,
+    #                     a[top_idx] - oy + overlap,
+    #                     0.0,
+    #                     g.z(),
+    #                 )
+    #             )
+    #         )
+    #         lus.append(a[landuse_idx])
+    #         bcs.append(a[bc_idx])
 
-        # Calc min and max z (also for MESH)
-        self.min_z = min(xb[5] for xb in xbs) - self.pixel_size
-        self.max_z = max(xb[5] for xb in xbs)
+    #     # Calc min and max z (also for MESH)
+    #     self.min_z = min(xb[5] for xb in xbs) - self.pixel_size
+    #     self.max_z = max(xb[5] for xb in xbs)
 
-        # Prepare OBSTs
-        self._obsts, surf_id_dict = list(), self.landuse_type.surf_id_dict
-        min_z = self.min_z
-        for i in range(len(xbs)):
-            xb = xbs[i]
-            if bcs[i] == NULL:
-                surf_id = surf_id_dict.get(lus[i], 0)
-            else:
-                surf_id = surf_id_dict.get(
-                    bcs[i],
-                )
-            self._obsts.append(
-                f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
-            )
+    #     # Prepare OBSTs
+    #     self._obsts, surf_id_dict = list(), self.landuse_type.surf_id_dict
+    #     min_z = self.min_z
+    #     for i in range(len(xbs)):
+    #         xb = xbs[i]
+    #         if bcs[i] == NULL:
+    #             surf_id = surf_id_dict.get(lus[i], 0)
+    #         else:
+    #             surf_id = surf_id_dict.get(
+    #                 bcs[i],
+    #             )
+    #         self._obsts.append(
+    #             f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
+    #         )

@@ -18,6 +18,8 @@ from qgis.core import (
     QgsProcessingAlgorithm,
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterVectorLayer,
+    QgsProcessingParameterPoint,
+    QgsProcessingParameterExtent,
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterNumber,
@@ -25,6 +27,7 @@ from qgis.core import (
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterLayer,
+    NULL,
 )
 
 import os
@@ -52,6 +55,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         project = QgsProject.instance()
 
+        # Check if project crs has changed
+        prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
+        is_project_crs_changed = False
+        if prev_project_crs_desc != project.crs().description():
+            is_project_crs_changed = True
+
         # Define parameters
 
         defaultValue, _ = project.readEntry("qgis2fds", "chid", "terrain")
@@ -64,8 +73,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        d = QgsProject.instance().readPath("./")
-        defaultValue, _ = project.readEntry("qgis2fds", "fds_path", d)
+        # fds_path = QgsProject.instance().readPath("./")
+        defaultValue, _ = project.readEntry("qgis2fds", "fds_path", "./")
         self.addParameter(
             QgsProcessingParameterFile(
                 "fds_path",
@@ -76,20 +85,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "extent_layer", None)
-        if not defaultValue:
-            try:  # first layer name containing "extent"
-                defaultValue = [
-                    layer.name()
-                    for layer in QgsProject.instance().mapLayers().values()
-                    if "Extent" in layer.name() or "extent" in layer.name()
-                ][0]
-            except IndexError:
-                pass
+        defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
         self.addParameter(
-            QgsProcessingParameterVectorLayer(
-                "extent_layer",
-                "Domain extent layer",
+            QgsProcessingParameterExtent(
+                "extent",
+                "Domain extent",
                 defaultValue=defaultValue,
             )
         )
@@ -104,6 +104,19 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 minValue=0.1,
             )
         )
+
+        if is_project_crs_changed:
+            defaultValue = None
+        else:
+            defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
+        param = QgsProcessingParameterPoint(
+            "origin",
+            "Domain origin (if not set, use domain extent centroid)",
+            optional=True,
+            defaultValue=defaultValue,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None)
         if not defaultValue:
@@ -227,6 +240,20 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", "cell_size")
+        if not defaultValue:
+            defaultValue = None
+        param = QgsProcessingParameterNumber(
+            "cell_size",
+            "FDS MESH cell size (in meters)",
+            type=QgsProcessingParameterNumber.Double,
+            optional=True,
+            defaultValue=defaultValue,
+            minValue=0.1,
+        )
+        self.addParameter(param)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+
         defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", True)
         param = QgsProcessingParameterBoolean(
             "export_obst",
@@ -271,11 +298,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 "The qgis project is not saved to disk, cannot proceed."
             )
 
-        # Check project crs
+        # Check project crs and save it
         if not project.crs().isValid():
             raise QgsProcessingException(
                 f"Project CRS <{project.crs().description()}> is not valid, cannot proceed."
             )
+        project.writeEntry("qgis2fds", "project_crs", project.crs().description())
 
         # Get the main parameters, save them to the qgis file
         chid = self.parameterAsString(parameters, "chid", context)
@@ -295,36 +323,46 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         nmesh = self.parameterAsInt(parameters, "nmesh", context)
         project.writeEntry("qgis2fds", "nmesh", parameters["nmesh"])
 
-        # Get extent_layer
-        extent_layer = self.parameterAsVectorLayer(parameters, "extent_layer", context)
-        if not extent_layer.crs().isValid():
-            raise QgsProcessingException(
-                f"Domain extent layer CRS <{extent_layer.crs().description()}> is not valid, cannot proceed."
-            )
-        project.writeEntry("qgis2fds", "extent_layer", parameters["extent_layer"])
+        if parameters["cell_size"]:
+            cell_size = self.parameterAsDouble(parameters, "cell_size", context)
+            project.writeEntryDouble("qgis2fds", "cell_size", parameters["cell_size"])
+        else:
+            cell_size = pixel_size
+            project.writeEntry("qgis2fds", "cell_size", "")
 
-        # Get UTM crs and extent
-        origin = extent_layer.extent().center()
+        # Get extent and origin WGS84 crs
+        # (the extent is exported in its crs)
+        extent = self.parameterAsExtent(parameters, "extent", context)
+        feedback.pushInfo(f"extent: {extent} {parameters['extent']}")  # FIXME
+        project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        extent_to_wgs84_tr = QgsCoordinateTransform(
-            extent_layer.crs(), wgs84_crs, project
+        wgs84_extent = self.parameterAsExtent(
+            parameters, "extent", context, crs=wgs84_crs
         )
-        wgs84_origin = QgsPoint(origin)
-        wgs84_origin.transform(extent_to_wgs84_tr)
 
+        if parameters["origin"] is not None:
+            # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs
+            # the point is exported in project crs
+            origin = self.parameterAsPoint(parameters, "origin", context)
+            project.writeEntry("qgis2fds", "origin", parameters["origin"])
+            wgs84_origin = QgsPoint(origin)
+            project_to_wgs84_tr = QgsCoordinateTransform(
+                project.crs(), wgs84_crs, project
+            )
+            wgs84_origin.transform(project_to_wgs84_tr)
+        else:  # no origin
+            wgs84_origin = QgsPoint(wgs84_extent.center())
+
+        # Get applicable UTM crs, then UTM origin and extent
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
 
-        utm_extent_layer = algos.reproject_vector_layer(
-            context,
-            feedback,
-            vector_layer=extent_layer,
-            destination_crs=utm_crs,
-        )
-        utm_extent_layer = context.getMapLayer(utm_extent_layer["OUTPUT"])
-        utm_extent = utm_extent_layer.extent()
-        utm_origin = utm_extent.center()
+        wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
+        utm_origin = wgs84_origin.clone()
+        utm_origin.transform(wgs84_to_utm_tr)
+
+        utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
 
         # Get landuse_layer and landuse_type (optional)
         landuse_layer, landuse_type_filepath = None, None
@@ -523,7 +561,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             min_z=terrain.min_z,
             max_z=terrain.max_z,
-            cell_size=pixel_size,
+            cell_size=cell_size,
             nmesh=nmesh,
         )
 
