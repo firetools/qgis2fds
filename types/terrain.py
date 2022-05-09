@@ -9,7 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import os
 import numpy as np
-from qgis.core import QgsProcessingException, NULL
+from qgis.core import QgsProcessingException
 from . import utils
 
 
@@ -17,32 +17,27 @@ class GEOMTerrain:
     def __init__(
         self,
         feedback,
-        path,
-        name,
-        dem_layer,
-        pixel_size,
         sampling_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
         fire_layer,
+        path,
+        name,
     ) -> None:
         self.feedback = feedback
-        self.dem_layer = dem_layer
-        self.pixel_size = pixel_size
         self.sampling_layer = sampling_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
 
-        self.filename = f"{name}_terrain.bingeom"
-        self.filepath = os.path.join(path, self.filename)
+        self._filename = f"{name}_terrain.bingeom"
+        self._filepath = os.path.join(path, self._filename)
 
-        self._matrix = None
+        self._m = None
         self.min_z = 0.0
         self.max_z = 0.0
-
         self._init_matrix()
 
         if self.feedback.isCanceled():
@@ -50,66 +45,13 @@ class GEOMTerrain:
 
         self._faces = list()
         self._landuses = list()
-        self._verts = list()
-
         self._init_faces_and_landuses()
 
         if self.feedback.isCanceled():
             return {}
 
+        self._verts = list()
         self._init_verts()
-
-        if self.feedback.isCanceled():
-            return {}
-
-        self._save()
-
-        self.feedback.pushInfo(
-            f"GEOM terrain saved ({len(self._verts)} verts, {len(self._faces)} faces)."
-        )
-
-    def get_comment(self) -> str:
-        return f"""\
-DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
-Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
-Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
-
-    def get_fds(self) -> str:
-        return f"""
-Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
-&GEOM ID='Terrain'
-      SURF_ID={self.landuse_type.surf_id_str}
-      BINARY_FILE='{self.filename}'
-      IS_TERRAIN=T EXTEND_TERRAIN=F /"""
-
-    def _save(self) -> None:
-        # Format in fds notation
-        fds_verts = tuple(v for vs in self._verts for v in vs)
-        fds_faces = tuple(f for fs in self._faces for f in fs)
-        fds_surfs = list()
-        # Translate landuse_layer landuses into FDS SURF index
-        surf_id_list = list(self.landuse_type.surf_id_dict)
-        n_surf_id = len(surf_id_list)
-        for i, _ in enumerate(self._faces):
-            try:
-                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
-            except ValueError:
-                self.feedback.reportError(
-                    f"Landuse <{self._landuses[i]}> value unknown, setting FDS default <0>."
-                )
-                fds_surfs.append(0)
-        fds_surfs = tuple(fds_surfs)
-        # Write bingeom
-        utils.write_bingeom(
-            feedback=self.feedback,
-            filepath=self.filepath,
-            geom_type=2,
-            n_surf_id=n_surf_id,
-            fds_verts=fds_verts,
-            fds_faces=fds_faces,
-            fds_surfs=fds_surfs,
-            fds_volus=list(),
-        )
 
     # The layer is a flat list of quad faces center points (z, x, y, landuse)
     # ordered by column. The original flat list is cut in columns, when three consecutive points
@@ -187,7 +129,7 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
                 if i % partial_progress == 0:
                     self.feedback.setProgress(int(i / nfeatures * 100))
 
-        # Get point column length and split matrix
+        # Get point column length
         column_len = 2
         p0, p1 = m[0, :2], m[1, :2]
         v0 = p1 - p0
@@ -196,20 +138,50 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
             if abs(np.dot(v0, v1) / np.linalg.norm(v0) / np.linalg.norm(v1)) < 0.9:
                 break  # end of point column
             column_len += 1
-        # Split into columns list, get np array, and transpose
+
+        # Split matrix into columns list, get np array, and transpose
         # Now points are by row
         m = np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
+
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
                 f"[QGIS bug] Sampling matrix is too small: {m.shape[0]}x{m.shape[1]}"
             )
-        self._matrix = m
+        self._m = m
+
+    def _inject_ghost_centers(self):
+        """Inject ghost centers into the sampling matrix."""
+        self.feedback.pushInfo("Inject ghost centers into the matrix...")
+
+        # Init displacements of ghost centers
+        dx, dy = self._m[0, 1] - self._m[0, 0], self._m[1, 0] - self._m[0, 0]
+        dx[2], dy[2] = 0.0, 0.0  # correct, no z displacement
+        dx[3], dy[3] = 0.0, 0.0  # correct, no landuse change
+
+        # Inject first row
+        row = tuple(c - dy for c in self._m[0, :])
+        self._m = np.insert(self._m, 0, row, axis=0)
+
+        # Append last row
+        row = tuple((tuple(c + dy for c in self._m[-1, :]),))
+        self._m = np.append(self._m, row, axis=0)
+
+        # Inject first col
+        col = tuple(c - dx for c in self._m[:, 0])
+        self._m = np.insert(self._m, 0, col, axis=1)
+
+        # Append last col
+        col = tuple(
+            tuple((c + dx,) for c in self._m[:, -1]),
+        )
+        self._m = np.append(self._m, col, axis=1)
 
     def _init_faces_and_landuses(self):
+        """Init GEOM faces and their landuses."""
         self.feedback.pushInfo("Init GEOM faces and their landuses...")
         self.feedback.setProgress(0)
-        m = self._matrix
+        m = self._m
         len_vrow = m.shape[0]
         len_vcol = m.shape[1] + 1  # vert matrix is larger
         for i, row in enumerate(m):
@@ -248,39 +220,22 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
     #          +   +   +   +   +   +  last ghost row (skipped)
 
     def _init_verts(self):
+        """Init GEOM verts."""
         self.feedback.pushInfo("Init GEOM verts...")
         self.feedback.setProgress(0)
-        m = self._matrix
+        m = self._m
 
-        # Inject ghost centers
-        dx, dy = m[0, 1] - m[0, 0], m[1, 0] - m[0, 0]  # displacements
-        dx[2], dy[2] = 0.0, 0.0  # no z displacement
-        dx[3], dy[3] = 0.0, 0.0  # no landuse change
-
-        row = tuple(c - dy for c in m[0, :])  # first ghost center row
-        m = np.insert(m, 0, row, axis=0)
-
-        row = tuple((tuple(c + dy for c in m[-1, :]),))  # last ghost center row
-        m = np.append(m, row, axis=0)
-
-        col = tuple(c - dx for c in m[:, 0])  # new first ghost center col
-        m = np.insert(m, 0, col, axis=1)
-
-        col = tuple(
-            tuple((c + dx,) for c in m[:, -1]),
-        )  # last ghost center col
-        m = np.append(m, col, axis=1)
+        self._inject_ghost_centers()
 
         # Average center coordinates to obtain verts
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
-        for ip, idxs in enumerate(
-            np.ndindex(m.shape[0] - 1, m.shape[1] - 1)
-        ):  # skip last row and last col
+        # Skip last row and last col
+        for ip, idxs in enumerate(np.ndindex(m.shape[0] - 1, m.shape[1] - 1)):
             i, j = idxs
             self._verts.append(
                 (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
-                / 4.0
+                / 4.0  # avg of four centers coordinates
             )
             if ip % partial_progress == 0:
                 self.feedback.setProgress(int(ip / ncenters * 100))
@@ -293,7 +248,51 @@ Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
     #        *------>* i+1
 
     def _get_vert_index(self, i, j, len_vcol):
+        """Get vert index in FDS notation."""
         return i * len_vcol + j + 1  # F90 indexes start from 1
+
+    def _save_bingeom(self) -> None:
+        """Save the bingeom file."""
+        self.feedback.pushInfo("Save the bingeom file...")
+
+        # Format in fds notation
+        fds_verts = tuple(v for vs in self._verts for v in vs)
+        fds_faces = tuple(f for fs in self._faces for f in fs)
+        fds_surfs = list()
+
+        # Translate landuse_layer landuses into FDS SURF index
+        surf_id_list = list(self.landuse_type.surf_id_dict)
+        n_surf_id = len(surf_id_list)
+        for i, _ in enumerate(self._faces):
+            try:
+                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
+            except ValueError:
+                lu = self._landuses[i]
+                self.feedback.reportError(f"Unknown landuse <{lu}>, setting <INERT>.")
+                fds_surfs.append(0)  # INERT
+        fds_surfs = tuple(fds_surfs)
+
+        # Write bingeom
+        utils.write_bingeom(
+            feedback=self.feedback,
+            filepath=self._filepath,
+            geom_type=2,
+            n_surf_id=n_surf_id,
+            fds_verts=fds_verts,
+            fds_faces=fds_faces,
+            fds_surfs=fds_surfs,
+            fds_volus=list(),
+        )
+
+    def get_fds(self) -> str:
+        self._save_bingeom()
+        self.feedback.pushInfo(f"GEOM terrain ready.")
+        return f"""
+Terrain ({len(self._verts)} verts, {len(self._faces)} faces)
+&GEOM ID='Terrain'
+      SURF_ID={self.landuse_type.surf_id_str}
+      BINARY_FILE='{self._filename}'
+      IS_TERRAIN=T EXTEND_TERRAIN=F /"""
 
 
 # OBST terrain
@@ -303,8 +302,6 @@ class OBSTTerrain(GEOMTerrain):
     def __init__(
         self,
         feedback,
-        dem_layer,
-        pixel_size,
         sampling_layer,
         utm_origin,
         landuse_layer,
@@ -312,82 +309,34 @@ class OBSTTerrain(GEOMTerrain):
         fire_layer,
     ) -> None:
         self.feedback = feedback
-        self.dem_layer = dem_layer
-        self.pixel_size = pixel_size
         self.sampling_layer = sampling_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
         self.fire_layer = fire_layer
 
+        # Init
         self.min_z = 0.0
         self.max_z = 0.0
 
+        # Calc
         self._init_matrix()
+
         if self.feedback.isCanceled():
             return {}
 
         self._inject_ghost_centers()
         self._init_obsts()
 
-        if self.feedback.isCanceled():
-            return {}
-
-        self.feedback.pushInfo(f"OBST terrain saved ({len(self._obsts)} OBSTs).")
-
-    def get_comment(self) -> str:
-        return f"""\
-DEM layer: <{self.dem_layer.name()}> with {self.pixel_size:.1f}m resolution
-Landuse layer: <{self.landuse_layer and self.landuse_layer.name() or 'none'}>
-Fire layer: <{self.fire_layer and self.fire_layer.name() or 'none'}>"""
-
-    def get_fds(self) -> str:
-        obsts_str = "\n".join(self._obsts)
-        return f"""
-Terrain ({len(self._obsts)} OBSTs)
-{obsts_str}
-"""
-
-    def _inject_ghost_centers(self):
-        feedback = self.feedback
-        feedback.pushInfo("Inject ghost centers in matrix...")
-        feedback.setProgress(0)
-        m = self._matrix
-
-        # Init
-        dx, dy = m[0, 1] - m[0, 0], m[1, 0] - m[0, 0]  # displacements
-        dx[2], dy[2] = 0.0, 0.0  # correct, no z displacement
-        dx[3], dy[3] = 0.0, 0.0  # correct, no landuse change
-
-        # Inject first row
-        row = tuple(c - dy for c in m[0, :])
-        m = np.insert(m, 0, row, axis=0)
-
-        # Append last row
-        row = tuple((tuple(c + dy for c in m[-1, :]),))
-        m = np.append(m, row, axis=0)
-
-        # Inject first col
-        col = tuple(c - dx for c in m[:, 0])
-        m = np.insert(m, 0, col, axis=1)
-
-        # Append last col
-        col = tuple(
-            tuple((c + dx,) for c in m[:, -1]),
-        )
-        m = np.append(m, col, axis=1)
-
-        self._matrix = m
-
     def _init_obsts(self):
         """Get formatted OBSTs from sampling layer."""
         feedback = self.feedback
         feedback.pushInfo("Prepare OBSTs...")
         feedback.setProgress(0)
-        m = self._matrix
-        _obsts = list()
 
         # Init
+        m = self._m
+        _obsts = list()
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
         surf_id_dict = self.landuse_type.surf_id_dict
@@ -401,7 +350,11 @@ Terrain ({len(self._obsts)} OBSTs)
             z = m[i + 1, j + 1, 2]
             lu = m[i + 1, j + 1, 3]
             xb = tuple((p0[0], p1[0], p0[1], p1[1], min_z, z))
-            surf_id = surf_id_dict.get(lu, "INERT")  # FIXME protect and warn!
+            try:
+                surf_id = surf_id_dict[lu]
+            except ValueError:
+                self.feedback.reportError(f"Unknown landuse <{lu}>, setting <INERT>.")
+                surf_id = "INERT"
             _obsts.append(
                 f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{xb[4]:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
             )
@@ -410,63 +363,10 @@ Terrain ({len(self._obsts)} OBSTs)
 
         self._obsts = _obsts
 
-    # def _init_obsts_orig(self):
-    #     """Get formatted OBSTs from sampling layer."""
-    #     feedback = self.feedback
-    #     feedback.pushInfo("Prepare OBSTs...")
-    #     feedback.setProgress(0)
-
-    #     # Init
-    #     sampling_layer = self.sampling_layer
-    #     nfeatures = sampling_layer.featureCount()
-    #     partial_progress = nfeatures // 100 or 1
-
-    #     left_idx = sampling_layer.fields().indexOf("left")
-    #     right_idx = sampling_layer.fields().indexOf("right")
-    #     top_idx = sampling_layer.fields().indexOf("top")
-    #     bottom_idx = sampling_layer.fields().indexOf("bottom")
-    #     landuse_idx = sampling_layer.fields().indexOf("landuse1")
-    #     bc_idx = sampling_layer.fields().indexOf("bc")
-
-    #     ox, oy = self.utm_origin.x(), self.utm_origin.y()
-    #     overlap = 0.01
-
-    #     # Read values
-    #     xbs, lus, bcs = list(), list(), list()
-    #     for i, f in enumerate(sampling_layer.getFeatures()):
-    #         if i % partial_progress == 0:
-    #             feedback.setProgress(int(i / nfeatures * 100))
-    #         g, a = f.geometry().get(), f.attributes()
-    #         xbs.append(
-    #             tuple(
-    #                 (
-    #                     a[left_idx] - ox - overlap,
-    #                     a[right_idx] - ox + overlap,
-    #                     a[bottom_idx] - oy - overlap,
-    #                     a[top_idx] - oy + overlap,
-    #                     0.0,
-    #                     g.z(),
-    #                 )
-    #             )
-    #         )
-    #         lus.append(a[landuse_idx])
-    #         bcs.append(a[bc_idx])
-
-    #     # Calc min and max z (also for MESH)
-    #     self.min_z = min(xb[5] for xb in xbs) - self.pixel_size
-    #     self.max_z = max(xb[5] for xb in xbs)
-
-    #     # Prepare OBSTs
-    #     self._obsts, surf_id_dict = list(), self.landuse_type.surf_id_dict
-    #     min_z = self.min_z
-    #     for i in range(len(xbs)):
-    #         xb = xbs[i]
-    #         if bcs[i] == NULL:
-    #             surf_id = surf_id_dict.get(lus[i], 0)
-    #         else:
-    #             surf_id = surf_id_dict.get(
-    #                 bcs[i],
-    #             )
-    #         self._obsts.append(
-    #             f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{min_z:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
-    #         )
+    def get_fds(self) -> str:
+        self.feedback.pushInfo(f"OBST terrain ready.")
+        obsts_str = "\n".join(self._obsts)
+        return f"""
+Terrain ({len(self._obsts)} OBSTs)
+{obsts_str}
+"""
