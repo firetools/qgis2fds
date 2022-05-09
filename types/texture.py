@@ -8,16 +8,9 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import os, time
-from qgis.core import (
-    QgsProject,
-    QgsProcessingException,
-    QgsMapSettings,
-    QgsMapRendererParallelJob,
-    QgsCoordinateTransform,
-)
+from qgis.core import QgsProcessingException, QgsMapSettings, QgsMapRendererParallelJob
 from qgis.utils import iface
 from qgis.PyQt.QtCore import QSize, QCoreApplication
-from . import utils
 
 
 class Texture:
@@ -33,25 +26,19 @@ class Texture:
         pixel_size,
         tex_layer,
         utm_extent,
-        utm_crs,  # destination_crs
+        utm_crs,
     ) -> None:
         self.feedback = feedback
         self.image_type = image_type
         self.pixel_size = pixel_size
         self.tex_layer = tex_layer
-        self.utm_crs = utm_crs
+        self.utm_crs = utm_crs  # destination_crs
 
         self.filename = f"{name}_tex.{self.image_type}"
         self.filepath = os.path.join(path, self.filename)
         self.tex_extent = utm_extent
 
         self._save()
-
-    def get_comment(self):
-        return f"Terrain texture layer: <{self.tex_layer and self.tex_layer.name() or 'map canvas'}>"
-
-    def get_fds(self):
-        return f"TERRAIN_IMAGE='{self.filename}'"
 
     def _save(self):
         self.feedback.pushInfo(f"Save terrain texture file: <{self.filepath}>")
@@ -96,3 +83,6 @@ class Texture:
                 f"Texture file not writable to <{self.filepath}>.\n{err}"
             )
         self.feedback.pushInfo(f"Texture saved in {dt:.2f} s")
+
+    def get_fds(self):
+        return f"TERRAIN_IMAGE='{self.filename}'"

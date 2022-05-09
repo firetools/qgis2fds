@@ -9,7 +9,6 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import csv, os
 from qgis.core import QgsProcessingException
-from . import utils
 
 
 class Wind:
@@ -17,13 +16,14 @@ class Wind:
         self.feedback = feedback
         self.filepath = filepath and os.path.join(project_path, filepath) or str()
         self._ws, self._wd = list(), list()
+
+        # Check
         if not filepath:
             self.feedback.pushInfo(f"No wind *.csv file.")
             return
-        self._import()
-
-    def _import(self) -> None:
         self.feedback.pushInfo(f"Import wind *.csv file: <{self.filepath}>")
+
+        # Import
         try:
             with open(self.filepath) as csv_file:
                 # wind csv file has an header line and three columns:
@@ -39,11 +39,8 @@ class Wind:
                     )
         except Exception as err:
             raise QgsProcessingException(
-                f"Error importing wind *.csv file from <{self.filepath}>:\n{err}"
+                f"Cannot import wind *.csv file: <{self.filepath}>:\n{err}"
             )
-
-    def get_comment(self) -> str:
-        return f"Wind file: <{utils.shorten(self.filepath)}>"
 
     def get_fds(self) -> str:
         result = f"""
