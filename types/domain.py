@@ -15,97 +15,95 @@ class Domain:
     def __init__(
         self,
         feedback,
-        wgs84_origin,
         utm_crs,
         utm_extent,
         utm_origin,
+        wgs84_origin,
         min_z,
         max_z,
         cell_size,
         nmesh,
     ) -> None:
+        feedback.pushInfo("Init MESH...")
+
         self.feedback = feedback
-        self.wgs84_origin = wgs84_origin
-        self.utm_crs = utm_crs
         self.utm_extent = utm_extent
         self.utm_origin = utm_origin
-        self.min_z = min_z
-        self.max_z = max_z
-        self.mesh_xb = 0, 0, 0, 0, 0, 0
-        self.cell_size = cell_size
-        self.nmesh = nmesh
 
-    def get_comment(self) -> str:
-        return f"""\
-Selected UTM CRS: <{self.utm_crs.description()}>
-Domain origin: <{self.utm_origin.x():.1f}, {self.utm_origin.y():.1f}>
-  <{utils.get_lonlat_url(self.wgs84_origin)}>
-Domain extent: <{self.utm_extent.toString(precision=1)}>"""
-
-    def get_fds(self) -> str:
-        self.feedback.pushInfo("Init MESHes...")
         # Calc domain XB, relative to origin
-        domain_xb = (
-            self.utm_extent.xMinimum() - self.utm_origin.x(),
-            self.utm_extent.xMaximum() - self.utm_origin.x(),
-            self.utm_extent.yMinimum() - self.utm_origin.y(),
-            self.utm_extent.yMaximum() - self.utm_origin.y(),
-            self.min_z,
-            self.max_z + self.cell_size * 10,  # 10 cells over max z
+        dom_xb = (
+            utm_extent.xMinimum() - utm_origin.x(),
+            utm_extent.xMaximum() - utm_origin.x(),
+            utm_extent.yMinimum() - utm_origin.y(),
+            utm_extent.yMaximum() - utm_origin.y(),
+            min_z,
+            max_z + cell_size * 10,  # 10 cells over max z
         )
 
         # Calc number of MESH along x and y
-        domain_ratio = abs(
-            (domain_xb[1] - domain_xb[0]) / (domain_xb[3] - domain_xb[2])
-        )
-        nmesh_y = round(sqrt(self.nmesh / domain_ratio))
-        nmesh_x = int(self.nmesh / nmesh_y)
-        self.feedback.pushInfo(
-            f"Number of MESHes: {nmesh_x*nmesh_y} ={nmesh_x:d}x{nmesh_y:d}"
-        )
+        ratio = abs((dom_xb[1] - dom_xb[0]) / (dom_xb[3] - dom_xb[2]))
+        nmesh_y = round(sqrt(nmesh / ratio))
+        nmesh_x = int(nmesh / nmesh_y)
 
         # Calc MESH XB
-        self.mesh_xb = (
-            domain_xb[0],
-            domain_xb[0] + (domain_xb[1] - domain_xb[0]) / nmesh_x,
-            domain_xb[2],
-            domain_xb[2] + (domain_xb[3] - domain_xb[2]) / nmesh_y,
-            domain_xb[4],
-            domain_xb[5],
+        m_xb = (
+            dom_xb[0],
+            dom_xb[0] + (dom_xb[1] - dom_xb[0]) / nmesh_x,
+            dom_xb[2],
+            dom_xb[2] + (dom_xb[3] - dom_xb[2]) / nmesh_y,
+            dom_xb[4],
+            dom_xb[5],
         )
 
         # Calc MESH IJK
-        mesh_ijk = (
-            int((self.mesh_xb[1] - self.mesh_xb[0]) / self.cell_size),
-            int((self.mesh_xb[3] - self.mesh_xb[2]) / self.cell_size),
-            int((self.mesh_xb[5] - self.mesh_xb[4]) / self.cell_size),
+        m_ijk = (
+            int((m_xb[1] - m_xb[0]) / cell_size),
+            int((m_xb[3] - m_xb[2]) / cell_size),
+            int((m_xb[5] - m_xb[4]) / cell_size),
         )
 
         # Calc MESH MULT DX DY
-        mult_dx, mult_dy = (
-            self.mesh_xb[1] - self.mesh_xb[0],
-            self.mesh_xb[3] - self.mesh_xb[2],
-        )
+        mult_dx, mult_dy = m_xb[1] - m_xb[0], m_xb[3] - m_xb[2]
 
         # Calc MESH size and cell number
-        mesh_sizes = (
-            round(self.mesh_xb[1] - self.mesh_xb[0]),
-            round(self.mesh_xb[3] - self.mesh_xb[2]),
-            round(self.mesh_xb[5] - self.mesh_xb[4]),
-        )
-        ncell = mesh_ijk[0] * mesh_ijk[1] * mesh_ijk[2]
+        mesh_sizes = [m_xb[1] - m_xb[0], m_xb[3] - m_xb[2], m_xb[5] - m_xb[4]]
+        ncell = m_ijk[0] * m_ijk[1] * m_ijk[2]
 
-        # Prepare str
-        return f"""
+        # Prepare comment string
+        utm_crs_desc = utm_crs.description()
+        utm_origin_desc = f"{utm_origin.x():.1f}E {utm_origin.y():.1f}N"
+        e = utm_extent
+        domain_extent_desc = f"{e.xMinimum():.1f}-{e.xMaximum():.1f}E {e.yMinimum():.1f}-{e.yMaximum():.1f}N"
+
+        self._comment = f"""
+Selected UTM CRS: {utm_crs_desc}
+Domain origin: {utm_origin_desc}
+  <{utils.get_lonlat_url(wgs84_origin)}>
+Domain extent: {domain_extent_desc}
+"""
+
+        # Prepare fds string
+        self._fds = f"""
 Domain and its boundary conditions
-{nmesh_x:d} x {nmesh_y:d} meshes of {mesh_sizes[0]}m x {mesh_sizes[1]}m x {mesh_sizes[2]}m size and {ncell} cells each
+{nmesh_x:d} · {nmesh_y:d} meshes of {mesh_sizes[0]:.1f}m · {mesh_sizes[1]:.1f}m · {mesh_sizes[2]:.1f}m size and {ncell:d} cells each
 &MULT ID='Meshes'
       DX={mult_dx:.2f} I_LOWER=0 I_UPPER={nmesh_x-1:d}
       DY={mult_dy:.2f} J_LOWER=0 J_UPPER={nmesh_y-1:d} /
-&MESH IJK={mesh_ijk[0]:d},{mesh_ijk[1]:d},{mesh_ijk[2]:d} MULT_ID='Meshes'
-      XB={self.mesh_xb[0]:.2f},{self.mesh_xb[1]:.2f},{self.mesh_xb[2]:.2f},{self.mesh_xb[3]:.2f},{self.mesh_xb[4]:.2f},{self.mesh_xb[5]:.2f} /
+&MESH IJK={m_ijk[0]:d},{m_ijk[1]:d},{m_ijk[2]:d} MULT_ID='Meshes'
+      XB={m_xb[0]:.2f},{m_xb[1]:.2f},{m_xb[2]:.2f},{m_xb[3]:.2f},{m_xb[4]:.2f},{m_xb[5]:.2f} /
 &VENT ID='Domain BC XMIN' DB='XMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC XMAX' DB='XMAX' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMIN' DB='YMIN' SURF_ID='OPEN' /
 &VENT ID='Domain BC YMAX' DB='YMAX' SURF_ID='OPEN' /
-&VENT ID='Domain BC ZMAX' DB='ZMAX' SURF_ID='OPEN' /"""
+&VENT ID='Domain BC ZMAX' DB='ZMAX' SURF_ID='OPEN' /
+
+Wind rose at domain origin
+&DEVC ID='Origin_UV' XYZ=0.,0.,{(m_xb[5]-.1):.2f} QUANTITY='U-VELOCITY' /
+&DEVC ID='Origin_VV' XYZ=0.,0.,{(m_xb[5]-.1):.2f} QUANTITY='V-VELOCITY' /
+&DEVC ID='Origin_WV' XYZ=0.,0.,{(m_xb[5]-.1):.2f} QUANTITY='W-VELOCITY' /"""
+
+    def get_comment(self) -> str:
+        return self._comment
+
+    def get_fds(self) -> str:
+        return self._fds

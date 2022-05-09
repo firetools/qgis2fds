@@ -27,7 +27,6 @@ from qgis.core import (
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterLayer,
-    NULL,
 )
 
 import os
@@ -263,6 +262,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        # Output
+
         # param = QgsProcessingParameterFeatureSink(  # DEBUG FIXME
         #     "utm_dem_layer",  # Name
         #     "Interpolated DEM Layer",  # Description
@@ -284,10 +285,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-        #  wgs84_origin: origin point in wgs84 crs, used for choosing utm_crs
-        #  utm_origin: origin point in utm crs
-        #  utm_crs: utm crs, calculated from wgs84_origin
-        #  utm_extent: extent to utm crs, used for FDS domain (MESH).
 
         results, outputs, project = {}, {}, QgsProject.instance()
 
@@ -528,52 +525,51 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Prepare terrain, domain, and fds_case
         if export_obst:
-            terrain = OBSTTerrain(
-                feedback=feedback,
-                dem_layer=dem_layer,
-                pixel_size=pixel_size,
-                sampling_layer=sampling_layer,
-                utm_origin=utm_origin,
-                landuse_layer=landuse_layer,
-                landuse_type=landuse_type,
-                fire_layer=fire_layer,
-            )
+            Terrain = OBSTTerrain
         else:
-            terrain = GEOMTerrain(
-                feedback=feedback,
-                dem_layer=dem_layer,
-                pixel_size=pixel_size,
-                sampling_layer=sampling_layer,
-                utm_origin=utm_origin,
-                landuse_layer=landuse_layer,
-                landuse_type=landuse_type,
-                fire_layer=fire_layer,
-                path=fds_path,
-                name=chid,
-            )
+            Terrain = GEOMTerrain
+        terrain = Terrain(
+            feedback=feedback,
+            sampling_layer=sampling_layer,
+            utm_origin=utm_origin,
+            landuse_layer=landuse_layer,
+            landuse_type=landuse_type,
+            fire_layer=fire_layer,
+            path=fds_path,
+            name=chid,
+        )
+
+        if feedback.isCanceled():
+            return {}
 
         domain = Domain(
             feedback=feedback,
-            wgs84_origin=wgs84_origin,
             utm_crs=utm_crs,
             utm_extent=utm_extent,
             utm_origin=utm_origin,
+            wgs84_origin=wgs84_origin,
             min_z=terrain.min_z,
             max_z=terrain.max_z,
             cell_size=cell_size,
             nmesh=nmesh,
         )
 
-        FDSCase(
+        fds_case = FDSCase(
             feedback=feedback,
             path=fds_path,
             name=chid,
+            utm_crs=utm_crs,
+            wgs84_origin=wgs84_origin,
+            pixel_size=pixel_size,
+            dem_layer=dem_layer,
             domain=domain,
             terrain=terrain,
             texture=texture,
             wind=wind,
         )
+        fds_case.save()
 
         return results
 

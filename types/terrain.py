@@ -142,7 +142,6 @@ class GEOMTerrain:
         # Split matrix into columns list, get np array, and transpose
         # Now points are by row
         m = np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
-
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
@@ -151,13 +150,15 @@ class GEOMTerrain:
         self._m = m
 
     def _inject_ghost_centers(self):
-        """Inject ghost centers into the sampling matrix."""
-        self.feedback.pushInfo("Inject ghost centers into the matrix...")
+        """Inject ghost centers into the matrix."""
+        feedback = self.feedback
+        feedback.pushInfo("Inject ghost centers in matrix...")
+        feedback.setProgress(0)
 
-        # Init displacements of ghost centers
+        # Init displacements
         dx, dy = self._m[0, 1] - self._m[0, 0], self._m[1, 0] - self._m[0, 0]
-        dx[2], dy[2] = 0.0, 0.0  # correct, no z displacement
-        dx[3], dy[3] = 0.0, 0.0  # correct, no landuse change
+        dx[2], dy[2] = 0.0, 0.0  # no z displacement
+        dx[3], dy[3] = 0.0, 0.0  # no landuse change
 
         # Inject first row
         row = tuple(c - dy for c in self._m[0, :])
@@ -178,7 +179,7 @@ class GEOMTerrain:
         self._m = np.append(self._m, col, axis=1)
 
     def _init_faces_and_landuses(self):
-        """Init GEOM faces and their landuses."""
+        """Init GEOM faces and landuses."""
         self.feedback.pushInfo("Init GEOM faces and their landuses...")
         self.feedback.setProgress(0)
         m = self._m
@@ -220,14 +221,12 @@ class GEOMTerrain:
     #          +   +   +   +   +   +  last ghost row (skipped)
 
     def _init_verts(self):
-        """Init GEOM verts."""
+        """Init verts as average of surrounding centers."""
         self.feedback.pushInfo("Init GEOM verts...")
         self.feedback.setProgress(0)
-        m = self._m
 
         self._inject_ghost_centers()
-
-        # Average center coordinates to obtain verts
+        m = self._m
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
         # Skip last row and last col
@@ -235,7 +234,7 @@ class GEOMTerrain:
             i, j = idxs
             self._verts.append(
                 (m[i, j, :3] + m[i + 1, j, :3] + m[i, j + 1, :3] + m[i + 1, j + 1, :3])
-                / 4.0  # avg of four centers coordinates
+                / 4.0
             )
             if ip % partial_progress == 0:
                 self.feedback.setProgress(int(ip / ncenters * 100))
@@ -253,7 +252,6 @@ class GEOMTerrain:
 
     def _save_bingeom(self) -> None:
         """Save the bingeom file."""
-        self.feedback.pushInfo("Save the bingeom file...")
 
         # Format in fds notation
         fds_verts = tuple(v for vs in self._verts for v in vs)
@@ -264,12 +262,12 @@ class GEOMTerrain:
         surf_id_list = list(self.landuse_type.surf_id_dict)
         n_surf_id = len(surf_id_list)
         for i, _ in enumerate(self._faces):
+            lu = self._landuses[i]
             try:
-                fds_surfs.append(surf_id_list.index(self._landuses[i]) + 1)
+                fds_surfs.append(surf_id_list.index(lu) + 1)  # +1 for F90
             except ValueError:
-                lu = self._landuses[i]
-                self.feedback.reportError(f"Unknown landuse <{lu}>, setting <INERT>.")
-                fds_surfs.append(0)  # INERT
+                self.feedback.reportError(f"Unknown landuse index <{lu}>, setting <0>.")
+                fds_surfs.append(1)  # 0 + 1 for F90
         fds_surfs = tuple(fds_surfs)
 
         # Write bingeom
@@ -284,7 +282,10 @@ class GEOMTerrain:
             fds_volus=list(),
         )
 
+
+
     def get_fds(self) -> str:
+        """Get the FDS text and save."""
         self._save_bingeom()
         self.feedback.pushInfo(f"GEOM terrain ready.")
         return f"""
@@ -307,6 +308,8 @@ class OBSTTerrain(GEOMTerrain):
         landuse_layer,
         landuse_type,
         fire_layer,
+        path=None,  # unused
+        name=None,  # unused
     ) -> None:
         self.feedback = feedback
         self.sampling_layer = sampling_layer
@@ -329,14 +332,14 @@ class OBSTTerrain(GEOMTerrain):
         self._init_obsts()
 
     def _init_obsts(self):
-        """Get formatted OBSTs from sampling layer."""
+        """Get the formatted OBSTs from sampling layer."""
         feedback = self.feedback
         feedback.pushInfo("Prepare OBSTs...")
         feedback.setProgress(0)
-
-        # Init
         m = self._m
         _obsts = list()
+
+        # Init
         ncenters = m.shape[0] * m.shape[1]
         partial_progress = ncenters // 100 or 1
         surf_id_dict = self.landuse_type.surf_id_dict
@@ -353,8 +356,8 @@ class OBSTTerrain(GEOMTerrain):
             try:
                 surf_id = surf_id_dict[lu]
             except ValueError:
-                self.feedback.reportError(f"Unknown landuse <{lu}>, setting <INERT>.")
-                surf_id = "INERT"
+                self.feedback.reportError(f"Unknown landuse index <{lu}>, setting <0>.")
+                surf_id = surf_id_dict[0]
             _obsts.append(
                 f"&OBST XB={xb[0]:.2f},{xb[1]:.2f},{xb[2]:.2f},{xb[3]:.2f},{xb[4]:.2f},{xb[5]:.2f} SURF_ID='{surf_id}' /"
             )
@@ -364,6 +367,7 @@ class OBSTTerrain(GEOMTerrain):
         self._obsts = _obsts
 
     def get_fds(self) -> str:
+        """Get the FDS text."""
         self.feedback.pushInfo(f"OBST terrain ready.")
         obsts_str = "\n".join(self._obsts)
         return f"""
