@@ -330,7 +330,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Get extent and origin WGS84 crs
         # (the extent is exported in its crs)
         extent = self.parameterAsExtent(parameters, "extent", context)
-        feedback.pushInfo(f"extent: {extent} {parameters['extent']}")  # FIXME
         project.writeEntry("qgis2fds", "extent", parameters["extent"])
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
