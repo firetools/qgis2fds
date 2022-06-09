@@ -194,7 +194,7 @@ def set_grid_layer_value(
     )
 
 
-def reproject_raster_layer(
+def get_reprojected_raster_layer(
     context,
     feedback,
     raster_layer,
@@ -227,7 +227,7 @@ def reproject_raster_layer(
     )
 
 
-def reproject_vector_layer(
+def get_reprojected_vector_layer(
     context,
     feedback,
     vector_layer,
@@ -281,7 +281,7 @@ def get_buffered_vector_layer(
     )
 
 
-def create_extent_layer(
+def get_extent_layer(
     context,
     feedback,
     extent,

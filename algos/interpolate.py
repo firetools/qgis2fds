@@ -3,7 +3,7 @@ from qgis.core import QgsProcessing
 from .utils import (
     get_pixel_center_aligned_grid_layer,
     set_grid_layer_z,
-    reproject_vector_layer,
+    get_reprojected_vector_layer,
 )
 
 
@@ -41,7 +41,7 @@ def clip_and_interpolate_dem(
     if feedback.isCanceled():
         return {}
 
-    tmp = reproject_vector_layer(
+    tmp = get_reprojected_vector_layer(
         context,
         feedback,
         vector_layer=tmp["OUTPUT"],

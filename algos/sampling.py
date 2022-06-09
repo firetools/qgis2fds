@@ -12,7 +12,7 @@ from .utils import (
     get_pixel_center_aligned_grid_layer,
     set_grid_layer_z,
     set_grid_layer_value,
-    reproject_vector_layer,
+    get_reprojected_vector_layer,
     get_buffered_vector_layer,
 )
 
@@ -33,7 +33,7 @@ def get_utm_fire_layers(
         return {}
 
     # Internal (burned area)
-    tmp = reproject_vector_layer(
+    tmp = get_reprojected_vector_layer(
         context,
         feedback,
         vector_layer=fire_layer,
