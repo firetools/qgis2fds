@@ -176,24 +176,24 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "devc_layer", None)
-        if not defaultValue:
-            try:  # first layer name containing "devc"
-                defaultValue = [
-                    layer.name()
-                    for layer in QgsProject.instance().mapLayers().values()
-                    if "DEVC" in layer.name() or "devc" in layer.name()
-                ][0]
-            except IndexError:
-                pass
-        self.addParameter(
-            QgsProcessingParameterVectorLayer(
-                "devc_layer",
-                "FDS DEVCs layer",
-                optional=True,
-                defaultValue=defaultValue,
-            )
-        )
+        # defaultValue, _ = project.readEntry("qgis2fds", "devc_layer", None)  # FIXME
+        # if not defaultValue:
+        #     try:  # first layer name containing "devc"
+        #         defaultValue = [
+        #             layer.name()
+        #             for layer in QgsProject.instance().mapLayers().values()
+        #             if "DEVC" in layer.name() or "devc" in layer.name()
+        #         ][0]
+        #     except IndexError:
+        #         pass
+        # self.addParameter(
+        #     QgsProcessingParameterVectorLayer(
+        #         "devc_layer",
+        #         "FDS DEVCs layer",
+        #         optional=True,
+        #         defaultValue=defaultValue,
+        #     )
+        # )
 
         defaultValue, _ = project.readEntry("qgis2fds", "wind_filepath", "")
         self.addParameter(
@@ -210,7 +210,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
         param = QgsProcessingParameterRasterLayer(
             "tex_layer",
-            "Texture layer (if not set, current view is exported)",
+            "Texture layer (if not set, export current view)",
             optional=True,
             defaultValue=defaultValue,
         )
@@ -244,7 +244,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             defaultValue = None
         param = QgsProcessingParameterNumber(
             "cell_size",
-            "FDS MESH cell size (in meters)",
+            "FDS MESH cell size (in meters; if not set, use desired resolution)",
             type=QgsProcessingParameterNumber.Double,
             optional=True,
             defaultValue=defaultValue,
@@ -403,14 +403,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "fire_layer", parameters["fire_layer"])
 
         # Get devc_layer (optional)
-        devc_layer = None
-        if parameters["devc_layer"]:
-            devc_layer = self.parameterAsVectorLayer(parameters, "devc_layer", context)
-            if not devc_layer.crs().isValid():
-                raise QgsProcessingException(
-                    f"DEVCs layer CRS <{devc_layer.crs().description()}> is not valid, cannot proceed."
-                )
-        project.writeEntry("qgis2fds", "devc_layer", parameters["devc_layer"])
+        # devc_layer = None
+        # if parameters["devc_layer"]:
+        #     devc_layer = self.parameterAsVectorLayer(parameters, "devc_layer", context)
+        #     if not devc_layer.crs().isValid():
+        #         raise QgsProcessingException(
+        #             f"DEVCs layer CRS <{devc_layer.crs().description()}> is not valid, cannot proceed."
+        #         )
+        # project.writeEntry("qgis2fds", "devc_layer", parameters["devc_layer"])
 
         # Get wind .csv filepath (optional)
         wind_filepath = self.parameterAsFile(parameters, "wind_filepath", context)
@@ -448,12 +448,12 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Get DEVCs layer  # FIXME implement
-        utm_devc_layer = None
-        if devc_layer:
-            pass
+        # utm_devc_layer = None
+        # if devc_layer:
+        #     pass
 
-            if feedback.isCanceled():
-                return {}
+        #     if feedback.isCanceled():
+        #         return {}
 
         # Get type of export (FDS GEOM or OBSTs)
         export_obst = False
