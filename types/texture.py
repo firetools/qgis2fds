@@ -51,9 +51,12 @@ class Texture:
         # Choose exporting layers
         if self.tex_layer:  # use user tex layer
             layers = (self.tex_layer,)
-        else:  # no user tex layer, use map canvas
+        elif iface:  # no user tex layer, use map canvas
             canvas = iface.mapCanvas()
             layers = canvas.layers()
+        else:
+            self.feedback.pushInfo(f"No texture requested.")
+            return
         # Image settings and texture layer choice
         settings = QgsMapSettings()  # build settings
         settings.setDestinationCrs(self.utm_crs)  # set output crs
