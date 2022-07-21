@@ -43,6 +43,25 @@ from .types import (
 from . import algos
 
 
+DEFAULTS = {
+    "chid": "terrain",
+    "fds_path": "./",
+    "extent": None,
+    "pixel_size": 10.0,
+    "origin": None,
+    "dem_layer": None,
+    "landuse_layer": None,
+    "landuse_type_filepath": "",
+    "fire_layer": None,
+    "wind_filepath": "",
+    "tex_layer": None,
+    "tex_pixel_size": 5.0,
+    "nmesh": 1,
+    "cell_size": None,
+    "export_obst": True,
+}
+
+
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
     """
     qgis2fds algorithm.
@@ -55,14 +74,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project = QgsProject.instance()
 
         # Check if project crs has changed
+
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         is_project_crs_changed = False
         if prev_project_crs_desc != project.crs().description():
             is_project_crs_changed = True
 
-        # Define parameters
+        # Define parameter: chid
 
-        defaultValue, _ = project.readEntry("qgis2fds", "chid", "terrain")
+        defaultValue, _ = project.readEntry("qgis2fds", "chid", DEFAULTS["chid"])
         self.addParameter(
             QgsProcessingParameterString(
                 "chid",
@@ -72,8 +92,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # fds_path = QgsProject.instance().readPath("./")
-        defaultValue, _ = project.readEntry("qgis2fds", "fds_path", "./")
+        # Define parameter: fds_path
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "fds_path", DEFAULTS["fds_path"]
+        )
         self.addParameter(
             QgsProcessingParameterFile(
                 "fds_path",
@@ -84,7 +107,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "extent", None)
+        # Define parameter: extent
+
+        defaultValue, _ = project.readEntry("qgis2fds", "extent", DEFAULTS["extent"])
         self.addParameter(
             QgsProcessingParameterExtent(
                 "extent",
@@ -93,7 +118,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", "pixel_size", 10.0)
+        # Define parameter: pixel_size
+
+        defaultValue, _ = project.readDoubleEntry(
+            "qgis2fds", "pixel_size", DEFAULTS["pixel_size"]
+        )
         self.addParameter(
             QgsProcessingParameterNumber(
                 "pixel_size",
@@ -104,10 +133,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        # Define parameter: origin [optional]
+
         if is_project_crs_changed:
-            defaultValue = None
+            defaultValue = DEFAULTS["origin"]
         else:
-            defaultValue, _ = project.readEntry("qgis2fds", "origin", None)
+            defaultValue, _ = project.readEntry(
+                "qgis2fds", "origin", DEFAULTS["origin"]
+            )
         param = QgsProcessingParameterPoint(
             "origin",
             "Domain origin (if not set, use domain extent centroid)",
@@ -117,7 +150,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readEntry("qgis2fds", "dem_layer", None)
+        # Define parameter: dem_layer
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "dem_layer", DEFAULTS["dem_layer"]
+        )
         if not defaultValue:
             try:  # first layer name containing "dem"
                 defaultValue = [
@@ -135,7 +172,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "landuse_layer", None)
+        # Define parameter: landuse_layer [optional]
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "landuse_layer", DEFAULTS["landuse_layer"]
+        )
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 "landuse_layer",
@@ -145,7 +186,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "landuse_type_filepath", "")
+        # Define parameter: landuse_type_filepath [optional]
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "landuse_type_filepath", DEFAULTS["landuse_type_filepath"]
+        )
         self.addParameter(
             QgsProcessingParameterFile(
                 "landuse_type_filepath",
@@ -157,7 +202,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "fire_layer", None)
+        # Define parameters: fire_layer [optional]
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "fire_layer", DEFAULTS["fire_layer"]
+        )
         if not defaultValue:
             try:  # first layer name containing "fire"
                 defaultValue = [
@@ -176,7 +225,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # defaultValue, _ = project.readEntry("qgis2fds", "devc_layer", None)  # FIXME
+        # Define parameters: devc_layer  # FIXME implement
+        #
+        # defaultValue, _ = project.readEntry("qgis2fds", "devc_layer", None)
         # if not defaultValue:
         #     try:  # first layer name containing "devc"
         #         defaultValue = [
@@ -195,7 +246,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         #     )
         # )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "wind_filepath", "")
+        # Define parameters: wind_filepath [optional]
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "wind_filepath", DEFAULTS["wind_filepath"]
+        )
         self.addParameter(
             QgsProcessingParameterFile(
                 "wind_filepath",
@@ -207,7 +262,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        defaultValue, _ = project.readEntry("qgis2fds", "tex_layer", None)
+        # Define parameter: tex_layer [optional]
+
+        defaultValue, _ = project.readEntry(
+            "qgis2fds", "tex_layer", DEFAULTS["tex_layer"]
+        )
         param = QgsProcessingParameterRasterLayer(
             "tex_layer",
             "Texture layer (if not set, export current view)",
@@ -217,7 +276,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", "tex_pixel_size", 5.0)
+        # Define parameter: tex_pixel_size [optional]
+
+        defaultValue, _ = project.readDoubleEntry(
+            "qgis2fds", "tex_pixel_size", DEFAULTS["tex_pixel_size"]
+        )
         param = QgsProcessingParameterNumber(
             "tex_pixel_size",
             "Texture layer pixel size (in meters)",
@@ -228,7 +291,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readNumEntry("qgis2fds", "nmesh", 1)
+        # Define parameter: nmesh
+
+        defaultValue, _ = project.readNumEntry("qgis2fds", "nmesh", DEFAULTS["nmesh"])
         param = QgsProcessingParameterNumber(
             "nmesh",
             "Max number of FDS MESHes",
@@ -239,21 +304,25 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
+        # Define parameter: cell_size
+
         defaultValue, _ = project.readDoubleEntry("qgis2fds", "cell_size")
-        if not defaultValue:
-            defaultValue = None
         param = QgsProcessingParameterNumber(
             "cell_size",
             "FDS MESH cell size (in meters; if not set, use desired resolution)",
             type=QgsProcessingParameterNumber.Double,
             optional=True,
-            defaultValue=defaultValue,
+            defaultValue=defaultValue or None,  # protect
             minValue=0.1,
         )
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
-        defaultValue, _ = project.readBoolEntry("qgis2fds", "export_obst", True)
+        # Define parameter: export_obst
+
+        defaultValue, _ = project.readBoolEntry(
+            "qgis2fds", "export_obst", DEFAULTS["export_obst"]
+        )
         param = QgsProcessingParameterBoolean(
             "export_obst",
             "Export FDS OBSTs",
@@ -288,69 +357,95 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         results, outputs, project = {}, {}, QgsProject.instance()
 
-        # Get qgis file path
-        project_path = project.readPath("./")
-        if not project_path:
-            raise QgsProcessingException(
-                "The qgis project is not saved to disk, cannot proceed."
-            )
-
         # Check project crs and save it
+
         if not project.crs().isValid():
             raise QgsProcessingException(
                 f"Project CRS <{project.crs().description()}> is not valid, cannot proceed."
             )
         project.writeEntry("qgis2fds", "project_crs", project.crs().description())
 
-        # Get the main parameters, save them to the qgis file
+        # Get parameter: chid
+
         chid = self.parameterAsString(parameters, "chid", context)
-        project.writeEntry("qgis2fds", "chid", parameters["chid"])
+        if not chid:
+            raise QgsProcessingException(self.invalidSourceError(parameters, "chid"))
+        project.writeEntry("qgis2fds", "chid", chid)
+
+        # Get parameter: fds_path
+
+        project_path = project.readPath("./")
+        if not project_path:
+            raise QgsProcessingException(
+                "Save the qgis project to disk, cannot proceed."
+            )
 
         fds_path = self.parameterAsFile(parameters, "fds_path", context)
-        project.writeEntry("qgis2fds", "fds_path", parameters["fds_path"])
-        fds_path = os.path.join(project_path, fds_path)  # abs
+        if not fds_path:
+            raise QgsProcessingException(
+                self.invalidSourceError(parameters, "fds_path")
+            )
+        project.writeEntry("qgis2fds", "fds_path", fds_path)
+        fds_path = os.path.join(project_path, fds_path)  # make abs
+
+        # Get parameter: pixel_size
 
         pixel_size = self.parameterAsDouble(parameters, "pixel_size", context)
-        project.writeEntryDouble(
-            "qgis2fds",
-            "pixel_size",
-            parameters.get("pixel_size", 10.0),  # FIXME others?
-        )
+        if not pixel_size or pixel_size <= 0.0:
+            raise QgsProcessingException(
+                self.invalidSourceError(parameters, "pixel_size")
+            )
+        project.writeEntryDouble("qgis2fds", "pixel_size", pixel_size)
+
+        # Get parameter: nmesh
 
         nmesh = self.parameterAsInt(parameters, "nmesh", context)
-        project.writeEntry("qgis2fds", "nmesh", parameters["nmesh"])
+        if not nmesh or nmesh < 1:
+            raise QgsProcessingException(self.invalidSourceError(parameters, "nmesh"))
+        project.writeEntry("qgis2fds", "nmesh", nmesh)
 
-        if parameters["cell_size"]:
-            cell_size = self.parameterAsDouble(parameters, "cell_size", context)
-            project.writeEntryDouble("qgis2fds", "cell_size", parameters["cell_size"])
-        else:
+        # Get parameter: cell_size
+
+        cell_size = self.parameterAsDouble(parameters, "cell_size", context)
+        if not cell_size:
             cell_size = pixel_size
             project.writeEntry("qgis2fds", "cell_size", "")
+        elif cell_size <= 0.0:
+            raise QgsProcessingException(
+                self.invalidSourceError(parameters, "cell_size")
+            )
+        else:
+            project.writeEntryDouble("qgis2fds", "cell_size", cell_size)
 
-        # Get extent and origin WGS84 crs
-        # (the extent is exported in its crs)
+        # Get parameter: extent (and wgs84_extent)
+
         extent = self.parameterAsExtent(parameters, "extent", context)
-        project.writeEntry("qgis2fds", "extent", parameters["extent"])
+        if not extent:
+            raise QgsProcessingException(self.invalidSourceError(parameters, "extent"))
+        project.writeEntry("qgis2fds", "extent", parameters["extent"])  # as str
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         wgs84_extent = self.parameterAsExtent(
             parameters, "extent", context, crs=wgs84_crs
         )
 
-        if parameters["origin"] is not None:
+        # Get parameter: origin
+
+        wgs84_origin = QgsPoint(wgs84_extent.center())
+        origin = parameters.get("origin") or ""
+        project.writeEntry("qgis2fds", "origin", origin)  # as str
+        if origin:
             # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             # the point is exported in project crs
             origin = self.parameterAsPoint(parameters, "origin", context)
-            project.writeEntry("qgis2fds", "origin", parameters["origin"])
             wgs84_origin = QgsPoint(origin)
             project_to_wgs84_tr = QgsCoordinateTransform(
                 project.crs(), wgs84_crs, project
             )
             wgs84_origin.transform(project_to_wgs84_tr)
-        else:  # no origin
-            wgs84_origin = QgsPoint(wgs84_extent.center())
 
         # Get applicable UTM crs, then UTM origin and extent
+
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
 
@@ -360,36 +455,37 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
 
         utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
 
-        # Get landuse_layer and landuse_type (optional)
+        # Get parameters: landuse_layer and landuse_type (optional)
+
         landuse_layer, landuse_type_filepath = None, None
-        if parameters["landuse_layer"] and parameters["landuse_type_filepath"]:
+        if "landuse_layer" in parameters and "landuse_type_filepath" in parameters:
             landuse_type_filepath = self.parameterAsFile(
                 parameters, "landuse_type_filepath", context
             )
             landuse_layer = self.parameterAsRasterLayer(
                 parameters, "landuse_layer", context
             )
-            if not landuse_layer.crs().isValid():
+            if landuse_layer and not landuse_layer.crs().isValid():
                 raise QgsProcessingException(
                     f"Landuse layer CRS <{landuse_layer.crs().description()}> is not valid, cannot proceed."
                 )
+            project.writeEntry(
+                "qgis2fds", "landuse_layer", parameters.get("landuse_layer")
+            )  # as str
+            project.writeEntry("qgis2fds", "landuse_type_filepath", landuse_type_filepath)
+
         landuse_type = LanduseType(
             feedback=feedback,
             project_path=project_path,
             filepath=landuse_type_filepath,
         )
-        project.writeEntry("qgis2fds", "landuse_layer", parameters["landuse_layer"])
-        project.writeEntry(
-            "qgis2fds",
-            "landuse_type_filepath",
-            parameters["landuse_type_filepath"] or "",
-        )
 
-        # Get fire_layer (optional)
+        # Get parameter: fire_layer (optional)
+
         fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
-        if parameters["fire_layer"]:
+        if "fire_layer" in parameters:
             fire_layer = self.parameterAsVectorLayer(parameters, "fire_layer", context)
-            if not fire_layer.crs().isValid():
+            if fire_layer and not fire_layer.crs().isValid():
                 raise QgsProcessingException(
                     f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
                 )
@@ -400,7 +496,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 destination_crs=utm_crs,
                 pixel_size=pixel_size,
             )
-        project.writeEntry("qgis2fds", "fire_layer", parameters["fire_layer"])
+            project.writeEntry(
+                "qgis2fds", "fire_layer", parameters.get("fire_layer")
+            )  # as str
 
         # Get devc_layer (optional)
         # devc_layer = None
@@ -412,29 +510,36 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         #         )
         # project.writeEntry("qgis2fds", "devc_layer", parameters["devc_layer"])
 
-        # Get wind .csv filepath (optional)
+        # Get parameter: wind_filepath (optional)
+
         wind_filepath = self.parameterAsFile(parameters, "wind_filepath", context)
-        project.writeEntry(
-            "qgis2fds", "wind_filepath", parameters["wind_filepath"] or ""
-        )
+        project.writeEntry("qgis2fds", "wind_filepath", wind_filepath)
+
         wind = Wind(
             feedback=feedback, project_path=project_path, filepath=wind_filepath
         )
 
-        # Get tex_layer (optional) and tex_pixel_size
+        # Get parameter: tex_layer (optional)
+
         tex_layer, texture = None, None
-        if parameters["tex_layer"]:
+        if "tex_layer" in parameters:
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
-            if not tex_layer.crs().isValid():
+            if tex_layer and not tex_layer.crs().isValid():
                 raise QgsProcessingException(
                     f"Texture layer CRS <{tex_layer.crs().description()}> is not valid, cannot proceed."
                 )
-        project.writeEntry("qgis2fds", "tex_layer", parameters["tex_layer"])
+            project.writeEntry("qgis2fds", "tex_layer", parameters.get("tex_layer"))
 
-        tex_pixel_size = self.parameterAsDouble(parameters, "tex_pixel_size", context)
-        project.writeEntryDouble(
-            "qgis2fds", "tex_pixel_size", parameters["tex_pixel_size"]
+        # Get parameter: tex_pixel_size
+
+        tex_pixel_size = float(
+            self.parameterAsDouble(parameters, "tex_pixel_size", context)
         )
+        if not tex_pixel_size or tex_pixel_size <= 0.0:
+            raise QgsProcessingException(
+                self.invalidSourceError(parameters, "tex_pixel_size")
+            )
+        project.writeEntryDouble("qgis2fds", "tex_pixel_size", tex_pixel_size)
 
         texture = Texture(
             feedback=feedback,
@@ -455,21 +560,26 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         #     if feedback.isCanceled():
         #         return {}
 
-        # Get type of export (FDS GEOM or OBSTs)
-        export_obst = False
-        if parameters["export_obst"]:
-            export_obst = True
-        project.writeEntryBool("qgis2fds", "export_obst", parameters["export_obst"])
+        # Get parameter: export_obst
 
-        # Get DEM layer
+        export_obst = self.parameterAsBool(parameters, "export_obst", context)
+        project.writeEntryBool("qgis2fds", "export_obst", export_obst)
+
+        # Get parameter: dem_layer
+
         dem_layer = self.parameterAsRasterLayer(parameters, "dem_layer", context)
-        project.writeEntry("qgis2fds", "dem_layer", parameters["dem_layer"])
+        if not dem_layer:
+            raise QgsProcessingException(
+                self.invalidSourceError(parameters, "dem_layer")
+            )
         if not dem_layer.crs().isValid():
             raise QgsProcessingException(
                 f"DEM layer CRS <{dem_layer.crs().description()}> is not valid, cannot proceed."
             )
+        project.writeEntry("qgis2fds", "dem_layer", parameters.get("dem_layer"))
 
-        # Get the interpolated DEM layer
+        # Calc the interpolated DEM layer
+
         outputs["utm_dem_layer"] = algos.clip_and_interpolate_dem(
             context,
             feedback,
