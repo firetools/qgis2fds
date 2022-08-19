@@ -12,4 +12,4 @@ The development of *qgis2fds* is funded by a grant from the Italian Ministry of 
 
 By the research project WUIFI-21 (High fidelity computational fluid dynamics modeling of forest fires for Wildland-Urban Interface communities resilience and protection) the participating organizations intend to extend the capabilities of FDS on the prediction of wildland-urban interface fires propagation.
 
-![MAECI](https://github.com/firetools/qgis2fds/wiki/images/MAECI.png)
+![MAECI](https://github.com/firetools/qgis2fds/wiki/p/web/logo-maeci.jpeg)
