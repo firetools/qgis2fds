@@ -67,6 +67,7 @@ class Texture:
         render = QgsMapRendererParallelJob(settings)
         render.start()
         t0 = time.time()
+        dt = 0.
         while render.isActive():
             dt = time.time() - t0
             QCoreApplication.processEvents()
