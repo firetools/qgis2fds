@@ -472,7 +472,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project.writeEntry(
                 "qgis2fds", "landuse_layer", parameters.get("landuse_layer")
             )  # as str
-            project.writeEntry("qgis2fds", "landuse_type_filepath", landuse_type_filepath)
+            project.writeEntry(
+                "qgis2fds", "landuse_type_filepath", landuse_type_filepath
+            )
 
         landuse_type = LanduseType(
             feedback=feedback,
@@ -485,17 +487,18 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
         if "fire_layer" in parameters:
             fire_layer = self.parameterAsVectorLayer(parameters, "fire_layer", context)
-            if fire_layer and not fire_layer.crs().isValid():
-                raise QgsProcessingException(
-                    f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
+            if fire_layer:
+                if not fire_layer.crs().isValid():
+                    raise QgsProcessingException(
+                        f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
+                    )
+                utm_fire_layer, utm_b_fire_layer = algos.get_utm_fire_layers(
+                    context,
+                    feedback,
+                    fire_layer=fire_layer,
+                    destination_crs=utm_crs,
+                    pixel_size=pixel_size,
                 )
-            utm_fire_layer, utm_b_fire_layer = algos.get_utm_fire_layers(
-                context,
-                feedback,
-                fire_layer=fire_layer,
-                destination_crs=utm_crs,
-                pixel_size=pixel_size,
-            )
             project.writeEntry(
                 "qgis2fds", "fire_layer", parameters.get("fire_layer")
             )  # as str
