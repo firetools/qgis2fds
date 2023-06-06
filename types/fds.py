@@ -90,7 +90,7 @@ MISC LEVEL_SET_MODE parameter
 &TIME T_END=0. /
 
 Example REAC, used when LEVEL_SET_MODE=4
-_REAC ID='Wood' SOOT_YIELD=0.02 O=2.5 C=3.4 H=6.2
+_REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
       HEAT_OF_COMBUSTION=17700. /
 {self.domain.get_fds()}
 {self.terrain.landuse_type.get_fds()}
