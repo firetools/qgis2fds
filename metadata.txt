@@ -3,7 +3,7 @@
 
 [general]
 name=qgis2fds
-qgisMinimumVersion=3.24
+qgisMinimumVersion=3.28
 description=Export terrains to NIST FDS for fire simulation
 version=1.0.2
 author=Emanuele Gissi, Ruggero Poletto
