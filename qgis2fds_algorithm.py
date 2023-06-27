@@ -33,7 +33,7 @@ from qgis.core import (
     QgsProcessing
 )
 
-import os
+import os, sys
 from .types import (
     utils,
     FDSCase,
@@ -358,7 +358,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-
+        
+        if sys.platform.startswith('linux'):
+            TMPDIR = '/tmp'
+        elif sys.platform == 'darwin':
+            TMPDIR = os.environ['TMPDIR']
+        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
+            TMPDIR = os.environ['TMP']
+        
         results, outputs, project = {}, {}, QgsProject.instance()
 
         # Check project crs and save it
@@ -587,14 +594,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         
         # Download WCS data and save as a geoTiff for processing with gdal
         epsg5070_extent = self.parameterAsExtent(parameters, "extent", context, crs=dem_layer.crs())
-        algos.wcsToRaster(dem_layer, epsg5070_extent, os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
+        algos.wcsToRaster(dem_layer, epsg5070_extent, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
         
         # Fill empty values in DEM layer with interpolation
         outputs['filled_dem_layer'] = algos.fill_dem_nan(
             context,
             feedback,
-            raster_layer=os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'),
-            output=os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED.tif'),
+            raster_layer=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'),
+            output=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED.tif'),
         )
         filled_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'],"filled_dem_layer")
         
