@@ -27,6 +27,10 @@ from qgis.core import (
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterLayer,
+    QgsRaster,
+    QgsRasterPipe,
+    QgsRasterFileWriter,
+    QgsProcessing
 )
 
 import os
@@ -41,7 +45,7 @@ from .types import (
     Wind,
 )
 from . import algos
-
+import processing
 
 DEFAULTS = {
     "chid": "terrain",
@@ -580,18 +584,45 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 f"DEM layer CRS <{dem_layer.crs().description()}> is not valid, cannot proceed."
             )
         project.writeEntry("qgis2fds", "dem_layer", parameters.get("dem_layer"))
-
+        
+        # Download WCS data and save as a geoTiff for processing with gdal
+        epsg5070_extent = self.parameterAsExtent(parameters, "extent", context, crs=dem_layer.crs())
+        algos.wcsToRaster(dem_layer, epsg5070_extent, os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
+        
+        # Fill empty values in DEM layer with interpolation
+        outputs['filled_dem_layer'] = algos.fill_dem_nan(
+            context,
+            feedback,
+            raster_layer=os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'),
+            output=os.path.join(os.environ['TMP'],'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED.tif'),
+        )
+        filled_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'],"filled_dem_layer")
+        
         # Calc the interpolated DEM layer
-
         outputs["utm_dem_layer"] = algos.clip_and_interpolate_dem(
             context,
             feedback,
-            dem_layer=dem_layer,
+            dem_layer=filled_dem_layer,
             extent=utm_extent,
             extent_crs=utm_crs,
             pixel_size=pixel_size,
             # output=parameters["utm_dem_layer"],  # DEBUG
         )
+
+        if feedback.isCanceled():
+            return {}
+        
+        # This allows us to visualize the state of the variable in a python display
+        #from osgeo import gdal
+        #gd = gdal.Open(str(outputs["utm_dem_layer"]['OUTPUT']))
+        #d = gd.ReadAsArray()
+        #from PIL import Image
+        #img = Image.fromarray(d, 'I;16')
+        #img.show()
+        
+        # This allows us to add a generated file to QGIS GUI display as a layer
+        #layer = QgsRasterLayer(out_file, "result")
+        #QgsProject.instance().addMapLayer(layer)
 
         if feedback.isCanceled():
             return {}
