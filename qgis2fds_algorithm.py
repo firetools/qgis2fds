@@ -616,6 +616,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             # output=parameters["utm_dem_layer"],  # DEBUG
         )
 
+        clip_and_interp_layer = QgsRasterLayer(outputs['utm_dem_layer']['OUTPUT'],"clip_and_interp_layer")
+        QgsProject.instance().addMapLayer(clip_and_interp_layer)
+
         if feedback.isCanceled():
             return {}
         
