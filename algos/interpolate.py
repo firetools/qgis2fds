@@ -4,6 +4,7 @@ from .utils import (
     get_pixel_center_aligned_grid_layer,
     set_grid_layer_z,
     get_reprojected_vector_layer,
+    get_reprojected_raster_layer,
 )
 
 

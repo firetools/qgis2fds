@@ -2,6 +2,7 @@ from .utils import (
     get_pixel_aligned_extent,
     get_extent_layer,
     get_reprojected_vector_layer,
+    get_reprojected_raster_layer,
     fill_dem_nan,
     wcsToRaster
 )

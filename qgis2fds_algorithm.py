@@ -30,6 +30,7 @@ from qgis.core import (
     QgsRaster,
     QgsRasterPipe,
     QgsRasterFileWriter,
+    QgsRectangle,
     QgsProcessing
 )
 
@@ -363,8 +364,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             TMPDIR = '/tmp'
         elif sys.platform == 'darwin':
             TMPDIR = os.environ['TMPDIR']
+            os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
         elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
             TMPDIR = os.environ['TMP']
+        
+        gdal_process = True
         
         results, outputs, project = {}, {}, QgsProject.instance()
 
@@ -465,7 +469,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         utm_origin.transform(wgs84_to_utm_tr)
 
         utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
-
+        
+        xmin = utm_extent.xMinimum()
+        xmax = utm_extent.xMaximum()
+        ymin = utm_extent.yMinimum()
+        ymax = utm_extent.yMaximum()
+        
+        utm_origin = QgsPoint((xmax-xmin)/2+xmin,(ymax-ymin)/2+ymin)
+        #utm_origin = QgsPoint(0, 0)
+        print("UTM ORIGIN")
+        print(utm_origin)
+        
         # Get parameters: landuse_layer and landuse_type (optional)
 
         landuse_layer, landuse_type_filepath = None, None
@@ -492,7 +506,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project_path=project_path,
             filepath=landuse_type_filepath,
         )
-
+        
         # Get parameter: fire_layer (optional)
 
         fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
@@ -536,7 +550,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Get parameter: tex_layer (optional)
 
         tex_layer, texture = None, None
-        if "tex_layer" in parameters:
+        if ("tex_layer" in parameters) and (parameters['tex_layer'] is not None):
             tex_layer = self.parameterAsRasterLayer(parameters, "tex_layer", context)
             if tex_layer and not tex_layer.crs().isValid():
                 raise QgsProcessingException(
@@ -554,18 +568,28 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 self.invalidSourceError(parameters, "tex_pixel_size")
             )
         project.writeEntryDouble("qgis2fds", "tex_pixel_size", tex_pixel_size)
-
-        texture = Texture(
-            feedback=feedback,
-            path=fds_path,
-            name=chid,
-            image_type="png",
-            pixel_size=tex_pixel_size,
-            tex_layer=tex_layer,
-            utm_extent=utm_extent,
-            utm_crs=utm_crs,
-        )
-
+        
+        # Convert extents for terrain and texture
+        
+        fds_domain_extent = utm_extent
+        if "landuse_layer" in parameters and "landuse_type_filepath" in parameters:
+            terrain_to_utm_transform = QgsCoordinateTransform(landuse_layer.crs(), utm_crs, project)
+            utm_to_terrain_transform = QgsCoordinateTransform(utm_crs, landuse_layer.crs(), project)
+            
+            fds_terrain_extent_terrain = utm_to_terrain_transform.transformBoundingBox(fds_domain_extent)
+            fds_terrain_extent_utm = terrain_to_utm_transform.transformBoundingBox(fds_terrain_extent_terrain)
+        else:
+            fds_terrain_extent_utm = utm_extent
+        
+        if ("tex_layer" in parameters) and (parameters['tex_layer'] is not None):
+            tex_to_utm_transform = QgsCoordinateTransform(tex_layer.crs(), utm_crs, project)
+            utm_to_tex_transform = QgsCoordinateTransform(utm_crs, tex_layer.crs(), project)
+            
+            fds_texture_extent_tex = utm_to_tex_transform.transformBoundingBox(fds_terrain_extent_utm)
+            fds_texture_extent_utm = tex_to_utm_transform.transformBoundingBox(fds_texture_extent_tex)
+        else:
+            fds_texture_extent_utm = fds_terrain_extent_utm
+        
         # Get DEVCs layer  # FIXME implement
         # utm_devc_layer = None
         # if devc_layer:
@@ -592,33 +616,76 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         project.writeEntry("qgis2fds", "dem_layer", parameters.get("dem_layer"))
         
-        # Download WCS data and save as a geoTiff for processing with gdal
-        epsg5070_extent = self.parameterAsExtent(parameters, "extent", context, crs=dem_layer.crs())
-        algos.wcsToRaster(dem_layer, epsg5070_extent, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
+        # Convert extents for land use
+        if gdal_process:
+            # Download WCS data and save as a geoTiff for processing with gdal
+            algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED.tif'))
+            
+            ''' We may way to do this but will need a nearest neighbor code rather than interpolation
+            # Fill empty values in DEM layer with interpolation
+            outputs['filled_land_layer'] = algos.fill_dem_nan(
+                context,
+                feedback,
+                raster_layer=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED.tif'),
+                output=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED_FILLED.tif'),
+            )
+            '''
+            landuse_layer = QgsRasterLayer(os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED.tif'))
+            #QgsProject.instance().addMapLayer(landuse_layer)
+        else:
+            pass
         
-        # Fill empty values in DEM layer with interpolation
-        outputs['filled_dem_layer'] = algos.fill_dem_nan(
-            context,
-            feedback,
-            raster_layer=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'),
-            output=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED.tif'),
+        # Define texture map
+        texture = Texture(
+            feedback=feedback,
+            path=fds_path,
+            name=chid,
+            image_type="png",
+            pixel_size=tex_pixel_size,
+            tex_layer=tex_layer,
+            utm_extent=fds_texture_extent_utm,
+            utm_crs=utm_crs,
         )
-        filled_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'],"filled_dem_layer")
         
-        # Calc the interpolated DEM layer
-        outputs["utm_dem_layer"] = algos.clip_and_interpolate_dem(
-            context,
-            feedback,
-            dem_layer=filled_dem_layer,
-            extent=utm_extent,
-            extent_crs=utm_crs,
-            pixel_size=pixel_size,
-            # output=parameters["utm_dem_layer"],  # DEBUG
-        )
-
-        clip_and_interp_layer = QgsRasterLayer(outputs['utm_dem_layer']['OUTPUT'],"clip_and_interp_layer")
-        QgsProject.instance().addMapLayer(clip_and_interp_layer)
-
+        # Convert extents for DEM
+        dem_to_utm_transform = QgsCoordinateTransform(dem_layer.crs(), utm_crs, project)
+        utm_to_dem_transform = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
+        
+        fds_dem_extent_dem = utm_to_dem_transform.transformBoundingBox(fds_texture_extent_utm)
+        fds_dem_extent_utm = dem_to_utm_transform.transformBoundingBox(fds_dem_extent_dem)
+        
+        if gdal_process:
+            # Download WCS data and save as a geoTiff for processing with gdal
+            #epsg5070_extent = self.parameterAsExtent(parameters, "extent", context, crs=dem_layer.crs())
+            #algos.wcsToRaster(dem_layer, epsg5070_extent, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
+            algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'))
+            #algos.rasterWarp(os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'), utm_crs, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED_WARP.tif')
+            
+            # Fill empty values in DEM layer with interpolation
+            outputs['filled_dem_layer'] = algos.fill_dem_nan(
+                context,
+                feedback,
+                raster_layer=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED.tif'),
+                output=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED.tif'),
+            )
+            #outputs['utm_dem_layer'] = algos.get_reprojected_raster_layer(context,feedback,outputs['filled_dem_layer']['OUTPUT'], destination_crs=utm_crs)
+            #utm_dem_layer = QgsRasterLayer(outputs['utm_dem_layer']['OUTPUT'],"filled_dem_layer")
+            utm_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'])
+            
+        else:
+            # Calc the interpolated DEM layer
+            outputs["utm_dem_layer"] = algos.clip_and_interpolate_dem(
+                context,
+                feedback,
+                dem_layer=dem_layer,
+                extent=fds_dem_extent_utm, #utm_extent,
+                extent_crs=utm_crs,
+                pixel_size=pixel_size,
+                # output=parameters["utm_dem_layer"],  # DEBUG
+            )
+            utm_dem_layer = QgsRasterLayer(outputs["utm_dem_layer"]["OUTPUT"])
+        #QgsProject.instance().addMapLayer(utm_dem_layer)
+        
         if feedback.isCanceled():
             return {}
         
@@ -638,7 +705,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             return {}
 
         # results["utm_dem_layer"] = outputs["utm_dem_layer"]["OUTPUT"] # DEBUG
-        utm_dem_layer = QgsRasterLayer(outputs["utm_dem_layer"]["OUTPUT"])
+        
 
         # Get the sampling grid
         outputs["sampling_layer"] = algos.get_sampling_point_grid_layer(
@@ -651,6 +718,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             utm_b_fire_layer=utm_b_fire_layer,  # utm buffered
             # output=parameters["sampling_layer"],  # DEBUG
         )
+        
+        #assert False, "Stopped"
 
         if feedback.isCanceled():
             return {}
@@ -700,7 +769,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         domain = Domain(
             feedback=feedback,
             utm_crs=utm_crs,
-            utm_extent=utm_extent,
+            utm_extent=fds_domain_extent, #utm_extent,
             utm_origin=utm_origin,
             wgs84_origin=wgs84_origin,
             min_z=terrain.min_z,
