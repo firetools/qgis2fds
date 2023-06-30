@@ -111,7 +111,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 defaultValue=defaultValue,
             )
         )
-
+        
         # Define parameter: extent
 
         defaultValue, _ = project.readEntry("qgis2fds", "extent", DEFAULTS["extent"])
@@ -360,14 +360,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         Process algorithm.
         """
         
-        if sys.platform.startswith('linux'):
-            TMPDIR = '/tmp'
-        elif sys.platform == 'darwin':
-            TMPDIR = os.environ['TMPDIR']
-            os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
-        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
-            TMPDIR = os.environ['TMP']
-        
         addIntermediateLayersToQgis = False
         
         results, outputs, project = {}, {}, QgsProject.instance()
@@ -402,6 +394,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         project.writeEntry("qgis2fds", "fds_path", fds_path)
         fds_path = os.path.join(project_path, fds_path)  # make abs
+        
+        # Establish os specific parameters directory
+        
+        if sys.platform.startswith('linux'):
+            pass
+        elif sys.platform == 'darwin':
+            os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
+        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
+            pass
+
 
         # Get parameter: pixel_size
 
@@ -608,8 +610,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         
         # Convert extents for land use
         # Download WCS data and save as a geoTiff for processing with gdal
-        algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED.tif'))
-        landuse_layer = QgsRasterLayer(os.path.join(TMPDIR,'TEMPORARY_OUTPUT_LAND_CLIPPED.tif'))
+        algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
+        landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
         
         if addIntermediateLayersToQgis:
             QgsProject.instance().addMapLayer(landuse_layer)
@@ -635,16 +637,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fds_dem_extent_utm = dem_to_utm_transform.transformBoundingBox(fds_dem_extent_dem)
         
         # Download WCS data and save as a geoTiff for processing with gdal
-        algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED2.tif'))
+        algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(project_path, chid + '_DEM_CLIPPED.tif'))
         outputs['rotated_dem_layer'] = algos.get_reprojected_raster_layer(context,feedback,
-            os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED2.tif'), utm_crs, os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED3.tif'))
+            os.path.join(project_path,chid + '_DEM_CLIPPED.tif'), utm_crs, os.path.join(project_path, chid + '_DEM_CLIPPED_UTM.tif'))
         
         # Fill empty values in DEM layer with interpolation
         outputs['filled_dem_layer'] = algos.fill_dem_nan(
             context,
             feedback,
-            raster_layer=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED3.tif'),
-            output=os.path.join(TMPDIR,'TEMPORARY_OUTPUT_DEM_CLIPPED_FILLED3.tif'),
+            raster_layer=os.path.join(project_path,chid + '_DEM_CLIPPED_UTM.tif'),
+            output=os.path.join(project_path,chid + '_DEM_CLIPPED_UTM_FILLED.tif'),
         )
         utm_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'])
 
