@@ -192,6 +192,57 @@ def wcsToRaster(rlayer, extent, out_file):
     else:
         print ("Raster was not saved!")
 
+def wcsToRaster2(context, feedback, rlayer, extent, extent_crs, out_file):
+    
+    rlayer_full_extent = rlayer.extent()
+    
+
+    
+    crs = rlayer.crs()
+    
+    x_res = (rlayer_full_extent.xMaximum()-rlayer_full_extent.xMinimum())/rlayer.width()
+    y_res = (rlayer_full_extent.yMaximum()-rlayer_full_extent.yMinimum())/rlayer.height()
+    
+    width = (extent.xMaximum()-extent.xMinimum())/x_res
+    height = (extent.yMaximum()-extent.yMinimum())/y_res
+    
+    ### Raster layer from WCS
+    if not rlayer.isValid():
+      print ("Layer failed to load!")
+
+    # Save raster
+    renderer = rlayer.renderer()
+    provider = rlayer.dataProvider()
+
+    pipe = QgsRasterPipe()
+    projector = QgsRasterProjector()
+    projector.setCrs(crs, crs)
+
+    if not pipe.set(provider.clone()):
+        print("Cannot set pipe provider")
+        
+    if not pipe.insert(2, projector):
+        print("Cannot set pipe projector")
+
+    file_writer = QgsRasterFileWriter(out_file)
+    file_writer.Mode(1)
+
+    print ("Saving")
+
+    error = file_writer.writeRaster(
+        pipe,
+        width,
+        height,
+        extent,
+        crs)
+
+    if error == QgsRasterFileWriter.NoError:
+        print ("Raster was saved successfully!")
+        #layer = QgsRasterLayer(out_file, "result")
+        #QgsProject.instance().addMapLayer(layer)
+    else:
+        print ("Raster was not saved!")
+
 def fill_dem_nan(
     context,
     feedback,
@@ -284,20 +335,21 @@ def get_reprojected_raster_layer(
     text = f"Reproject <{raster_layer}> raster layer to <{destination_crs}> crs..."
     feedback.pushInfo(text)
 
-    alg_params = {
-        "INPUT": raster_layer,
-        "TARGET_CRS": destination_crs,
-        "RESAMPLING": 0,
-        "NODATA": None,
-        "TARGET_RESOLUTION": None,
-        "OPTIONS": "",
-        "DATA_TYPE": 0,
-        "TARGET_EXTENT": None,
-        "TARGET_EXTENT_CRS": None,
-        "MULTITHREADING": False,
-        "EXTRA": "",
-        "OUTPUT": output,
-    }
+    alg_params = {'INPUT':raster_layer,
+                'SOURCE_CRS':None,
+                'TARGET_CRS':destination_crs,
+                'RESAMPLING':0,
+                'NODATA':None,
+                'TARGET_RESOLUTION':None,
+                'OPTIONS':'',
+                'DATA_TYPE':0,
+                'TARGET_EXTENT':None,
+                'TARGET_EXTENT_CRS':None,
+                'MULTITHREADING':False,
+                'EXTRA':'',
+                'OUTPUT':output}
+    #processing.run("gdal:warpreproject", alg_params)
+    
     return processing.run(
         "gdal:warpreproject",
         alg_params,

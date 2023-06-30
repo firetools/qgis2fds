@@ -60,6 +60,8 @@ def get_sampling_point_grid_layer(
     landuse_type,
     utm_fire_layer,
     utm_b_fire_layer,
+    extent,
+    extent_crs,
     output=QgsProcessing.TEMPORARY_OUTPUT,
 ):
     text = f"\nCreate sampling grid layer for FDS geometry..."
@@ -69,8 +71,8 @@ def get_sampling_point_grid_layer(
         context,
         feedback,
         raster_layer=utm_dem_layer,
-        extent=None,
-        extent_crs=None,
+        extent=extent,
+        extent_crs=extent_crs,
         larger=0.0,
     )
 
