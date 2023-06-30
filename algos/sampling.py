@@ -1,12 +1,14 @@
 import processing
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import (
+    QgsProject,
     QgsProcessing,
     QgsProcessingException,
     QgsField,
     NULL,
     edit,
     QgsFeatureRequest,
+    QgsVectorFileWriter
 )
 from .utils import (
     get_pixel_center_aligned_grid_layer,
@@ -15,14 +17,17 @@ from .utils import (
     get_reprojected_vector_layer,
     get_buffered_vector_layer,
 )
-
+import os
 
 def get_utm_fire_layers(
     context,
     feedback,
     fire_layer,
     destination_crs,
+    destination_extent,
     pixel_size,
+    tmp_file,
+    out_file
 ):
     text = f"\nReproject and buffer <{fire_layer}> fire layer..."
     feedback.setProgressText(text)
@@ -39,7 +44,24 @@ def get_utm_fire_layers(
         vector_layer=fire_layer,
         destination_crs=destination_crs,
     )
-
+    
+    # Write shape file
+    if os.path.exists(out_file):
+        os.remove(out_file)
+    processing.run("native:savefeatures",
+        {'INPUT': context.getMapLayer(tmp["OUTPUT"]),
+         'OUTPUT':tmp_file,
+         'LAYER_NAME':'',
+         'DATASOURCE_OPTIONS':'',
+         'LAYER_OPTIONS':''})
+    
+    # Clip burned area to extent
+    alg_params = {'INPUT':tmp_file,
+                  'EXTENT':destination_extent,
+                  'OPTIONS':'-overwrite',
+                  'OUTPUT':out_file}
+    
+    tmp = processing.run("gdal:clipvectorbyextent",alg_params,context=context,feedback=feedback,is_child_algorithm=True)
     # External (fire front)
     tmp2 = get_buffered_vector_layer(
         context,
@@ -50,7 +72,6 @@ def get_utm_fire_layers(
     )
 
     return context.getMapLayer(tmp["OUTPUT"]), context.getMapLayer(tmp2["OUTPUT"])
-
 
 def get_sampling_point_grid_layer(
     context,

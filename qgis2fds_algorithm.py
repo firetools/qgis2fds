@@ -498,27 +498,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             project_path=project_path,
             filepath=landuse_type_filepath,
         )
-        
-        # Get parameter: fire_layer (optional)
-
-        fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
-        if "fire_layer" in parameters:
-            fire_layer = self.parameterAsVectorLayer(parameters, "fire_layer", context)
-            if fire_layer:
-                if not fire_layer.crs().isValid():
-                    raise QgsProcessingException(
-                        f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
-                    )
-                utm_fire_layer, utm_b_fire_layer = algos.get_utm_fire_layers(
-                    context,
-                    feedback,
-                    fire_layer=fire_layer,
-                    destination_crs=utm_crs,
-                    pixel_size=pixel_size,
-                )
-            project.writeEntry(
-                "qgis2fds", "fire_layer", parameters.get("fire_layer")
-            )  # as str
 
         # Get devc_layer (optional)
         # devc_layer = None
@@ -615,7 +594,34 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         
         if addIntermediateLayersToQgis:
             QgsProject.instance().addMapLayer(landuse_layer)
-            
+        
+        # Get parameter: fire_layer (optional)
+
+        fire_layer, utm_fire_layer, utm_b_fire_layer = None, None, None
+        if "fire_layer" in parameters:
+            fire_layer = self.parameterAsVectorLayer(parameters, "fire_layer", context)
+            if fire_layer:
+                if not fire_layer.crs().isValid():
+                    raise QgsProcessingException(
+                        f"Fire layer CRS <{fire_layer.crs().description()}> is not valid, cannot proceed."
+                    )
+                utm_fire_layer, utm_b_fire_layer = algos.get_utm_fire_layers(
+                    context,
+                    feedback,
+                    fire_layer=fire_layer,
+                    destination_crs=utm_crs,
+                    destination_extent=fds_texture_extent_utm,
+                    pixel_size=pixel_size,
+                    tmp_file=os.path.join(project_path,chid + '_FIRE_FULL.gpkg'),
+                    out_file=os.path.join(project_path,chid + '_FIRE_CLIPPED.gpkg')
+                )
+            project.writeEntry(
+                "qgis2fds", "fire_layer", parameters.get("fire_layer")
+            )  # as str
+        
+        if addIntermediateLayersToQgis:
+            QgsProject.instance().addMapLayer(utm_fire_layer)
+        
         
         # Define texture map
         texture = Texture(
