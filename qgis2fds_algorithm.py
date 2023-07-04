@@ -7,6 +7,7 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+
 DEBUG = False
 
 from qgis.core import (
@@ -65,6 +66,17 @@ DEFAULTS = {
     "cell_size": None,
     "export_obst": True,
 }
+
+try:
+    import git
+    systemdir = os.sep.join(__file__.split(os.sep)[:-1])
+    repo = git.Repo(systemdir)
+    sha = repo.head.object.hexsha
+    githash = sha[:7]
+    if repo.is_dirty():
+        githash = githash + '-dirty'
+except:
+    githash = ''
 
 
 class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
@@ -770,7 +782,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """!
         Returns the algorithm name.
         """
-        return "Export terrain"
+        if githash != '':
+            return "Export terrain (%s)"%(githash)
+        else:
+            return "Export terrain"
 
     def displayName(self):
         """!
