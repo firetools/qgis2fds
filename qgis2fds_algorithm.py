@@ -790,16 +790,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """!
         Returns the algorithm name.
         """
-        if githash != '':
-            return "Export terrain (%s)"%(githash)
-        else:
-            return "Export terrain"
+        return "Export terrain"
 
     def displayName(self):
         """!
         Returns the translated algorithm name.
         """
-        return self.name()
+        if githash != '':
+            return "%s (%s)"%(self.name(), githash)
+        else:
+            return "Export terrain"
 
     def group(self):
         """!
