@@ -91,12 +91,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project = QgsProject.instance()
 
         # Check if project crs has changed
-
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         is_project_crs_changed = False
         if prev_project_crs_desc != project.crs().description():
             is_project_crs_changed = True
-
+        
+        if not project.crs().isValid():
+            project.setCrs(QgsCoordinateReferenceSystem("EPSG:4326"))
+        
         # Define parameter: chid
 
         defaultValue, _ = project.readEntry("qgis2fds", "chid", DEFAULTS["chid"])
@@ -464,12 +466,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         origin = parameters.get("origin") or ""
         project.writeEntry("qgis2fds", "origin", origin)  # as str
         if origin:
+            if "[" in origin:
+                crs_txt = origin.split('[')[1].split(']')[0]
+                origin_crs = QgsCoordinateReferenceSystem(crs_txt)
+            else:
+                origin_crs = project.crs()
             # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             # the point is exported in project crs
             origin = self.parameterAsPoint(parameters, "origin", context)
             wgs84_origin = QgsPoint(origin)
             project_to_wgs84_tr = QgsCoordinateTransform(
-                project.crs(), wgs84_crs, project
+                origin_crs, wgs84_crs, project
             )
             wgs84_origin.transform(project_to_wgs84_tr)
 
@@ -555,7 +562,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Convert extents for terrain and texture
         
         fds_domain_extent = utm_extent
-        if "landuse_layer" in parameters and "landuse_type_filepath" in parameters:
+        if landuse_layer is not None:
             terrain_to_utm_transform = QgsCoordinateTransform(landuse_layer.crs(), utm_crs, project)
             utm_to_terrain_transform = QgsCoordinateTransform(utm_crs, landuse_layer.crs(), project)
             
@@ -601,8 +608,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         
         # Convert extents for land use
         # Download WCS data and save as a geoTiff for processing with gdal
-        algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
-        landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
+        if landuse_layer is not None:
+            algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
+            landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
         
         if addIntermediateLayersToQgis:
             QgsProject.instance().addMapLayer(landuse_layer)
