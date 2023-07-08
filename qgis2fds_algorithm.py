@@ -35,7 +35,7 @@ from qgis.core import (
     QgsProcessing
 )
 
-import os, sys
+import os, sys, gc
 from .types import (
     utils,
     FDSCase,
@@ -65,6 +65,7 @@ DEFAULTS = {
     "nmesh": 1,
     "cell_size": None,
     "export_obst": True,
+    "addIntermediateLayersToQgis": False,
 }
 
 try:
@@ -349,7 +350,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(param)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-
+        
+        # Define parameter: addIntermediateLayersToQgis
+        defaultValue, _ = project.readBoolEntry(
+            "qgis2fds", "addIntermediateLayersToQgis", DEFAULTS["addIntermediateLayersToQgis"]
+        )
+        param = QgsProcessingParameterBoolean("addIntermediateLayersToQgis","addIntermediateLayersToQgis",defaultValue=defaultValue)
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        self.addParameter(param)
+        
         # Output
 
         # param = QgsProcessingParameterFeatureSink(  # DEBUG FIXME
@@ -373,8 +382,6 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         """
         Process algorithm.
         """
-        
-        addIntermediateLayersToQgis = False
         
         results, outputs, project = {}, {}, QgsProject.instance()
 
@@ -400,7 +407,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             raise QgsProcessingException(
                 "Save the qgis project to disk, cannot proceed."
             )
-
+            
         fds_path = self.parameterAsFile(parameters, "fds_path", context)
         if not fds_path:
             raise QgsProcessingException(
@@ -417,8 +424,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
         elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
             pass
-
-
+        
+        # Get parameter for intermediate layers to QGIS
+        addIntermediateLayersToQgis = self.parameterAsBool(parameters, "addIntermediateLayersToQgis", context)
+        
         # Get parameter: pixel_size
 
         pixel_size = self.parameterAsDouble(parameters, "pixel_size", context)
@@ -610,7 +619,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Download WCS data and save as a geoTiff for processing with gdal
         if landuse_layer is not None:
             algos.wcsToRaster(landuse_layer, fds_terrain_extent_terrain, os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
-            landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'))
+            landuse_layer = QgsRasterLayer(os.path.join(project_path,chid + '_LAND_CLIPPED.tif'), "land_use_layer")
         
         if addIntermediateLayersToQgis:
             QgsProject.instance().addMapLayer(landuse_layer)
@@ -635,12 +644,16 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     tmp_file=os.path.join(project_path,chid + '_FIRE_FULL.gpkg'),
                     out_file=os.path.join(project_path,chid + '_FIRE_CLIPPED.gpkg')
                 )
+                utm_fire_layer = context.takeResultLayer(utm_fire_layer.name())
+                utm_b_fire_layer = context.takeResultLayer(utm_b_fire_layer.name())
+                if addIntermediateLayersToQgis:
+                    QgsProject.instance().addMapLayer(utm_fire_layer)
+                    QgsProject.instance().addMapLayer(utm_b_fire_layer)
             project.writeEntry(
                 "qgis2fds", "fire_layer", parameters.get("fire_layer")
             )  # as str
-        
-        if addIntermediateLayersToQgis:
-            QgsProject.instance().addMapLayer(utm_fire_layer)
+            
+
         
         
         # Define texture map
@@ -674,7 +687,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             raster_layer=os.path.join(project_path,chid + '_DEM_CLIPPED_UTM.tif'),
             output=os.path.join(project_path,chid + '_DEM_CLIPPED_UTM_FILLED.tif'),
         )
-        utm_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'])
+        utm_dem_layer = QgsRasterLayer(outputs['filled_dem_layer']['OUTPUT'], "utm_dem_layer")
 
         if addIntermediateLayersToQgis:
             QgsProject.instance().addMapLayer(utm_dem_layer)
@@ -768,7 +781,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             cell_size=cell_size,
             nmesh=nmesh,
         )
-
+        
         fds_case = FDSCase(
             feedback=feedback,
             path=fds_path,
@@ -783,7 +796,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             wind=wind,
         )
         fds_case.save()
-
+        if utm_fire_layer is not None:
+            QgsProject.instance().removeMapLayer(utm_fire_layer.id())
+            QgsProject.instance().removeMapLayer(utm_b_fire_layer.id())
+            del utm_fire_layer, utm_b_fire_layer
+            gc.collect()
+        for layer_id in context.temporaryLayerStore().mapLayers():
+            layer = context.getMapLayer(layer_id)
+            project.removeMapLayers( [layer.id()] ) 
+            del layer
+            gc.collect()
+        context.temporaryLayerStore().removeAllMapLayers()
         return results
 
     def name(self):
