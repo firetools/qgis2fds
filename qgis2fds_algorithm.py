@@ -678,7 +678,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # Download WCS data and save as a geoTiff for processing with gdal
         algos.wcsToRaster(dem_layer, fds_dem_extent_dem, os.path.join(project_path, chid + '_DEM_CLIPPED.tif'))
         outputs['rotated_dem_layer'] = algos.get_reprojected_raster_layer(context,feedback,
-            os.path.join(project_path,chid + '_DEM_CLIPPED.tif'), utm_crs, cell_size, os.path.join(project_path, chid + '_DEM_CLIPPED_UTM.tif'),)
+            os.path.join(project_path,chid + '_DEM_CLIPPED.tif'), utm_crs, pixel_size, os.path.join(project_path, chid + '_DEM_CLIPPED_UTM.tif'),)
         
         # Fill empty values in DEM layer with interpolation
         outputs['filled_dem_layer'] = algos.fill_dem_nan(
