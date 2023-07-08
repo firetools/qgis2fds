@@ -644,16 +644,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     tmp_file=os.path.join(project_path,chid + '_FIRE_FULL.gpkg'),
                     out_file=os.path.join(project_path,chid + '_FIRE_CLIPPED.gpkg')
                 )
-                utm_fire_layer = context.takeResultLayer(utm_fire_layer.name())
-                utm_b_fire_layer = context.takeResultLayer(utm_b_fire_layer.name())
+                context.takeResultLayer(utm_fire_layer.name())
+                context.takeResultLayer(utm_b_fire_layer.name())
                 if addIntermediateLayersToQgis:
                     QgsProject.instance().addMapLayer(utm_fire_layer)
                     QgsProject.instance().addMapLayer(utm_b_fire_layer)
             project.writeEntry(
                 "qgis2fds", "fire_layer", parameters.get("fire_layer")
             )  # as str
-            
-
         
         
         # Define texture map
