@@ -48,12 +48,13 @@ def get_utm_fire_layers(
     # Write shape file
     if os.path.exists(out_file):
         os.remove(out_file)
-    processing.run("native:savefeatures",
+    tmp0 =processing.run("native:savefeatures",
         {'INPUT': context.getMapLayer(tmp["OUTPUT"]),
          'OUTPUT':tmp_file,
-         'LAYER_NAME':'',
+         'LAYER_NAME':'utm_fire_full',
          'DATASOURCE_OPTIONS':'',
-         'LAYER_OPTIONS':''})
+         'LAYER_OPTIONS':''},
+         is_child_algorithm=False)
     
     # Clip burned area to extent
     alg_params = {'INPUT':tmp_file,
@@ -70,7 +71,7 @@ def get_utm_fire_layers(
         distance=pixel_size,
         dissolve=False,
     )
-
+    del tmp0
     return context.getMapLayer(tmp["OUTPUT"]), context.getMapLayer(tmp2["OUTPUT"])
 
 def get_sampling_point_grid_layer(
