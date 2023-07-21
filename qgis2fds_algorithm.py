@@ -458,12 +458,17 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         origin = parameters.get("origin") or ""
         project.writeEntry("qgis2fds", "origin", origin)  # as str
         if origin:
+            if "[" in origin:
+                crs_txt = origin.split('[')[1].split(']')[0]
+                origin_crs = QgsCoordinateReferenceSystem(crs_txt)
+            else:
+                origin_crs = project.crs()
             # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs
             # the point is exported in project crs
             origin = self.parameterAsPoint(parameters, "origin", context)
             wgs84_origin = QgsPoint(origin)
             project_to_wgs84_tr = QgsCoordinateTransform(
-                project.crs(), wgs84_crs, project
+                origin_crs, wgs84_crs, project
             )
             wgs84_origin.transform(project_to_wgs84_tr)
 
