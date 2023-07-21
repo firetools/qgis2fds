@@ -41,7 +41,7 @@ from .types import (
     Wind,
 )
 from . import algos
-
+import processing
 
 DEFAULTS = {
     "chid": "terrain",
