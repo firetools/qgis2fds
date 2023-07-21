@@ -38,7 +38,7 @@
         <paletteEntry value="12" color="#a3b1f3" alpha="255" label="FBFM12"/>
         <paletteEntry value="91" color="#ba7750" alpha="255" label="Urban"/>
         <paletteEntry value="92" color="#eaeaea" alpha="255" label="Snow/Ice"/>
-        <paletteEntry value="93" color="#fdf2f2" alpha="255" label="Agricolture"/>
+        <paletteEntry value="93" color="#fdf2f2" alpha="255" label="Agriculture"/>
         <paletteEntry value="98" color="#89b7dd" alpha="255" label="Water"/>
         <paletteEntry value="99" color="#85999c" alpha="255" label="Barren"/>
       </colorPalette>
