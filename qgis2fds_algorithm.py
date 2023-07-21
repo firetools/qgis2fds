@@ -26,7 +26,10 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
     QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
+    QgsRasterFileWriter,
     QgsRasterLayer,
+    QgsRasterPipe,
+    QgsRasterProjector
 )
 
 import os, sys
