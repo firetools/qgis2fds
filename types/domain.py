@@ -55,6 +55,7 @@ class Domain:
             dom_xb[4],
             dom_xb[5],
         )
+        m_xb = [round(x, 2) for x in m_xb]
 
         # Calc MESH IJK
         m_ijk = (
