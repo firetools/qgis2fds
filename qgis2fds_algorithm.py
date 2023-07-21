@@ -29,7 +29,7 @@ from qgis.core import (
     QgsRasterLayer,
 )
 
-import os
+import os, sys
 from .types import (
     utils,
     FDSCase,
@@ -387,6 +387,14 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         project.writeEntry("qgis2fds", "fds_path", fds_path)
         fds_path = os.path.join(project_path, fds_path)  # make abs
+        
+        # Establish os specific parameters directory
+        if sys.platform.startswith('linux'):
+            pass
+        elif sys.platform == 'darwin':
+            os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
+        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
+            pass
 
         # Get parameter: pixel_size
 
