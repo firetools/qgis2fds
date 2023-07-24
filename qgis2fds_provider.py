@@ -7,9 +7,14 @@ __date__ = "2020-05-04"
 __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
+enable_debug_algorithms = True
+
 from qgis.core import QgsProcessingProvider
 from .qgis2fds_algorithm import qgis2fdsAlgorithm
+from .extract_server_layer import extractServerLayerAlgorithm
 
+if enable_debug_algorithms:
+    from .debug_algorithms import debug_terrain
 
 class qgis2fdsProvider(QgsProcessingProvider):
     def __init__(self):
@@ -29,6 +34,9 @@ class qgis2fdsProvider(QgsProcessingProvider):
         Loads all algorithms belonging to this provider.
         """
         self.addAlgorithm(qgis2fdsAlgorithm())
+        self.addAlgorithm(extractServerLayerAlgorithm())
+        if enable_debug_algorithms:
+            self.addAlgorithm(debug_terrain())
 
     def id(self):
         """

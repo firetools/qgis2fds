@@ -1,11 +1,39 @@
 import processing
+import os
+import datetime
 from qgis.core import (
     QgsProcessing,
     QgsRectangle,
     QgsCoordinateTransform,
     QgsProject,
+    QgsRasterLayer,
+    QgsRasterPipe,
+    QgsRasterProjector,
+    QgsRasterFileWriter
 )
 
+def tic():
+    ''' tic: This function stores the current time to the microsecond level
+    
+        OUTPUTS:
+          old_time: float containing the current time to the microsecond level
+    '''
+    old_time = datetime.datetime.now().timestamp()
+    #old_time = datetime.datetime.now().time().hour*3600+datetime.datetime.now().time().minute*60+datetime.datetime.now().time().second+datetime.datetime.now().time().microsecond/1000000
+    return old_time
+
+def toc(old_time):
+    ''' toc: This function returns the amount of time since the supplied time
+    
+        INPUTS:
+          old_time: float containing previous time
+        
+        OUTPUTS:
+          dur: float containing time since previous time
+    '''
+    new_time = tic()
+    dur = new_time-old_time
+    return dur, new_time
 
 def get_pixel_center_aligned_grid_layer(
     context,
@@ -18,7 +46,11 @@ def get_pixel_center_aligned_grid_layer(
 ):
     text = f"Get center aligned sampling grid..."
     feedback.pushInfo(text)
-
+    
+    feedback.pushInfo(f"INPUTS TO GET_PIXEL_ALIGNED_EXTENT")
+    feedback.pushInfo(f"EXTENT {extent}")
+    feedback.pushInfo(f"EXTENT_CRS {extent_crs}")
+    
     aligned_extent = get_pixel_aligned_extent(
         context,
         feedback,
@@ -28,7 +60,13 @@ def get_pixel_center_aligned_grid_layer(
         to_centers=True,
         larger=larger,
     )
-
+    feedback.pushInfo(f"OUTPUTS FROM GET_PIXEL_ALIGNED_EXTENT")
+    feedback.pushInfo(f"ALIGNED_EXTENT {aligned_extent}")
+    
+    feedback.pushInfo("INPUTS TO GET_GRID_LAYER")
+    feedback.pushInfo(f"RASTER_LAYER_CRS {raster_layer.crs()}")
+    feedback.pushInfo(f"RASTER_LAYER_RASTERUNITSPERPIXELX {raster_layer.rasterUnitsPerPixelX()}")
+    feedback.pushInfo(f"RASTER_LAYER_RASTERUNITSPERPIXELY {raster_layer.rasterUnitsPerPixelY()}")
     if feedback.isCanceled():
         return {}
 
@@ -140,6 +178,81 @@ def get_grid_layer(
     )
 
 
+def wcsToRaster(rlayer, extent, out_file):
+    
+    rlayer_full_extent = rlayer.extent()
+    crs = rlayer.crs()
+    
+    x_res = (rlayer_full_extent.xMaximum()-rlayer_full_extent.xMinimum())/rlayer.width()
+    y_res = (rlayer_full_extent.yMaximum()-rlayer_full_extent.yMinimum())/rlayer.height()
+    
+    width = int((extent.xMaximum()-extent.xMinimum())/x_res)
+    height = int((extent.yMaximum()-extent.yMinimum())/y_res)
+    
+    ### Raster layer from WCS
+    if not rlayer.isValid():
+        print ("Layer failed to load!")
+
+    # Save raster
+    renderer = rlayer.renderer()
+    provider = rlayer.dataProvider()
+
+    pipe = QgsRasterPipe()
+    projector = QgsRasterProjector()
+    projector.setCrs(crs, crs)
+
+    if not pipe.set(provider.clone()):
+        print("Cannot set pipe provider")
+        
+    if not pipe.insert(2, projector):
+        print("Cannot set pipe projector")
+
+    file_writer = QgsRasterFileWriter(out_file)
+    file_writer.Mode(1)
+
+    print ("Saving")
+
+    error = file_writer.writeRaster(
+        pipe,
+        width,
+        height,
+        extent,
+        crs)
+
+    if error == QgsRasterFileWriter.NoError:
+        print ("Raster was saved successfully!")
+    else:
+        print ("Raster was not saved!")
+
+
+def fill_dem_nan(
+    context,
+    feedback,
+    raster_layer,
+    output=os.path.abspath('TEMPORARY_OUTPUT2.tif'),
+):
+    alg_params = {
+        "BAND": 1,
+        "INPUT": raster_layer,
+        "RASTER": raster_layer,
+        "SCALE": 1,
+        "OUTPUT": output,
+        'DISTANCE':10,
+        'ITERATIONS':0,
+        'NO_MASK':False,
+        'MASK_LAYER':None,
+        'OPTIONS':'',
+        'EXTRA':'',
+    }
+    return processing.run(
+            "gdal:fillnodata",
+            alg_params,
+            context=context,
+            feedback=feedback,
+            is_child_algorithm=True,
+            )
+            
+
 def set_grid_layer_z(
     context,
     feedback,
@@ -199,25 +312,26 @@ def get_reprojected_raster_layer(
     feedback,
     raster_layer,
     destination_crs,
+    target_res,
     output=QgsProcessing.TEMPORARY_OUTPUT,
 ):
     text = f"Reproject <{raster_layer}> raster layer to <{destination_crs}> crs..."
     feedback.pushInfo(text)
 
-    alg_params = {
-        "INPUT": raster_layer,
-        "TARGET_CRS": destination_crs,
-        "RESAMPLING": 0,
-        "NODATA": None,
-        "TARGET_RESOLUTION": None,
-        "OPTIONS": "",
-        "DATA_TYPE": 0,
-        "TARGET_EXTENT": None,
-        "TARGET_EXTENT_CRS": None,
-        "MULTITHREADING": False,
-        "EXTRA": "",
-        "OUTPUT": output,
-    }
+    alg_params = {'INPUT':raster_layer,
+                'SOURCE_CRS':None,
+                'TARGET_CRS':destination_crs,
+                'RESAMPLING':0,
+                'NODATA':None,
+                'TARGET_RESOLUTION':target_res,
+                'OPTIONS':'',
+                'DATA_TYPE':0,
+                'TARGET_EXTENT':None,
+                'TARGET_EXTENT_CRS':None,
+                'MULTITHREADING':False,
+                'EXTRA':'',
+                'OUTPUT':output}
+    
     return processing.run(
         "gdal:warpreproject",
         alg_params,
