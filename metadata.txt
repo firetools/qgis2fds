@@ -18,7 +18,7 @@ repository=https://github.com/firetools/qgis2fds
 
 hasProcessingProvider=yes
 # changelog=
-tags=python, cfd, fire, wilfire, WUI
+tags=python, cfd, fire, wildfire, WUI
 homepage=https://github.com/firetools/qgis2fds/wiki
 category=Analysis
 icon=icon.png
