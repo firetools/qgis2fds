@@ -9,13 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 
 def classFactory(iface):
-    """!
-    Load qgis2fds class from file qgis2fds.
+    """Load qgis2fds class from file qgis2fds."""
 
-    @param iface: A QGIS interface instance.
-    @type iface: QgsInterface
-    """
-    #
     from .qgis2fds import qgis2fdsPlugin
-
     return qgis2fdsPlugin()
