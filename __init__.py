@@ -12,4 +12,5 @@ def classFactory(iface):
     """Load qgis2fds class from file qgis2fds."""
 
     from .qgis2fds import qgis2fdsPlugin
+
     return qgis2fdsPlugin()

@@ -29,7 +29,7 @@ from qgis.core import (
     QgsRasterFileWriter,
     QgsRasterLayer,
     QgsRasterPipe,
-    QgsRasterProjector
+    QgsRasterProjector,
 )
 
 import os, sys
@@ -336,10 +336,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
 
         # Define parameter: debug
-        defaultValue, _ = project.readBoolEntry(
-            "qgis2fds", "debug", DEFAULTS["debug"]
+        defaultValue, _ = project.readBoolEntry("qgis2fds", "debug", DEFAULTS["debug"])
+        param = QgsProcessingParameterBoolean(
+            "debug", "debug", defaultValue=defaultValue
         )
-        param = QgsProcessingParameterBoolean("debug","debug",defaultValue=defaultValue)
         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(param)
 
@@ -399,13 +399,13 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         project.writeEntry("qgis2fds", "fds_path", fds_path)
         fds_path = os.path.join(project_path, fds_path)  # make abs
-        
+
         # Establish os specific parameters directory
-        if sys.platform.startswith('linux'):
+        if sys.platform.startswith("linux"):
             pass
-        elif sys.platform == 'darwin':
-            os.environ["PROJ_LIB"]="/Applications/QGIS.app/Contents/Resources/proj"
-        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
+        elif sys.platform == "darwin":
+            os.environ["PROJ_LIB"] = "/Applications/QGIS.app/Contents/Resources/proj"
+        elif (sys.platform == "win32") or (sys.platform == "cygwin"):
             pass
 
         # Get parameter for debug
@@ -459,7 +459,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "origin", origin)  # as str
         if origin:
             if "[" in origin:
-                crs_txt = origin.split('[')[1].split(']')[0]
+                crs_txt = origin.split("[")[1].split("]")[0]
                 origin_crs = QgsCoordinateReferenceSystem(crs_txt)
             else:
                 origin_crs = project.crs()
@@ -467,9 +467,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             # the point is exported in project crs
             origin = self.parameterAsPoint(parameters, "origin", context)
             wgs84_origin = QgsPoint(origin)
-            project_to_wgs84_tr = QgsCoordinateTransform(
-                origin_crs, wgs84_crs, project
-            )
+            project_to_wgs84_tr = QgsCoordinateTransform(origin_crs, wgs84_crs, project)
             wgs84_origin.transform(project_to_wgs84_tr)
 
         # Get applicable UTM crs, then UTM origin and extent
@@ -670,11 +668,11 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                 layer = context.getMapLayer(layer_id)
                 name = layer.name()
                 if chid in name:
-                    outname = os.path.join(project_path,"debug_" + name)
+                    outname = os.path.join(project_path, "debug_" + name)
                 else:
-                    outname = os.path.join(project_path,"debug_" + chid + "_" + name)
+                    outname = os.path.join(project_path, "debug_" + chid + "_" + name)
                 if type(layer) is QgsRasterLayer:
-                    outname = outname + '.tif'
+                    outname = outname + ".tif"
                     renderer = layer.renderer()
                     provider = layer.dataProvider()
                     pipe = QgsRasterPipe()
@@ -686,13 +684,15 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
                     height = layer.height()
                     layer_extent = layer.extent()
                     layer_crs = layer.crs()
-                    
-                    error = file_writer.writeRaster(pipe, width, height, layer_extent, layer_crs)
+
+                    error = file_writer.writeRaster(
+                        pipe, width, height, layer_extent, layer_crs
+                    )
                 else:
-                    outname = outname + '.gpkg'
-                    alg_params = {"INPUT": name, "OUTPUT": outname, 'LAYER_NAME': name}
+                    outname = outname + ".gpkg"
+                    alg_params = {"INPUT": name, "OUTPUT": outname, "LAYER_NAME": name}
                     processing.run("native:savefeatures", alg_params, context=context)
-                feedback.pushInfo("Saving %s"%(outname))
+                feedback.pushInfo("Saving %s" % (outname))
 
         # Prepare terrain, domain, and fds_case
         if export_obst:
