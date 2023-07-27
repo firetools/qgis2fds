@@ -78,6 +78,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project = QgsProject.instance()
 
         # Check if project crs has changed
+        # FIXME Thanks to Jonathan check on origin this should not be used anymore
 
         prev_project_crs_desc, _ = project.readEntry("qgis2fds", "project_crs", None)
         is_project_crs_changed = False
@@ -207,6 +208,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Define parameters: fire_layer [optional]
+        # FIXME no need for a fire_layer anymore.
+        # Kevin idea on using Serval is better!
+        # https://github.com/lutraconsulting/serval/blob/master/Serval/docs/user_manual.md
 
         defaultValue, _ = project.readEntry(
             "qgis2fds", "fire_layer", DEFAULTS["fire_layer"]
@@ -229,7 +233,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-        # Define parameters: devc_layer  # FIXME implement
+        # Define parameters: devc_layer
+        # FIXME implement, this is useful for inserting geographic DEVCs
+        # This can be done in BlenderFDS geographic management as well
         #
         # defaultValue, _ = project.readEntry("qgis2fds", "devc_layer", None)
         # if not defaultValue:
@@ -251,6 +257,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         # )
 
         # Define parameters: wind_filepath [optional]
+        # FIXME this should be removed, a more general free text insertion feature
+        # should be added. See BlenderFDS on how to do that
 
         defaultValue, _ = project.readEntry(
             "qgis2fds", "wind_filepath", DEFAULTS["wind_filepath"]
@@ -267,6 +275,9 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         )
 
         # Define parameter: tex_layer [optional]
+        # FIXME I am in favour of removing this and export
+        # only the current view as texture.
+        # I have no idea on how to cache this locally!
 
         defaultValue, _ = project.readEntry(
             "qgis2fds", "tex_layer", DEFAULTS["tex_layer"]
@@ -370,6 +381,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         results, outputs, project = {}, {}, QgsProject.instance()
 
         # Check project crs and save it
+        # FIXME this could be removed
 
         if not project.crs().isValid():
             raise QgsProcessingException(
@@ -401,6 +413,7 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         fds_path = os.path.join(project_path, fds_path)  # make abs
 
         # Establish os specific parameters directory
+        # FIXME what's for?
         if sys.platform.startswith("linux"):
             pass
         elif sys.platform == "darwin":
@@ -408,8 +421,10 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         elif (sys.platform == "win32") or (sys.platform == "cygwin"):
             pass
 
-        # Get parameter for debug
+        # Get parameter: DEBUG
+
         DEBUG = self.parameterAsBool(parameters, "debug", context)
+        # FIXME Why this is not saved to qgz file?
 
         # Get parameter: pixel_size
 
@@ -459,8 +474,8 @@ class qgis2fdsAlgorithm(QgsProcessingAlgorithm):
         project.writeEntry("qgis2fds", "origin", origin)  # as str
         if origin:
             if "[" in origin:
-                crs_txt = origin.split("[")[1].split("]")[0]
-                origin_crs = QgsCoordinateReferenceSystem(crs_txt)
+                origin_crs_txt = origin.split("[")[1].split("]")[0]
+                origin_crs = QgsCoordinateReferenceSystem(origin_crs_txt)
             else:
                 origin_crs = project.crs()
             # prevent a QGIS bug when using parameterAsPoint with crs=wgs84_crs

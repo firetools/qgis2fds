@@ -34,13 +34,13 @@ class qgis2fdsProvider(QgsProcessingProvider):
         """
         Returns the unique provider id.
         """
-        return "Export to NIST FDS"
+        return "NIST FDS fire simulation"
 
     def name(self):
         """
         Returns the provider name.
         """
-        return "Export to NIST FDS"
+        return "NIST FDS fire simulation"
 
     def icon(self):
         """
