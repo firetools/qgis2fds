@@ -9,6 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import QgsProcessingProvider
 from .qgis2fds_algorithm import qgis2fdsAlgorithm
+from .qgis2fds_export_algo import qgis2fdsExportAlgo
 
 
 class qgis2fdsProvider(QgsProcessingProvider):
@@ -28,7 +29,8 @@ class qgis2fdsProvider(QgsProcessingProvider):
         """
         Loads all algorithms belonging to this provider.
         """
-        self.addAlgorithm(qgis2fdsAlgorithm())
+        # self.addAlgorithm(qgis2fdsAlgorithm())
+        self.addAlgorithm(qgis2fdsExportAlgo())
 
     def id(self):
         """
