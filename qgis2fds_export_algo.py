@@ -14,21 +14,16 @@ from qgis.core import (
     QgsProcessingException,
     QgsProcessingAlgorithm,
     QgsProcessingMultiStepFeedback,
-    QgsProcessingParameterRasterLayer,
-    QgsProcessingParameterVectorLayer,
-    QgsProcessingParameterPoint,
-    QgsProcessingParameterExtent,
-    QgsProcessingParameterFile,
-    QgsProcessingParameterString,
-    QgsProcessingParameterNumber,
-    QgsProcessingParameterDefinition,
     QgsProcessingParameterFeatureSink,
-    QgsProcessingParameterBoolean,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterFeatureSink,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsPoint,
 )
 import processing, os
-from .parameters import *
+from .qgis2fds_params import *
+from . import utilities
 
 
 class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
@@ -41,20 +36,21 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Define parameters
 
-        ChidParam.set(algo=self, config=config, project=project)
-        FDSPathParam.set(algo=self, config=config, project=project)
-        ExtentParam.set(algo=self, config=config, project=project)
-        PixelSizeParam.set(algo=self, config=config, project=project)
-        OriginParam.set(algo=self, config=config, project=project)
-        DEMLayerParam.set(algo=self, config=config, project=project)
-        LanduseLayerParam.set(algo=self, config=config, project=project)
-        LanduseTypeFilepathParam.set(algo=self, config=config, project=project)
-        TextFilepathParam.set(algo=self, config=config, project=project)
-        TexLayerParam.set(algo=self, config=config, project=project)
-        TexPixelSizeParam.set(algo=self, config=config, project=project)
-        NMeshParam.set(algo=self, config=config, project=project)
-        CellSizeParam.set(algo=self, config=config, project=project)
-        ExportOBSTParam.set(algo=self, config=config, project=project)
+        kwargs = {"algo": self, "config": config, "project": project}
+        ChidParam.set(**kwargs)
+        FDSPathParam.set(**kwargs)
+        ExtentParam.set(**kwargs)
+        PixelSizeParam.set(**kwargs)
+        OriginParam.set(**kwargs)
+        DEMLayerParam.set(**kwargs)
+        LanduseLayerParam.set(**kwargs)
+        LanduseTypeFilepathParam.set(**kwargs)
+        TextFilepathParam.set(**kwargs)
+        TexLayerParam.set(**kwargs)
+        TexPixelSizeParam.set(**kwargs)
+        NMeshParam.set(**kwargs)
+        CellSizeParam.set(**kwargs)
+        ExportOBSTParam.set(**kwargs)
 
         # Define destination layers
 
@@ -78,8 +74,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         self.addParameter(
             QgsProcessingParameterFeatureSink(
-                "ValuedUtmSamplingGrid",
-                "Valued UTM sampling grid",
+                "UtmSamplingGrid",
+                "UTM sampling grid",
                 type=QgsProcessing.TypeVectorPoint,
                 createByDefault=False,
                 defaultValue=None,
@@ -108,150 +104,93 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         feedback = QgsProcessingMultiStepFeedback(9, model_feedback)
         results, outputs, project = {}, {}, QgsProject.instance()
 
-        # Get parameter values
+        # Load parameter values
 
-        chid = ChidParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-        fds_path = FDSPathParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        extent = ExtentParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        pixel_size = PixelSizeParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        origin = OriginParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        dem_layer = DEMLayerParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        landuse_layer = LanduseLayerParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        landuse_type_filepath = LanduseTypeFilepathParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        text_filepath = TextFilepathParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        tex_layer = TexLayerParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        tex_pixel_size = TexPixelSizeParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        nmesh = NMeshParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        cell_size = CellSizeParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
-
-        export_obst = ExportOBSTParam.get(
-            algo=self,
-            parameters=parameters,
-            context=context,
-            feedback=feedback,
-            project=project,
-        )
+        kwargs = {
+            "algo": self,
+            "parameters": parameters,
+            "context": context,
+            "feedback": feedback,
+            "project": project,
+        }
+        chid = ChidParam.get(**kwargs)
+        fds_path = FDSPathParam.get(**kwargs)
+        extent = ExtentParam.get(**kwargs)  # in project crs
+        pixel_size = PixelSizeParam.get(**kwargs)
+        origin = OriginParam.get(**kwargs)  # in project crs
+        dem_layer = DEMLayerParam.get(**kwargs)
+        landuse_layer = LanduseLayerParam.get(**kwargs)
+        landuse_type_filepath = LanduseTypeFilepathParam.get(**kwargs)
+        text_filepath = TextFilepathParam.get(**kwargs)
+        tex_layer = TexLayerParam.get(**kwargs)
+        tex_pixel_size = TexPixelSizeParam.get(**kwargs)
+        nmesh = NMeshParam.get(**kwargs)
+        cell_size = CellSizeParam.get(**kwargs)
+        export_obst = ExportOBSTParam.get(**kwargs)
 
         # Check parameter values
 
-        text = f"\nFIXME chid: <{chid}> fds_path: <{fds_path}> extent: <{extent}> pixel_size: <{pixel_size}>"
-        text += f"\nFIXME origin: <{origin}> dem_layer: <{dem_layer}> landuse_layer: <{landuse_layer}> landuse_type_filepath: <{landuse_type_filepath}>"
-        text += f"\nFIXME text_filepath: <{text_filepath}> tex_layer: <{tex_layer}> tex_pixel_size: <{tex_pixel_size}> nmesh: <{nmesh}>"
-        text += f"\nFIXME cell_size: <{cell_size}> export_obst: <{export_obst}>"
-
+        text = ""
+        if not origin:
+            origin = QgsPoint(extent.center())  # in project crs
+            text += "\nDomain extent centroid used as origin"
+        if not landuse_layer or not landuse_type_filepath:
+            landuse_layer, landuse_type_filepath = None, None
+            text += "\nLanduse not exported"
+        if not tex_layer:
+            text += "\nCurrent canvas view exported as texture"
+        if not tex_pixel_size:
+            tex_pixel_size = pixel_size
+            text += "\nTerrain resolution used as texture resolution"
+        if not cell_size:
+            cell_size = pixel_size
+            text += "\nTerrain resolution used as FDS MESH cell size"
         feedback.setProgressText(text)
 
-        return results  # FIXME script end
+        # Calc wgs84_origin, applicable UTM crs, utm_origin, utm_extent
+
+        wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
+        prj_to_wgs84_tr = QgsCoordinateTransform(project.crs(), wgs84_crs, project)
+        wgs84_origin = origin.clone()
+        wgs84_origin.transform(prj_to_wgs84_tr)
+
+        utm_epsg = utilities.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
+        utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
+        wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
+        utm_origin = wgs84_origin.clone()
+        utm_origin.transform(wgs84_to_utm_tr)
+
+        utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
+        utm_extent.grow(delta=pixel_size)  # grow for full coverage of extent
+
+        text = f"\nUTM CRS: {utm_crs}"
+        text += f"\nWGS84 origin: {wgs84_origin}"
+        text += f"\nUTM origin: {utm_origin}"
+        text += f"\nUTM extent: {utm_extent}"
+        feedback.setProgressText(text)
+
+        # Geographic transformations
 
         # Create UTM sampling grid
-        spacing = parameters["pixel_size"]
-        overlay = spacing / 2.0
+        spacing = pixel_size
         alg_params = {
-            "CRS": parameters["utm_crs"],
-            "EXTENT": parameters["domain_extent"],
+            "CRS": utm_crs,
+            "EXTENT": utm_extent,
             "TYPE": 0,  # Point
             "HSPACING": spacing,
             "VSPACING": spacing,
-            "HOVERLAY": overlay,
-            "VOVERLAY": overlay,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            "HOVERLAY": 0.0,
+            "VOVERLAY": 0.0,
+            "OUTPUT": parameters["UtmSamplingGrid"],
         }
-        outputs["CreateUtmSamplingGrid"] = processing.run(
+        outputs["UtmSamplingGrid"] = processing.run(
             "native:creategrid",
             alg_params,
             context=context,
             feedback=feedback,
             is_child_algorithm=True,
         )
+        results["UtmSamplingGrid"] = outputs["UtmSamplingGrid"]["OUTPUT"]
 
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
@@ -259,7 +198,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Extract UTM sampling grid extent
         alg_params = {
-            "INPUT": outputs["CreateUtmSamplingGrid"]["OUTPUT"],
+            "INPUT": outputs["UtmSamplingGrid"]["OUTPUT"],
             "ROUND_TO": 0,
             "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
@@ -276,18 +215,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Buffer UTM sampling grid extent
-        dem_layer = self.parameterAsRasterLayer(
-            parameters, "dem_layer", context
-        )  # FIXME anticipate
-        distance = (
-            max(
-                (
-                    abs(dem_layer.rasterUnitsPerPixelX()),
-                    abs(dem_layer.rasterUnitsPerPixelY()),
-                )
-            )
-            * 2.0
-        )  # FIXME check meters, not yards
+        rx = abs(dem_layer.rasterUnitsPerPixelX())
+        ry = abs(dem_layer.rasterUnitsPerPixelY())
+        distance = max((rx, ry)) * 2.0  # FIXME check meters, not yards!
         # text = f"\nFIXME Buffer distance: <{distance}>, <{parameters['dem_layer']}>, <{dem_layer}>, <{dem_layer.rasterUnitsPerPixelX()}>"
         # feedback.setProgressText(text)
 
@@ -319,7 +249,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         alg_params = {
             "DATA_TYPE": 0,  # Use Input Layer Data Type
             "EXTRA": "",
-            "INPUT": parameters["dem_layer"],
+            "INPUT": dem_layer,
             "NODATA": None,
             "OPTIONS": "",
             "OVERCRS": True,
@@ -363,7 +293,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             "CONVERT_CURVED_GEOMETRIES": False,
             "INPUT": outputs["DemPixelsToPoints"]["OUTPUT"],
             "OPERATION": "",
-            "TARGET_CRS": parameters["utm_crs"],
+            "TARGET_CRS": utm_crs,
             "OUTPUT": parameters["UtmDemPoints"],
         }
         outputs["ReprojectToUtm"] = processing.run(
@@ -382,8 +312,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         field_index = 0
         input_type = 0  # points
         interpolation_data = f"{layer_source}::~::{interpolation_source}::~::{field_index}::~::{input_type}"
-        # interpolation_data = 'Point?crs=EPSG:32610&field=DEM:double(20,8)&uid={0a7f4ab4-8bac-4e7a-bced-e0dbdbeba9d1}::~::0::~::0::~::0'
-        dem_pixel_size = parameters["pixel_size"] / 2.0  # interpolated DEM resolution
+        dem_pixel_size = pixel_size / 2.0  # interpolated DEM resolution
         alg_params = {
             "EXTENT": outputs["BufferExtent"]["OUTPUT"],
             "INTERPOLATION_DATA": interpolation_data,
@@ -407,7 +336,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Set UTM sampling grid Z from DEM
         alg_params = {
             "BAND": 1,
-            "INPUT": outputs["CreateUtmSamplingGrid"]["OUTPUT"],
+            "INPUT": outputs["UtmSamplingGrid"]["OUTPUT"],
             "NODATA": -999,
             "OFFSET": 0,
             "RASTER": outputs["TinInterpolation"]["OUTPUT"],
@@ -430,8 +359,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         alg_params = {
             "COLUMN_PREFIX": "landuse",
             "INPUT": outputs["SetZFromDem"]["OUTPUT"],
-            "RASTERCOPY": parameters["landuse_layer"],
-            "OUTPUT": parameters["ValuedUtmSamplingGrid"],
+            "RASTERCOPY": landuse_layer,
+            "OUTPUT": parameters["UtmSamplingGrid"],
         }
         outputs["SampleRasterValues"] = processing.run(
             "native:rastersampling",
@@ -440,7 +369,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-        results["ValuedUtmSamplingGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
+        results["UtmSamplingGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
 
         feedback.setCurrentStep(8)
         if feedback.isCanceled():

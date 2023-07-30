@@ -44,9 +44,8 @@ class ChidParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsString(parameters, cls.label, context)
-        if not value:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
         project.writeEntry("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -72,16 +71,13 @@ class FDSPathParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsFile(parameters, cls.label, context)
-        if not value:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
         project.writeEntry("qgis2fds", cls.label, value)
-
         # Make and check absolute path
         project_path = project.absolutePath()
-        if value and not project_path:
+        if not project_path:
             raise QgsProcessingException("Save QGIS project to disk, cannot proceed.")
         value = os.path.join(project_path, value)
-
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -104,10 +100,11 @@ class ExtentParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsExtent(parameters, cls.label, context)
-        if not value:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
-        project.writeEntry("qgis2fds", cls.label, parameters["extent"])  # special, why?
+        value = algo.parameterAsExtent(
+            parameters, cls.label, context, crs=project.crs()
+        )  # in project crs
+        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -133,9 +130,8 @@ class PixelSizeParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsDouble(parameters, cls.label, context)
-        if not value:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
         project.writeEntryDouble("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -159,9 +155,13 @@ class OriginParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsPoint(parameters, cls.label, context)
-        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
-        return value
+        value = parameters.get(cls.label)
+        project.writeEntry("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        if value:
+            return algo.parameterAsPoint(
+                parameters, cls.label, context, crs=project.crs()
+            )  # in project crs
 
 
 class DEMLayerParam:
@@ -194,15 +194,12 @@ class DEMLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        if not value:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
         if not value.crs().isValid():
             raise QgsProcessingException(
-                f"DEM layer CRS <{value.crs().description()}> is not valid, cannot proceed."
+                f"DEM layer CRS <{value.crs().description()}> not valid, cannot proceed."
             )
-        project.writeEntry(
-            "qgis2fds", cls.label, parameters.get(cls.label)
-        )  # protect, why?
+        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -225,14 +222,15 @@ class LanduseLayerParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        value = None
+        if parameters[cls.label]:
+            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
         if value and not value.crs().isValid():
             raise QgsProcessingException(
-                f"Landuse layer CRS <{value.crs().description()}> is not valid, cannot proceed."
+                f"Landuse layer CRS <{value.crs().description()}> not valid, cannot proceed."
             )
-        project.writeEntry(
-            "qgis2fds", cls.label, parameters.get(cls.label)
-        )  # protect, why?
+        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -257,18 +255,19 @@ class LanduseTypeFilepathParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsFile(parameters, cls.label, context)
-        project.writeEntry("qgis2fds", cls.label, value)
-
-        # Make and check absolute path
+        value = None
+        if parameters[cls.label]:
+            value = algo.parameterAsFile(parameters, cls.label, context)
+        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
+            # Make and check absolute path
             project_path = project.absolutePath()
             if not project_path:
                 raise QgsProcessingException(
                     "Save QGIS project to disk, cannot proceed."
                 )
             value = os.path.join(project_path, value)
-
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -294,18 +293,19 @@ class TextFilepathParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsFile(parameters, cls.label, context)
-        project.writeEntry("qgis2fds", cls.label, value)
-
-        # Make and check absolute path
+        value = None
+        if parameters[cls.label]:
+            value = algo.parameterAsFile(parameters, cls.label, context)
+        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
+            # Make and check absolute path
             project_path = project.absolutePath()
             if not project_path:
                 raise QgsProcessingException(
                     "Save QGIS project to disk, cannot proceed."
                 )
             value = os.path.join(project_path, value)
-
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -329,14 +329,15 @@ class TexLayerParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        value = None
+        if parameters[cls.label]:
+            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
         if value and not value.crs().isValid():
             raise QgsProcessingException(
-                f"Texture layer CRS <{value.crs().description()}> is not valid, cannot proceed."
+                f"Texture layer CRS <{value.crs().description()}> not valid, cannot proceed."
             )
-        project.writeEntry(
-            "qgis2fds", cls.label, parameters.get(cls.label)
-        )  # protect, why?
+        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -362,12 +363,13 @@ class TexPixelSizeParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        if parameters.get(cls.label):
+        if parameters[cls.label]:
             value = algo.parameterAsDouble(parameters, cls.label, context)
             project.writeEntryDouble("qgis2fds", cls.label, value)
         else:  # protect
             value = None
             project.writeEntry("qgis2fds", cls.label, None)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -394,15 +396,14 @@ class NMeshParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsInt(parameters, cls.label, context)
-        if not value or value < 1:
-            raise QgsProcessingException(algo.invalidSourceError(parameters, cls.label))
         project.writeEntryDouble("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
 class CellSizeParam:
     label = "cell_size"
-    desc = "Desired FDS MESH cell size (in meters; if not set, use desired resolution)"
+    desc = "Desired FDS MESH cell size (in meters; if not set, use desired terrain resolution)"
     default = 10.0
     optional = True
 
@@ -422,12 +423,13 @@ class CellSizeParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        if parameters.get(cls.label):
+        if parameters[cls.label]:
             value = algo.parameterAsDouble(parameters, cls.label, context)
             project.writeEntryDouble("qgis2fds", cls.label, value)
         else:  # protect
             value = None
             project.writeEntry("qgis2fds", cls.label, None)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
 
@@ -453,4 +455,5 @@ class ExportOBSTParam:
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsBool(parameters, cls.label, context)
         project.writeEntryBool("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
