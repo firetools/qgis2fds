@@ -20,8 +20,9 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPoint,
+    QgsRectangle,
 )
-import processing, os
+import processing, math
 from .qgis2fds_params import *
 from . import utilities
 
@@ -55,28 +56,18 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Define destination layers
 
         self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                "ClippedDemLayer",
-                "Clipped DEM layer",
-                createByDefault=False,
-                defaultValue=None,
-            )
-        )
-        self.addParameter(
-            QgsProcessingParameterFeatureSink(
-                "BufferedDomainExtent",
-                "Buffered domain extent",
-                type=QgsProcessing.TypeVectorPolygon,
-                createByDefault=False,
-                supportsAppend=True,
-                defaultValue=None,
-            )
-        )
-        self.addParameter(
             QgsProcessingParameterFeatureSink(
                 "UtmSamplingGrid",
                 "UTM sampling grid",
                 type=QgsProcessing.TypeVectorPoint,
+                createByDefault=False,
+                defaultValue=None,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterRasterDestination(
+                "ClippedDemLayer",
+                "Clipped DEM layer",
                 createByDefault=False,
                 defaultValue=None,
             )
@@ -147,7 +138,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             text += "\nTerrain resolution used as FDS MESH cell size"
         feedback.setProgressText(text)
 
-        # Calc wgs84_origin, applicable UTM crs, utm_origin, utm_extent
+        # Calc wgs84_origin, applicable UTM crs, utm_origin
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         prj_to_wgs84_tr = QgsCoordinateTransform(project.crs(), wgs84_crs, project)
@@ -157,16 +148,40 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         utm_epsg = utilities.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
         wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
-        utm_origin = wgs84_origin.clone()
+        utm_origin = wgs84_origin.clone()  # FIXME better way?
         utm_origin.transform(wgs84_to_utm_tr)
 
+        # Calc utm_extent, adjust dimensions as pixel_size multiples
+
         utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
-        utm_extent.grow(delta=pixel_size)  # grow for full coverage of extent
+        w = math.ceil(utm_extent.width() / pixel_size) * pixel_size + 0.000001
+        h = math.ceil(utm_extent.height() / pixel_size) * pixel_size + 0.000001
+        utm_extent.setXMaximum(utm_extent.xMinimum() + w)
+        utm_extent.setYMinimum(utm_extent.yMaximum() - h)
 
         text = f"\nUTM CRS: {utm_crs}"
         text += f"\nWGS84 origin: {wgs84_origin}"
         text += f"\nUTM origin: {utm_origin}"
         text += f"\nUTM extent: {utm_extent}"
+        feedback.setProgressText(text)
+
+        # Calc the interpolated DEM extent in UTM crs
+        # so that the interpolation is aligned to the sampling grid
+
+        idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - 0.000002)
+
+        # Calc clipping extent of the original DEM in DEM crs
+        # so that it is enough for interpolation
+
+        utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
+        clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(idem_utm_extent)
+        rx = abs(dem_layer.rasterUnitsPerPixelX())
+        ry = abs(dem_layer.rasterUnitsPerPixelY())
+        delta = max((rx, ry)) * 2.0  # cover if larger dem resolution
+        clipped_dem_extent.grow(delta=delta)
+
+        text = f"\nidem_utm_extent: {idem_utm_extent}"
+        text += f"\nclipped_dem_extent: {clipped_dem_extent}"
         feedback.setProgressText(text)
 
         # Geographic transformations
@@ -196,64 +211,15 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Extract UTM sampling grid extent
+        # Clip DEM by needed extent
         alg_params = {
-            "INPUT": outputs["UtmSamplingGrid"]["OUTPUT"],
-            "ROUND_TO": 0,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["ExtractExtent"] = processing.run(
-            "native:polygonfromlayerextent",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-
-        feedback.setCurrentStep(2)
-        if feedback.isCanceled():
-            return {}
-
-        # Buffer UTM sampling grid extent
-        rx = abs(dem_layer.rasterUnitsPerPixelX())
-        ry = abs(dem_layer.rasterUnitsPerPixelY())
-        distance = max((rx, ry)) * 2.0  # FIXME check meters, not yards!
-        # text = f"\nFIXME Buffer distance: <{distance}>, <{parameters['dem_layer']}>, <{dem_layer}>, <{dem_layer.rasterUnitsPerPixelX()}>"
-        # feedback.setProgressText(text)
-
-        alg_params = {
-            "DISSOLVE": True,
-            "DISTANCE": distance,
-            "END_CAP_STYLE": 2,  # Square
-            "INPUT": outputs["ExtractExtent"]["OUTPUT"],
-            "JOIN_STYLE": 2,  # Bevel
-            "MITER_LIMIT": 2,
-            "SEGMENTS": 1,
-            "SEPARATE_DISJOINT": False,
-            "OUTPUT": parameters["BufferedDomainExtent"],
-        }
-        outputs["BufferExtent"] = processing.run(
-            "native:buffer",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-        results["BufferedDomainExtent"] = outputs["BufferExtent"]["OUTPUT"]
-
-        feedback.setCurrentStep(3)
-        if feedback.isCanceled():
-            return {}
-
-        # Clip DEM by buffered extent
-        alg_params = {
-            "DATA_TYPE": 0,  # Use Input Layer Data Type
+            "DATA_TYPE": 0,  # use input layer data type
             "EXTRA": "",
-            "INPUT": dem_layer,
-            "NODATA": None,
+            "INPUT": dem_layer,  # in PROJWIN crs
+            "NODATA": -999.0,
             "OPTIONS": "",
             "OVERCRS": True,
-            "PROJWIN": outputs["BufferExtent"]["OUTPUT"],
+            "PROJWIN": clipped_dem_extent,
             "OUTPUT": parameters["ClippedDemLayer"],
         }
         outputs["ClipDemByBufferedExtent"] = processing.run(
@@ -269,7 +235,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # DEM pixels to points
+        # Transform clipped DEM pixels to points
         alg_params = {
             "FIELD_NAME": "DEM",
             "INPUT_RASTER": outputs["ClipDemByBufferedExtent"]["OUTPUT"],
@@ -305,19 +271,23 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         results["UtmDemPoints"] = outputs["ReprojectToUtm"]["OUTPUT"]
 
-        # Interpolate UTM DEM points for denser DEM raster layer
+        feedback.setCurrentStep(6)
+        if feedback.isCanceled():
+            return {}
+
+        # Interpolate UTM DEM points to DEM raster layer
+        # aligned to UTM sampling grid
         utm_dem_layer = outputs["ReprojectToUtm"]["OUTPUT"]
         layer_source = context.getMapLayer(utm_dem_layer).source()
         interpolation_source = 0
         field_index = 0
         input_type = 0  # points
         interpolation_data = f"{layer_source}::~::{interpolation_source}::~::{field_index}::~::{input_type}"
-        dem_pixel_size = pixel_size / 2.0  # interpolated DEM resolution
         alg_params = {
-            "EXTENT": outputs["BufferExtent"]["OUTPUT"],
+            "EXTENT": idem_utm_extent,
             "INTERPOLATION_DATA": interpolation_data,
             "METHOD": 0,  # Linear
-            "PIXEL_SIZE": dem_pixel_size,
+            "PIXEL_SIZE": pixel_size,  # interpolated DEM resolution
             "OUTPUT": parameters["UtmInterpolatedDemLayer"],
         }
         outputs["TinInterpolation"] = processing.run(
@@ -329,11 +299,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         results["UtmInterpolatedDemLayer"] = outputs["TinInterpolation"]["OUTPUT"]
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
-        # Set UTM sampling grid Z from DEM
+        # Sample Z values from interpolated DEM raster layer
         alg_params = {
             "BAND": 1,
             "INPUT": outputs["UtmSamplingGrid"]["OUTPUT"],
@@ -351,11 +321,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
 
-        # Set UTM sampling grid landuse from landuse layer
+        # Sample landuse values from landuse layer
         alg_params = {
             "COLUMN_PREFIX": "landuse",
             "INPUT": outputs["SetZFromDem"]["OUTPUT"],
@@ -371,7 +341,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         results["UtmSamplingGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
 
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
 
