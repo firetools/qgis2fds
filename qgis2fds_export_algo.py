@@ -394,6 +394,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 is_child_algorithm=True,
             )
             # results["UtmGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
+            fds_grid_layer = context.getMapLayer(outputs["SampleRasterValues"]["OUTPUT"])
+        else:
+            fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
@@ -431,7 +434,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             Terrain = GEOMTerrain
         terrain = Terrain(
             feedback=feedback,
-            sampling_layer=utm_grid_layer,
+            sampling_layer=fds_grid_layer, #utm_grid_layer,
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
@@ -442,7 +445,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-
+        
         domain = Domain(
             feedback=feedback,
             utm_crs=utm_crs,
