@@ -19,6 +19,7 @@ from qgis.core import (
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterBoolean,
+    QgsPoint,
 )
 import os
 
@@ -159,8 +160,8 @@ class OriginParam:
         project.writeEntry("qgis2fds", cls.label, value)
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         if value:
-            return algo.parameterAsPoint(
-                parameters, cls.label, context, crs=project.crs()
+            return QgsPoint(
+                algo.parameterAsPoint(parameters, cls.label, context, crs=project.crs())
             )  # in project crs
 
 
@@ -194,6 +195,13 @@ class DEMLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        # Check local
+        url = value.source()
+        if not os.path.isfile(url):
+            raise QgsProcessingException(
+                "DEM layer data is not saved locally, cannot proceed."
+            )
+        # Check valid
         if not value.crs().isValid():
             raise QgsProcessingException(
                 f"DEM layer CRS <{value.crs().description()}> not valid, cannot proceed."
@@ -225,10 +233,18 @@ class LanduseLayerParam:
         value = None
         if parameters[cls.label]:
             value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        if value and not value.crs().isValid():
-            raise QgsProcessingException(
-                f"Landuse layer CRS <{value.crs().description()}> not valid, cannot proceed."
-            )
+        if value:
+            # Check local
+            url = value.source()
+            if not os.path.isfile(url):
+                raise QgsProcessingException(
+                    "Landuse layer data is not saved locally, cannot proceed."
+                )
+            # Check valid
+            if not value.crs().isValid():
+                raise QgsProcessingException(
+                    f"Landuse layer CRS <{value.crs().description()}> not valid, cannot proceed."
+                )
         project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value

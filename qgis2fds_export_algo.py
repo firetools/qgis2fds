@@ -20,9 +20,8 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPoint,
-    QgsRectangle,
 )
-import processing, math
+import processing, math, os
 from .qgis2fds_params import *
 from . import utilities
 
