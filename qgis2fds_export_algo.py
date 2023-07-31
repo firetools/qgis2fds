@@ -23,7 +23,16 @@ from qgis.core import (
 )
 import processing, math
 from .qgis2fds_params import *
-from . import utilities
+from .types import (
+    utils,
+    FDSCase,
+    Domain,
+    OBSTTerrain,
+    GEOMTerrain,
+    LanduseType,
+    Texture,
+    Wind,
+)
 
 DEBUG = True
 
@@ -150,7 +159,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         wgs84_origin = origin.clone()
         wgs84_origin.transform(prj_to_wgs84_tr)
 
-        utm_epsg = utilities.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
+        utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
         wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
         utm_origin = wgs84_origin.clone()  # FIXME better way?
@@ -390,8 +399,30 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        return results  # script end
-
+        #return results  # script end
+        
+        # Get landuse type
+        landuse_type = LanduseType(
+            feedback=feedback,
+            project_path=fds_path, #project_path,
+            filepath=landuse_type_filepath,
+        )
+        
+        # Get texture
+        texture = Texture(
+            feedback=feedback,
+            path=fds_path,
+            name=chid,
+            image_type="png",
+            pixel_size=tex_pixel_size,
+            tex_layer=tex_layer,
+            utm_extent=utm_extent,
+            utm_crs=utm_crs,
+        )
+        
+        # Add empty wind
+        wind = Wind(feedback=feedback, project_path=fds_path, filepath="")
+        
         # Prepare terrain, domain, fds_case
 
         if export_obst:
@@ -404,6 +435,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
+            fire_layer=None,
             path=fds_path,
             name=chid,
         )
@@ -434,6 +466,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             domain=domain,
             terrain=terrain,
             texture=texture,
+            wind=wind,
         )
         fds_case.save()
 
