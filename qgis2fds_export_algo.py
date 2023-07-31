@@ -23,7 +23,7 @@ from qgis.core import (
 )
 import processing, math
 from .qgis2fds_params import *
-from . import utilities
+from .types import utils
 
 DEBUG = True
 
@@ -150,7 +150,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         wgs84_origin = origin.clone()
         wgs84_origin.transform(prj_to_wgs84_tr)
 
-        utm_epsg = utilities.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
+        utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
         wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
         utm_origin = wgs84_origin.clone()  # FIXME better way?

@@ -282,8 +282,6 @@ class GEOMTerrain:
             fds_volus=list(),
         )
 
-
-
     def get_fds(self) -> str:
         """Get the FDS text and save."""
         self._save_bingeom()

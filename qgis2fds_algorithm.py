@@ -34,7 +34,6 @@ from qgis.core import (
 
 import os, sys
 from .types import (
-    utils,
     FDSCase,
     Domain,
     OBSTTerrain,
@@ -42,6 +41,7 @@ from .types import (
     LanduseType,
     Texture,
     Wind,
+    utils,
 )
 from . import algos
 import processing
