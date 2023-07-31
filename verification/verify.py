@@ -296,7 +296,11 @@ def main():
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
     }
-    
+    test_filepath = os.path.join(test_path, test_dir, test_filename)
+    res = project.read(test_filepath)
+    dem_layer=iface.addRasterLayer(parameters['dem_layer'],'remote_dem_layer', "wcs")
+    landuse_layer=iface.addRasterLayer(parameters['landuse_layer'],'remote_landuse_layer', "wcs")
+    #tex_layer=iface.addRasterLayer(parameters['tex_layer'],'remote_tex_layer', "wcs")
     processing.run("NIST FDS:Extract server layer", 
         {'chid':parameters['chid'],
         'fds_path':os.path.abspath(parameters['fds_path']),
