@@ -13,7 +13,6 @@ from . import utils
 
 
 class LanduseType:
-
     _scan_id = re.compile(  # search ID value in SURF
         r"""
         [,\s\t]+   # 1+ separator

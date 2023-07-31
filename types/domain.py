@@ -33,10 +33,10 @@ class Domain:
         # Calc domain XB, relative to origin,
         # and a little smaller than the terrain
         dom_xb = (
-            utm_extent.xMinimum() - utm_origin.x() + 1.,
-            utm_extent.xMaximum() - utm_origin.x() - 1.,
-            utm_extent.yMinimum() - utm_origin.y() + 1.,
-            utm_extent.yMaximum() - utm_origin.y() - 1.,
+            utm_extent.xMinimum() - utm_origin.x() + 1.0,
+            utm_extent.xMaximum() - utm_origin.x() - 1.0,
+            utm_extent.yMinimum() - utm_origin.y() + 1.0,
+            utm_extent.yMaximum() - utm_origin.y() - 1.0,
             min_z,
             max_z + cell_size * 10,  # 10 cells over max z
         )
