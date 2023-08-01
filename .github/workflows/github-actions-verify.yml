@@ -12,12 +12,12 @@ jobs:
       - run: sudo wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
       - name: Make file
         run: |
-        echo "Types: deb deb-src" > tmp.txt
-        echo "URIs: https://qgis.org/ubuntu-ltr" >> tmp.txt
-        echo "Suites: jammy" >> tmp.txt
-        echo "Architectures: amd64" >> tmp.txt
-        echo "Components: main" >> tmp.txt
-        echo "Signed-By: /etc/apt/keyrings/qgis-archive-keyring.gpg" >> tmp.txt
+          echo "Types: deb deb-src" > tmp.txt
+          echo "URIs: https://qgis.org/ubuntu-ltr" >> tmp.txt
+          echo "Suites: jammy" >> tmp.txt
+          echo "Architectures: amd64" >> tmp.txt
+          echo "Components: main" >> tmp.txt
+          echo "Signed-By: /etc/apt/keyrings/qgis-archive-keyring.gpg" >> tmp.txt
       - run: sudo mv tmp.txt /etc/apt/sources.list.d/qgis.sources
       - name: Update apt
         run: sudo apt update
