@@ -33,6 +33,11 @@ jobs:
         run: sudo ln -s /home/runner/work/qgis2fds/qgis2fds /usr/share/qgis/python/plugins/qgis2fds
       - name: Enable plugin in qgis
         run: qgis_process plugins enable qgis2fds
+      - name: Install FDS
+        run: |
+          wget https://github.com/firemodels/fds/releases/download/FDS-6.8.0/FDS-6.8.0_SMV-6.8.0_lnx.sh
+          printf '1\n1\nyes\n' | bash FDS-6.8.0_SMV-6.8.0_lnx.sh
+          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
