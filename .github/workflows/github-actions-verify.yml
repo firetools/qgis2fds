@@ -4,6 +4,8 @@ on: [push]
 jobs:
   Verification:
     runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
@@ -22,8 +24,7 @@ jobs:
       - name: Update apt
         run: sudo apt update
       - name: Install qgis qgis-plugin-grass
-        run: sudo apt install qgis
-      - run: export QT_QPA_PLATFORM=offscreen
+        run: sudo apt install qgis qgis-plugin-grass
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
