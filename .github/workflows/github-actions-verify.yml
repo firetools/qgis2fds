@@ -23,10 +23,13 @@ jobs:
         run: sudo apt update
       - name: Install qgis qgis-plugin-grass
         run: sudo apt install qgis
+      - run: export QT_QPA_PLATFORM=offscreen
       - name: Check out repository code
         uses: actions/checkout@v3
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "The workflow is now ready to test your code on the runner."
+      - name: Configure plugin in qgis
+        run: sudo ln -s /home/runner/work/qgis2fds/qgis2fds /usr/share/qgis/python/plugins/qgis2fds
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
