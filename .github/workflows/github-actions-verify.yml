@@ -31,6 +31,8 @@ jobs:
       - run: echo "The workflow is now ready to test your code on the runner."
       - name: Configure plugin in qgis
         run: sudo ln -s /home/runner/work/qgis2fds/qgis2fds /usr/share/qgis/python/plugins/qgis2fds
+      - name: Enable plugin in qgis
+        run: qgis_process plugins enable qgis2fds
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}
