@@ -8,9 +8,13 @@ jobs:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
       - run: echo "The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - run: sudo mkdir -m755 -p /etc/apt/keyrings 
+      - run: sudo wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
+      - run: echo -e "Types: deb deb-src\nURIs: https://qgis.org/ubuntu-ltr\nSuites: jammy\nArchitectures: amd64\nComponents: main\nSigned-By: /etc/apt/keyrings/qgis-archive-keyring.gpg" > tmp.txt
+      - run: sudo mv tmp.txt /etc/apt/sources.list.d/qgis.sources
       - name: Update apt
         run: sudo apt update
-      - name: Install qgis
+      - name: Install qgis qgis-plugin-grass
         run: sudo apt install qgis
       - name: Check out repository code
         uses: actions/checkout@v3
