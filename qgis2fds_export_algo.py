@@ -23,7 +23,16 @@ from qgis.core import (
 )
 import processing, math
 from .qgis2fds_params import *
-from .types import utils
+from .types import (
+    utils,
+    FDSCase,
+    Domain,
+    OBSTTerrain,
+    GEOMTerrain,
+    LanduseType,
+    Texture,
+    Wind,
+)
 
 DEBUG = True
 
@@ -385,13 +394,38 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 is_child_algorithm=True,
             )
             # results["UtmGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
+            fds_grid_layer = context.getMapLayer(outputs["SampleRasterValues"]["OUTPUT"])
+        else:
+            fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
 
-        return results  # script end
-
+        #return results  # script end
+        
+        # Get landuse type
+        landuse_type = LanduseType(
+            feedback=feedback,
+            project_path=fds_path, #project_path,
+            filepath=landuse_type_filepath,
+        )
+        
+        # Get texture
+        texture = Texture(
+            feedback=feedback,
+            path=fds_path,
+            name=chid,
+            image_type="png",
+            pixel_size=tex_pixel_size,
+            tex_layer=tex_layer,
+            utm_extent=utm_extent,
+            utm_crs=utm_crs,
+        )
+        
+        # Add empty wind
+        wind = Wind(feedback=feedback, project_path=fds_path, filepath="")
+        
         # Prepare terrain, domain, fds_case
 
         if export_obst:
@@ -400,17 +434,18 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             Terrain = GEOMTerrain
         terrain = Terrain(
             feedback=feedback,
-            sampling_layer=utm_grid_layer,
+            sampling_layer=fds_grid_layer, #utm_grid_layer,
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
+            fire_layer=None,
             path=fds_path,
             name=chid,
         )
 
         if feedback.isCanceled():
             return {}
-
+        
         domain = Domain(
             feedback=feedback,
             utm_crs=utm_crs,
@@ -434,6 +469,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             domain=domain,
             terrain=terrain,
             texture=texture,
+            wind=wind,
         )
         fds_case.save()
 

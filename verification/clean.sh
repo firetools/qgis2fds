@@ -1,0 +1,10 @@
+rm tests/*/*.tif*
+rm tests/*/*.gpkg
+rm tests/*/output/*.png
+rm tests/*/output/*.fds
+rm tests/*/output/*.bingeom
+rm tests/*/output/*.*info
+rm tests/*/output/*.smv
+rm tests/*/output/*.ge*
+rm tests/*/output/*.txt
+rm tests/*/output/.sinfo
