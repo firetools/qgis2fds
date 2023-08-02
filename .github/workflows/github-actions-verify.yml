@@ -47,7 +47,7 @@ jobs:
           bash headless_verify.sh
       - name: List files in the repository
         run: |
-          ls ${{ github.workspace }}
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+          ls ${{ github.workspace }}/verification/tests/*/output/
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
       - run: echo "This job's status is ${{ job.status }}."
