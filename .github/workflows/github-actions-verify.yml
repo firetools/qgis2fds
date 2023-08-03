@@ -58,6 +58,7 @@ jobs:
           cp tests/*/output/*.png tests/test_out/
       - name: Check if images have changed
         run: |
+          cd verification
           bash compare_images.sh
       - name: List files in the repository
         run: |
