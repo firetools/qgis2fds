@@ -51,7 +51,14 @@ jobs:
       - name: Run Verification
         run: |
           cd verification
+          mkdir -p tests/test_out
+          mkdir -p tests/test_diff
+          mkdir -p tests/test_err
           bash headless_verify.sh
+          cp tests/*/output/*.png tests/test_out/
+      - name: Check if images have changed
+        run: |
+          bash compare_images.sh
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}/verification/tests/*/output/
