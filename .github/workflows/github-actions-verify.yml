@@ -1,6 +1,8 @@
 name: Verify
 run-name: ${{ github.actor }} is running verification
-on: [push]
+on:
+  push:
+  workflow_dispatch:
 jobs:
   Verification:
     runs-on: ubuntu-latest
