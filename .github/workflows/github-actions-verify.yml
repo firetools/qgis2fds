@@ -1,0 +1,79 @@
+name: Verify
+run-name: ${{ github.actor }} is running verification
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  Verification:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: offscreen
+      PATH: "/home/runner/FDS/FDS6/smvbin:/home/runner/FDS/FDS6/bin/INTEL/bin:/home/runner/FDS/FDS6/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/binner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/runner/.dotnet/tools"
+      FI_PROVIDER_PATH: "/home/runner/FDS/FDS6/bin/INTEL/prov"
+      LD_LIBRARY_PATH: "/home/runner/FDS/FDS6/bin/INTEL/lib:/usr/lib64:"
+      display_port: 1001
+      DISPLAY: ":1001"
+      PAUSE: 5
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - run: sudo mkdir -m755 -p /etc/apt/keyrings 
+      - run: sudo wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
+      - name: Make file
+        run: |
+          echo "Types: deb deb-src" > tmp.txt
+          echo "URIs: https://qgis.org/ubuntu-ltr" >> tmp.txt
+          echo "Suites: jammy" >> tmp.txt
+          echo "Architectures: amd64" >> tmp.txt
+          echo "Components: main" >> tmp.txt
+          echo "Signed-By: /etc/apt/keyrings/qgis-archive-keyring.gpg" >> tmp.txt
+      - run: sudo mv tmp.txt /etc/apt/sources.list.d/qgis.sources
+      - name: Update apt
+        run: sudo apt update
+      - name: Install qgis qgis-plugin-grass
+        run: sudo apt install qgis qgis-plugin-grass
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "The workflow is now ready to test your code on the runner."
+      - name: Configure plugin in qgis
+        run: sudo ln -s /home/runner/work/qgis2fds/qgis2fds /usr/share/qgis/python/plugins/qgis2fds
+      - name: Enable plugin in qgis
+        run: qgis_process plugins enable qgis2fds
+      - name: Install FDS
+        run: |
+          wget https://github.com/firemodels/fds/releases/download/FDS-6.8.0/FDS-6.8.0_SMV-6.8.0_lnx.sh
+          printf '1\n1\nyes\n' | bash FDS-6.8.0_SMV-6.8.0_lnx.sh
+      - name: Configure XServer
+        run: |
+          Xvfb :$display_port -fp /usr/share/X11/fonts/misc -screen 0 1280x1024x24 &
+          echo "setting up graphics environment (pausing $PAUSE s)"
+      - name: Run Verification
+        run: |
+          cd verification
+          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
+          bash headless_verify.sh
+      - name: Calculating image differences
+        run: |
+          cd verification
+          mkdir -p tests/test_out
+          mkdir -p tests/test_diff
+          mkdir -p tests/test_err
+          cp tests/*/output/*.png tests/test_out/
+          bash compare_images.sh
+      - name: List files in the repository
+        shell: bash
+        run: |
+          ls ${{ github.workspace }}/verification/tests/*/output/
+          NUMBER_OF_ERR_FILES=$(ls verification/tests/test_err/ -1 | wc -l)
+          echo "NUMBER_OF_ERR_FILES=$NUMBER_OF_ERR_FILES" >> "$GITHUB_ENV"
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
+      - name: Check coverage tolerance
+        if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('Rendered images out of tolerance')
+      - run: echo "This job's status is ${{ job.status }}."
