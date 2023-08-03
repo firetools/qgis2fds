@@ -59,6 +59,8 @@ for f in $NEW_DIR/*.png; do
         IMAGE_ERRORS=$((IMAGE_ERRORS + 1))
 #        cp $base $ERROR_SUBDIR/.
         cp $f $ERROR_DIR/.
+      else
+        echo "PASSED: The image $base has not changed. $METRIC error=$diff <= $TOLERANCE"
       fi
     fi
     if [[ "$diff" != "0" ]]; then
