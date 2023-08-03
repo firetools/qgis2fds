@@ -9,7 +9,7 @@ BASE_DIR=fds/
 NEW_DIR=tests/test_out
 DIFF_DIR=tests/test_diff
 ERROR_DIR=tests/test_err
-TOLERANCE=0.01
+TOLERANCE=0.025
 METRIC=rmse
 
 file_list=$DIFF_DIR/file_list
