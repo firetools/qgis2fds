@@ -64,8 +64,8 @@ jobs:
         run: |
           ls ${{ github.workspace }}/verification/tests/*/output/
           echo "{NUMBER_OF_ERR_FILES}={ls -1 | wc -l}" >> $GITHUB_ENV
-      #- name: Setup upterm session
-      #  uses: lhotari/action-upterm@v1
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Check coverage tolerance
         if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
         uses: actions/github-script@v3
