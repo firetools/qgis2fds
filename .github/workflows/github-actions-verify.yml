@@ -43,7 +43,6 @@ jobs:
         run: |
           wget https://github.com/firemodels/fds/releases/download/FDS-6.8.0/FDS-6.8.0_SMV-6.8.0_lnx.sh
           printf '1\n1\nyes\n' | bash FDS-6.8.0_SMV-6.8.0_lnx.sh
-          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
       - name: Configure XServer
         run: |
           Xvfb :$display_port -fp /usr/share/X11/fonts/misc -screen 0 1280x1024x24 &
@@ -51,18 +50,26 @@ jobs:
       - name: Run Verification
         run: |
           cd verification
+          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
+          bash headless_verify.sh
+      - name: Calculating image differences
+        run: |
+          cd verification
           mkdir -p tests/test_out
           mkdir -p tests/test_diff
           mkdir -p tests/test_err
-          bash headless_verify.sh
           cp tests/*/output/*.png tests/test_out/
-      - name: Check if images have changed
-        run: |
-          cd verification
           bash compare_images.sh
       - name: List files in the repository
         run: |
           ls ${{ github.workspace }}/verification/tests/*/output/
+          echo "{NUMBER_OF_ERR_FILES}={ls -1 | wc -l}" >> $GITHUB_ENV
       #- name: Setup upterm session
       #  uses: lhotari/action-upterm@v1
+      - name: Check coverage tolerance
+        if: ${{ NUMBER_OF_ERR_FILES > 0.0 }}
+        uses: actions/github-script@v3
+        with:
+          script: |
+            core.setFailed('Rendered images out of tolerance')
       - run: echo "This job's status is ${{ job.status }}."
