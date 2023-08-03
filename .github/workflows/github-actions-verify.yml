@@ -67,7 +67,7 @@ jobs:
       #- name: Setup upterm session
       #  uses: lhotari/action-upterm@v1
       - name: Check coverage tolerance
-        if: ${{ NUMBER_OF_ERR_FILES > 0.0 }}
+        if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
         uses: actions/github-script@v3
         with:
           script: |
