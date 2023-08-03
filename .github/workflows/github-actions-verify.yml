@@ -61,9 +61,11 @@ jobs:
           cp tests/*/output/*.png tests/test_out/
           bash compare_images.sh
       - name: List files in the repository
+        shell: bash
         run: |
           ls ${{ github.workspace }}/verification/tests/*/output/
-          echo "NUMBER_OF_ERR_FILES={ls verification/tests/test_err/ -1 | wc -l}" >> "$GITHUB_ENV"
+          NUMBER_OF_ERR_FILES=$(ls verification/tests/test_err/ -1 | wc -l)
+          echo "NUMBER_OF_ERR_FILES=$NUMBER_OF_ERR_FILES" >> "$GITHUB_ENV"
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
       - name: Check coverage tolerance
