@@ -70,5 +70,6 @@ for f in $NEW_DIR/*.png; do
   if [[ ! -e $from_file ]]; then
     echo "***$FYI: The base image $from_file does not exist."
     echo "            Copy $to_file to the fig repo"
+    cp $f $ERROR_DIR/.
   fi
 done
