@@ -41,10 +41,17 @@ jobs:
         run: sudo ln -s /home/runner/work/qgis2fds/qgis2fds /usr/share/qgis/python/plugins/qgis2fds
       - name: Enable plugin in qgis
         run: qgis_process plugins enable qgis2fds
-      - name: Install FDS
+      #- name: Install FDS
+      #  run: |
+      #    wget https://github.com/firemodels/fds/releases/download/FDS-6.8.0/FDS-6.8.0_SMV-6.8.0_lnx.sh
+      #    printf '1\n1\nyes\n' | bash FDS-6.8.0_SMV-6.8.0_lnx.sh
+      - name: Install FDS Nightly Build
         run: |
-          wget https://github.com/firemodels/fds/releases/download/FDS-6.8.0/FDS-6.8.0_SMV-6.8.0_lnx.sh
-          printf '1\n1\nyes\n' | bash FDS-6.8.0_SMV-6.8.0_lnx.sh
+          cd /home/runner/
+          git clone https://github.com/firemodels/test_bundles
+          cd test_bundles
+          gh release download FDS_TEST --pattern '*_lnx.sh' -O "FDS-SMV-NIGHTLY.sh"
+          printf '1\n1\nyes\n' | bash FDS-SMV-NIGHTLY.sh
       - name: Configure XServer
         run: |
           Xvfb :$display_port -fp /usr/share/X11/fonts/misc -screen 0 1280x1024x24 &
@@ -68,8 +75,8 @@ jobs:
           ls ${{ github.workspace }}/verification/tests/*/output/
           NUMBER_OF_ERR_FILES=$(ls verification/tests/test_err/ -1 | wc -l)
           echo "NUMBER_OF_ERR_FILES=$NUMBER_OF_ERR_FILES" >> "$GITHUB_ENV"
-      #- name: Setup upterm session
-      #  uses: lhotari/action-upterm@v1
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Check coverage tolerance
         if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
         uses: actions/github-script@v3
