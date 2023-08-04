@@ -64,7 +64,7 @@ jobs:
           bash headless_verify.sh
       - name: Download baseline results
         run: |
-          cd /home/runner/
+          cd /home/runner/work/qgis2fds
           git clone https://github.com/firetools/qgis2fds.figures.git
           cp qgis2fds.figures/baseline/*/*.png qgis2fds.figures/baseline/
       - name: Calculating image differences
