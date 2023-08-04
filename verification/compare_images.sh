@@ -5,7 +5,7 @@
 #ERROR_DIR=$4
 #TOLERANCE=$5
 
-BASE_DIR=fds/
+BASE_DIR=../../qgis2fds.figures/baseline
 NEW_DIR=tests/test_out
 DIFF_DIR=tests/test_diff
 ERROR_DIR=tests/test_err
