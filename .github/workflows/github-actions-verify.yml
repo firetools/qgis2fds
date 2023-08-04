@@ -14,6 +14,7 @@ jobs:
       display_port: 1001
       DISPLAY: ":1001"
       PAUSE: 5
+      GH_TOKEN: ${{ github.token }}
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
       - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
