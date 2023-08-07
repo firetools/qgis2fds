@@ -231,8 +231,12 @@ class LanduseLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        if parameters[cls.label]:
-            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        try:
+            if parameters[cls.label]:
+                value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        except KeyError:
+            value = None
+            parameters[cls.label] = None
         if value:
             # Check local
             url = value.source()
@@ -346,8 +350,11 @@ class TexLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        if parameters[cls.label]:
-            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        try:
+            if parameters[cls.label]:
+                value = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        except KeyError:
+            parameters[cls.label] = None
         if value and not value.crs().isValid():
             raise QgsProcessingException(
                 f"Texture layer CRS <{value.crs().description()}> not valid, cannot proceed."
