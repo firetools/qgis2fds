@@ -24,7 +24,6 @@ from qgis.core import (
     QgsProcessingParameterString,
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
-    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterBoolean,
     QgsRasterFileWriter,
     QgsRasterLayer,
