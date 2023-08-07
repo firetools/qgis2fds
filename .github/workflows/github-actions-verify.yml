@@ -4,7 +4,32 @@ on:
   push:
   workflow_dispatch:
 jobs:
+  DeleteRelease:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: echo "Deleting release tag verify-${{ github.ref_name }}"
+      - run: |
+          gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
+  CreateRelease:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: echo "Creating release tag verify-${{ github.ref_name }}"
+      - run: |
+          gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }}
   Verification:
+    permissions: write-all
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
@@ -75,6 +100,16 @@ jobs:
           mkdir -p tests/test_err
           cp tests/*/output/*.png tests/test_out/
           bash compare_images.sh
+      - name: Push results to release
+        run: |
+          cp verification/tests/*/output/*.fds verification/tests/test_out/
+          cp verification/tests/*/output/*.bingeom verification/tests/test_out/
+          cd verification/tests
+          tar -cvzf ubuntu.tar.gz test_out
+          gh release upload verify-${{ github.ref_name }} ubuntu.tar.gz --clobber
+        #  gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
+        #  gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
+        #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
       - name: List files in the repository
         shell: bash
         run: |
