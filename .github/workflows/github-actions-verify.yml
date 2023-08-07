@@ -82,7 +82,8 @@ jobs:
           cp verification/tests/*/output/*.bingeom verification/tests/test_out/
           cd verification/tests
           tar -cvzf data_out.tar.gz test_out
-          gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
+          gh release create test-release data_out.tar.gz
+        #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
       - name: List files in the repository
         shell: bash
         run: |
