@@ -82,7 +82,7 @@ jobs:
           cp verification/tests/*/output/*.bingeom verification/tests/test_out/
           cd verification/tests
           tar -cvzf ubuntu.tar.gz test_out
-          gh release create verify-${{ github.ref_name }} ubuntu.tar.gz
+          gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
         #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
       - name: List files in the repository
         shell: bash
