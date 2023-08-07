@@ -104,7 +104,7 @@ class ExtentParam:
         value = algo.parameterAsExtent(
             parameters, cls.label, context, crs=project.crs()
         )  # in project crs
-        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -206,7 +206,7 @@ class DEMLayerParam:
             raise QgsProcessingException(
                 f"DEM layer CRS <{value.crs().description()}> not valid, cannot proceed."
             )
-        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -231,12 +231,8 @@ class LanduseLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        try:
-            if parameters[cls.label]:
-                value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        except KeyError:
-            value = None
-            parameters[cls.label] = None
+        if parameters.get(cls.label):
+            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
         if value:
             # Check local
             url = value.source()
@@ -249,7 +245,7 @@ class LanduseLayerParam:
                 raise QgsProcessingException(
                     f"Landuse layer CRS <{value.crs().description()}> not valid, cannot proceed."
                 )
-        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -276,7 +272,7 @@ class LanduseTypeFilepathParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        if parameters[cls.label]:
+        if parameters.get(cls.label):
             value = algo.parameterAsFile(parameters, cls.label, context)
         project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
@@ -314,7 +310,7 @@ class TextFilepathParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        if parameters[cls.label]:
+        if parameters.get(cls.label):
             value = algo.parameterAsFile(parameters, cls.label, context)
         project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
@@ -350,16 +346,13 @@ class TexLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        try:
-            if parameters[cls.label]:
-                value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        except KeyError:
-            parameters[cls.label] = None
+        if parameters.get(cls.label):
+            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
         if value and not value.crs().isValid():
             raise QgsProcessingException(
                 f"Texture layer CRS <{value.crs().description()}> not valid, cannot proceed."
             )
-        project.writeEntry("qgis2fds", cls.label, parameters[cls.label])  # protect
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -386,7 +379,7 @@ class TexPixelSizeParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        if parameters[cls.label]:
+        if parameters.get(cls.label):
             value = algo.parameterAsDouble(parameters, cls.label, context)
             project.writeEntryDouble("qgis2fds", cls.label, value)
         else:  # protect
@@ -446,7 +439,7 @@ class CellSizeParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        if parameters[cls.label]:
+        if parameters.get(cls.label):
             value = algo.parameterAsDouble(parameters, cls.label, context)
             project.writeEntryDouble("qgis2fds", cls.label, value)
         else:  # protect
