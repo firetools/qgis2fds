@@ -11,6 +11,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - run: echo "Deleting release tag verify-${{ github.ref_name }}"
       - run: |
           gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
@@ -21,6 +23,8 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - run: echo "Creating release tag verify-${{ github.ref_name }}"
       - run: |
           gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }}
