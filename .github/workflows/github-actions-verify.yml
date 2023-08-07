@@ -4,6 +4,22 @@ on:
   push:
   workflow_dispatch:
 jobs:
+  DeleteRelease:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "Deleting release tag verify-${{ github.ref_name }}"
+      - run: |
+          gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
+  CreateRelease:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "Creating release tag verify-${{ github.ref_name }}"
+      - run: |
+          gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }}
   Verification:
     permissions: write-all
     runs-on: ubuntu-latest
@@ -82,8 +98,9 @@ jobs:
           cp verification/tests/*/output/*.bingeom verification/tests/test_out/
           cd verification/tests
           tar -cvzf ubuntu.tar.gz test_out
-          gh release delete-asset verify-${{ github.ref_name }} ubuntu.tar.gz -y
-          gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
+          gh release upload verify-${{ github.ref_name }} ubuntu.tar.gz --clobber
+        #  gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
+        #  gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
         #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
       - name: List files in the repository
         shell: bash
