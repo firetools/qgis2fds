@@ -7,6 +7,7 @@ jobs:
   DeleteRelease:
     permissions: write-all
     runs-on: ubuntu-latest
+    continue-on-error: true
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -19,6 +20,8 @@ jobs:
   CreateRelease:
     permissions: write-all
     runs-on: ubuntu-latest
+    continue-on-error: true
+    needs: DeleteRelease
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -31,6 +34,7 @@ jobs:
   Verification:
     permissions: write-all
     runs-on: ubuntu-latest
+    needs: CreateRelease
     env:
       QT_QPA_PLATFORM: offscreen
       PATH: "/home/runner/FDS/FDS6/smvbin:/home/runner/FDS/FDS6/bin/INTEL/bin:/home/runner/FDS/FDS6/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/binner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/runner/.dotnet/tools"
