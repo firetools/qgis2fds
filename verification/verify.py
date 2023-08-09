@@ -137,11 +137,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": os.path.join(test_path,test_dir,"data_layers","OpenStreetMap.tif"),
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     
     test(
@@ -182,11 +183,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": os.path.join(test_path,test_dir,"data_layers","OpenStreetMap.tif"),
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
 
     test(
@@ -227,11 +229,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": 'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     test_filepath = os.path.join(test_path, test_dir, test_filename)
     res = project.read(test_filepath)
@@ -290,11 +293,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": 'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     test_filepath = os.path.join(test_path, test_dir, test_filename)
     res = project.read(test_filepath)
