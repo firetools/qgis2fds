@@ -473,3 +473,52 @@ class ExportOBSTParam:
         project.writeEntryBool("qgis2fds", cls.label, value)
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
+
+
+class StartTimeParam:
+    label = "t_begin"
+    desc = "FDS start time"
+    default = 0.0
+    optional = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterNumber(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+        )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = algo.parameterAsString(parameters, cls.label, context)
+        project.writeEntry("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        return value
+        
+class EndTimeParam:
+    label = "t_end"
+    desc = "FDS end time"
+    default = 0.0
+    optional = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterNumber(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+        )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = algo.parameterAsString(parameters, cls.label, context)
+        project.writeEntry("qgis2fds", cls.label, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        return value

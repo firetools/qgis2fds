@@ -27,6 +27,8 @@ class FDSCase:
         terrain,
         texture,
         wind,
+        t_begin,
+        t_end,
     ) -> None:
         self.feedback = feedback
         self.name = name  # chid
@@ -38,6 +40,8 @@ class FDSCase:
         self.terrain = terrain
         self.texture = texture
         self.wind = wind
+        self.t_begin = t_begin
+        self.t_end = t_end
 
         self.filename = f"{name}.fds"
         self.filepath = os.path.join(path, self.filename)
@@ -87,7 +91,7 @@ MISC LEVEL_SET_MODE parameter
       LEVEL_SET_MODE=1 
       THICKEN_OBSTRUCTIONS=T /
 
-&TIME T_END=0. /
+&TIME T_BEGIN={self.t_begin}, T_END={self.t_end} /
 
 Example REAC, used when LEVEL_SET_MODE=4
 _REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
