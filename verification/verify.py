@@ -129,7 +129,7 @@ def main():
         "extent": "-122.491206899,-122.481181391,37.827810126,37.833676214 [EPSG:4326]",
         "ExtentDebug": "TEMPORARY_OUTPUT",
         "fds_path": os.path.join(test_path, test_dir,"output"),
-        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.shx|layername=fire"),
+        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.gpkg"),
         "landuse_layer": os.path.join(test_path,test_dir,"data_layers","US_200F13_20_local.tif"),
         "landuse_type_filepath": "Landfire.gov_F13.csv",
         "nmesh": 4,
@@ -137,11 +137,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": os.path.join(test_path,test_dir,"data_layers","OpenStreetMap.tif"),
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     
     test(
@@ -174,7 +175,7 @@ def main():
         "extent": "-122.491206899,-122.481181391,37.827810126,37.833676214 [EPSG:4326]",
         "ExtentDebug": "TEMPORARY_OUTPUT",
         "fds_path": os.path.join(test_path, test_dir,"output"),
-        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.shx|layername=fire"),
+        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.gpkg"),
         "landuse_layer": os.path.join(test_path,test_dir,"data_layers","US_200F13_20_local.tif"),
         "landuse_type_filepath": "Landfire.gov_F13.csv",
         "nmesh": 4,
@@ -182,11 +183,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": os.path.join(test_path,test_dir,"data_layers","OpenStreetMap.tif"),
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
 
     test(
@@ -219,7 +221,7 @@ def main():
         "extent": "-122.509448609,-122.467825037,37.817233198,37.849753575 [EPSG:4326]",
         "ExtentDebug": "TEMPORARY_OUTPUT",
         "fds_path": os.path.join(test_path, test_dir,"output"),
-        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.shx|layername=fire"),
+        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.gpkg"),
         "landuse_layer": 'dpiMode=7&identifier=landfire_wcs:LC22_F13_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_220/wcs',
         "landuse_type_filepath": "Landfire.gov_F13.csv",
         "nmesh": 4,
@@ -227,11 +229,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": 'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     test_filepath = os.path.join(test_path, test_dir, test_filename)
     res = project.read(test_filepath)
@@ -282,7 +285,7 @@ def main():
         "extent": "-122.509448609,-122.467825037,37.817233198,37.849753575 [EPSG:4326]",
         "ExtentDebug": "TEMPORARY_OUTPUT",
         "fds_path": os.path.join(test_path, test_dir,"output"),
-        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.shx|layername=fire"),
+        "fire_layer": os.path.join(test_path,test_dir,"data_layers","fire.gpkg"),
         "landuse_layer": 'dpiMode=7&identifier=landfire_wcs:LC22_F13_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_220/wcs',
         "landuse_type_filepath": "Landfire.gov_F13.csv",
         "nmesh": 4,
@@ -290,11 +293,12 @@ def main():
         "sampling_layer": "TEMPORARY_OUTPUT",
         "tex_layer": 'crs=EPSG:3857&format&type=xyz&url=https://mt1.google.com/vt/lyrs%3Ds%26x%3D%7Bx%7D%26y%3D%7By%7D%26z%3D%7Bz%7D&zmax=19&zmin=0',
         "tex_pixel_size": 1,
-        "text_filepath": "wind.csv",
+        "text_filepath": "",
         'UtmGrid':'TEMPORARY_OUTPUT',
         'ClippedDemLayer':'TEMPORARY_OUTPUT',
         'UtmDemPoints':'TEMPORARY_OUTPUT',
         'UtmInterpolatedDemLayer':'TEMPORARY_OUTPUT',
+        "wind_filepath": "wind.csv",
     }
     test_filepath = os.path.join(test_path, test_dir, test_filename)
     res = project.read(test_filepath)
