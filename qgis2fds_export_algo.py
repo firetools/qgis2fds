@@ -62,6 +62,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         NMeshParam.set(**kwargs)
         CellSizeParam.set(**kwargs)
         ExportOBSTParam.set(**kwargs)
+        StartTimeParam.set(**kwargs)
+        EndTimeParam.set(**kwargs)
 
         # Define destination layers
 
@@ -132,6 +134,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         nmesh = NMeshParam.get(**kwargs)
         cell_size = CellSizeParam.get(**kwargs)
         export_obst = ExportOBSTParam.get(**kwargs)
+        t_begin = StartTimeParam.get(**kwargs)
+        t_end = EndTimeParam.get(**kwargs)
 
         # Check parameter values
 
@@ -470,6 +474,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             terrain=terrain,
             texture=texture,
             wind=wind,
+            t_begin=t_begin,
+            t_end=t_end,
         )
         fds_case.save()
 
