@@ -524,3 +524,40 @@ class EndTimeParam:
         project.writeEntry("qgis2fds", cls.label, value)
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
+
+class WindFilepathParam:
+    label = "wind_filepath"
+    desc = "Wind text file"
+    default = ""
+    optional = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterFile(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+            behavior=QgsProcessingParameterFile.File,
+            # fileFilter="TXT files (*.txt)",
+        )
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = None
+        if parameters.get(cls.label):
+            value = algo.parameterAsFile(parameters, cls.label, context)
+        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
+        if value:
+            # Make and check absolute path
+            project_path = project.absolutePath()
+            if not project_path:
+                raise QgsProcessingException(
+                    "Save QGIS project to disk, cannot proceed."
+                )
+            value = os.path.join(project_path, value)
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        return value
