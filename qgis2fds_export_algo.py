@@ -64,6 +64,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         ExportOBSTParam.set(**kwargs)
         StartTimeParam.set(**kwargs)
         EndTimeParam.set(**kwargs)
+        wind_filepath = WindFilepathParam.set(**kwargs)
 
         # Define destination layers
 
@@ -136,6 +137,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         export_obst = ExportOBSTParam.get(**kwargs)
         t_begin = StartTimeParam.get(**kwargs)
         t_end = EndTimeParam.get(**kwargs)
+        wind_filepath = WindFilepathParam.get(**kwargs)
+
+
 
         # Check parameter values
 
@@ -428,7 +432,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         
         # Add empty wind
-        wind = Wind(feedback=feedback, project_path=fds_path, filepath="")
+        wind = Wind(feedback=feedback, project_path=fds_path, filepath=wind_filepath)
         
         # Prepare terrain, domain, fds_case
 
