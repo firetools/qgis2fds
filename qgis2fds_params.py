@@ -489,6 +489,7 @@ class StartTimeParam:
             cls.desc,
             defaultValue=defaultValue,
             optional=cls.optional,
+            type=QgsProcessingParameterNumber.Double,
         )
         algo.addParameter(param)
 
@@ -513,6 +514,7 @@ class EndTimeParam:
             cls.desc,
             defaultValue=defaultValue,
             optional=cls.optional,
+            type=QgsProcessingParameterNumber.Double,
         )
         algo.addParameter(param)
 
