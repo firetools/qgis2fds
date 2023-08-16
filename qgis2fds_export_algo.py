@@ -291,16 +291,28 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
+            
+        # Transform DEM raster layer to UTM
+        clipped_dem_layer = outputs["ClippedDemLayer"]["OUTPUT"]
+        feedback.pushInfo(f"Reproject dem raster layer to <{utm_crs}> crs...")
 
-        # Transform clipped DEM pixels to points
-        alg_params = {
-            "FIELD_NAME": "DEM",
-            "INPUT_RASTER": outputs["ClippedDemLayer"]["OUTPUT"],
-            "RASTER_BAND": 1,
-            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["DemPixelsToPoints"] = processing.run(
-            "native:pixelstopoints",
+        alg_params = {'INPUT':clipped_dem_layer,
+                    'SOURCE_CRS':None,
+                    'TARGET_CRS':utm_crs,
+                    'RESAMPLING':0,
+                    'NODATA':None,
+                    'TARGET_RESOLUTION':pixel_size,
+                    'OPTIONS':'',
+                    'DATA_TYPE':0,
+                    'TARGET_EXTENT':None,
+                    'TARGET_EXTENT_CRS':None,
+                    'MULTITHREADING':False,
+                    'EXTRA':'',
+                    'OUTPUT': DEBUG
+                    and parameters["UtmInterpolatedDemLayer"]
+                    or QgsProcessing.TEMPORARY_OUTPUT,}
+        outputs['UtmInterpolatedDemLayer'] = processing.run(
+            "gdal:warpreproject",
             alg_params,
             context=context,
             feedback=feedback,
@@ -311,64 +323,34 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Reproject DEM points to UTM
+        # Transform clipped UTM DEM pixels to points
+        feedback.pushInfo(f"Extract points from utm_dem_layer raster")
         alg_params = {
-            "CONVERT_CURVED_GEOMETRIES": False,
-            "INPUT": outputs["DemPixelsToPoints"]["OUTPUT"],
-            "OPERATION": "",
-            "TARGET_CRS": utm_crs,
-            "OUTPUT": DEBUG
-            and parameters["UtmDemPoints"]
-            or QgsProcessing.TEMPORARY_OUTPUT,
+            "FIELD_NAME": "DEM",
+            "INPUT_RASTER": outputs["UtmInterpolatedDemLayer"]["OUTPUT"],
+            "RASTER_BAND": 1,
+            "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
         }
-        outputs["UtmDemPoints"] = processing.run(
-            "native:reprojectlayer",
+        outputs["DemPixelsToPoints"] = processing.run(
+            "native:pixelstopoints",
             alg_params,
             context=context,
             feedback=feedback,
             is_child_algorithm=True,
         )
-
+        
         feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
-        # Interpolate UTM DEM points to DEM raster layer
-        # aligned to UTM sampling grid
-        utm_dem_layer = outputs["UtmDemPoints"]["OUTPUT"]
-        layer_source = context.getMapLayer(utm_dem_layer).source()
-        interpolation_source = 0
-        field_index = 0
-        input_type = 0  # points
-        interpolation_data = f"{layer_source}::~::{interpolation_source}::~::{field_index}::~::{input_type}"
-        alg_params = {
-            "EXTENT": idem_utm_extent,
-            "INTERPOLATION_DATA": interpolation_data,
-            "METHOD": 0,  # Linear
-            "PIXEL_SIZE": pixel_size,  # interpolated DEM resolution
-            "OUTPUT": DEBUG
-            and parameters["UtmInterpolatedDemLayer"]
-            or QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["TinInterpolation"] = processing.run(
-            "qgis:tininterpolation",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-
-        feedback.setCurrentStep(7)
-        if feedback.isCanceled():
-            return {}
-
         # Sample Z values from interpolated DEM raster layer
+        feedback.pushInfo(f"Set z values on utm grid from utm dem raster")
         alg_params = {
             "BAND": 1,
             "INPUT": outputs["UtmGrid"]["OUTPUT"],
             "NODATA": -999,
             "OFFSET": 0,
-            "RASTER": outputs["TinInterpolation"]["OUTPUT"],
+            "RASTER": outputs['UtmInterpolatedDemLayer']["OUTPUT"],
             "SCALE": 1,
             "OUTPUT": DEBUG and parameters["UtmGrid"] or QgsProcessing.TEMPORARY_OUTPUT,
         }
@@ -380,7 +362,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             is_child_algorithm=True,
         )
 
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
@@ -406,11 +388,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         else:
             fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
 
-        feedback.setCurrentStep(9)
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
-
-        #return results  # script end
         
         # Get landuse type
         landuse_type = LanduseType(

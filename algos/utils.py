@@ -249,25 +249,27 @@ def get_reprojected_raster_layer(
     feedback,
     raster_layer,
     destination_crs,
+    target_res,
     output=QgsProcessing.TEMPORARY_OUTPUT,
 ):
     text = f"Reproject <{raster_layer}> raster layer to <{destination_crs}> crs..."
     feedback.pushInfo(text)
 
-    alg_params = {
-        "INPUT": raster_layer,
-        "TARGET_CRS": destination_crs,
-        "RESAMPLING": 0,
-        "NODATA": None,
-        "TARGET_RESOLUTION": None,
-        "OPTIONS": "",
-        "DATA_TYPE": 0,
-        "TARGET_EXTENT": None,
-        "TARGET_EXTENT_CRS": None,
-        "MULTITHREADING": False,
-        "EXTRA": "",
-        "OUTPUT": output,
-    }
+    alg_params = {'INPUT':raster_layer,
+                'SOURCE_CRS':None,
+                'TARGET_CRS':destination_crs,
+                'RESAMPLING':0,
+                'NODATA':None,
+                'TARGET_RESOLUTION':target_res,
+                'OPTIONS':'',
+                'DATA_TYPE':0,
+                'TARGET_EXTENT':None,
+                'TARGET_EXTENT_CRS':None,
+                'MULTITHREADING':False,
+                'EXTRA':'',
+                'OUTPUT':output}
+    #processing.run("gdal:warpreproject", alg_params)
+    
     return processing.run(
         "gdal:warpreproject",
         alg_params,
@@ -275,7 +277,6 @@ def get_reprojected_raster_layer(
         feedback=feedback,
         is_child_algorithm=True,
     )
-
 
 def get_reprojected_vector_layer(
     context,
