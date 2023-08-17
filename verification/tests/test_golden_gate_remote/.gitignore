@@ -1,1 +1,3 @@
-*.tif*
+# locally saved rasters
+*.tif
+*.xml
