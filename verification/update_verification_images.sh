@@ -17,3 +17,4 @@ cp tests/test_*/output/golden_gate_local_geom*_s*.png ../../qgis2fds.figures/bas
 cp tests/test_*/output/golden_gate_local_obst*_s*.png ../../qgis2fds.figures/baseline/golden_gate_local_obst/
 cp tests/test_*/output/golden_gate_remote_geom*_s*.png ../../qgis2fds.figures/baseline/golden_gate_remote_geom/
 cp tests/test_*/output/golden_gate_remote_obst*_s*.png ../../qgis2fds.figures/baseline/golden_gate_remote_obst/
+cp tests/test_*/output/Chimney_Tops_2_s*.png ../../qgis2fds.figures/baseline/chimney_tops_2/
