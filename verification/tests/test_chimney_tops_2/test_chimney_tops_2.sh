@@ -11,6 +11,7 @@ qgis_process run "NIST FDS:Export FDS case" \
     --dem_layer="data_layers/LC20_Elav_220_Abrev.tif" \
     --landuse_layer="data_layers/LC22_F13_220_Abrev.tif" \
     --landuse_type_filepath="data_sheets/Landfire.gov_F13.csv" \
+    --fire_layer="data_layers/init_fire_extent.gpkg" \
     --text_filepath= \
     --tex_pixel_size=10 \
     --nmesh=264 \
