@@ -10,3 +10,6 @@ cd tests/test_golden_gate_remote
 bash test_golden_gate_remote_geom.sh
 bash test_golden_gate_remote_obst.sh
 cd ../..
+cd tests/test_chimney_tops_2
+bash test_chimney_tops2.sh
+cd ../..
