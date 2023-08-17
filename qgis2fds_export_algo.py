@@ -56,6 +56,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         DEMLayerParam.set(**kwargs)
         LanduseLayerParam.set(**kwargs)
         LanduseTypeFilepathParam.set(**kwargs)
+        FireLayer.set(**kwargs)
         TextFilepathParam.set(**kwargs)
         TexLayerParam.set(**kwargs)
         TexPixelSizeParam.set(**kwargs)
@@ -64,7 +65,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         ExportOBSTParam.set(**kwargs)
         StartTimeParam.set(**kwargs)
         EndTimeParam.set(**kwargs)
-        wind_filepath = WindFilepathParam.set(**kwargs)
+        WindFilepathParam.set(**kwargs)
 
         # Define destination layers
 
@@ -123,6 +124,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         dem_layer = DEMLayerParam.get(**kwargs)
         landuse_layer = LanduseLayerParam.get(**kwargs)
         landuse_type_filepath = LanduseTypeFilepathParam.get(**kwargs)
+        fire_layer = FireLayer.get(**kwargs)
         text_filepath = TextFilepathParam.get(**kwargs)
         tex_layer = TexLayerParam.get(**kwargs)
         tex_pixel_size = TexPixelSizeParam.get(**kwargs)
@@ -514,7 +516,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
-            fire_layer=None,
+            fire_layer=fire_layer,
             path=fds_path,
             name=chid,
         )

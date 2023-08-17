@@ -287,6 +287,45 @@ class LanduseTypeFilepathParam:
         return value
 
 
+class FireLayer:
+    label = "fire_layer"
+    desc = "Fire layer (if not set, fire is not exported)"
+    default = None
+    optional = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterVectorLayer(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+        )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = None
+        if parameters.get(cls.label):
+            value = algo.parameterAsVectorLayer(parameters, cls.label, context)
+        if value:
+            # Check local
+            url = value.source()
+            if not os.path.isfile(url):
+                raise QgsProcessingException(
+                    "Fire layer data is not saved locally, cannot proceed."
+                )
+            # Check valid
+            if not value.crs().isValid():
+                raise QgsProcessingException(
+                    f"Fire layer CRS <{value.crs().description()}> not valid, cannot proceed."
+                )
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
+        feedback.setProgressText(f"{cls.desc}: <{value}>")
+        return value
+
+
 class TextFilepathParam:
     label = "text_filepath"
     desc = "Free text file"
@@ -477,7 +516,7 @@ class ExportOBSTParam:
 
 class StartTimeParam:
     label = "t_begin"
-    desc = "FDS start time"
+    desc = "FDS start time"  # FIXME
     default = 0.0
     optional = True
 
@@ -499,10 +538,11 @@ class StartTimeParam:
         project.writeEntry("qgis2fds", cls.label, value)
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
-        
+
+
 class EndTimeParam:
     label = "t_end"
-    desc = "FDS end time"
+    desc = "FDS end time"  # FIXME
     default = 0.0
     optional = True
 
@@ -524,6 +564,7 @@ class EndTimeParam:
         project.writeEntry("qgis2fds", cls.label, value)
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
+
 
 class WindFilepathParam:
     label = "wind_filepath"
