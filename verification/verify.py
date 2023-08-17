@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os, difflib, filecmp, tempfile, glob
 
 from qgis.core import QgsProject
