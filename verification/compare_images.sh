@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 #BASE_DIR=$1
 #NEW_DIR=$2
 #DIFF_DIR=$3
