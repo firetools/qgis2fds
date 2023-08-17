@@ -24,7 +24,7 @@ class Domain:
         cell_size,
         nmesh,
     ) -> None:
-        feedback.pushInfo("Init MESH...")
+        feedback.pushInfo("\nInit MESH...")
 
         self.feedback = feedback
         self.utm_extent = utm_extent

@@ -30,12 +30,12 @@ class LanduseType:
         self.feedback = feedback
         self.filepath = filepath and os.path.join(project_path, filepath) or str()
         if filepath:
-            self.feedback.pushInfo(f"Import landuse type *.csv file: <{self.filepath}>")
+            self.feedback.pushInfo(f"\nImport landuse type *.csv file: <{self.filepath}>")
             self.surf_dict = dict()
             self.surf_id_dict = dict()
             self._import()
         else:
-            self.feedback.pushInfo(f"No landuse type *.csv file.")
+            self.feedback.pushInfo(f"\nNo landuse type *.csv file.")
             self.surf_dict = {}  # INERT is predefined, FDS SURF not needed
             self.surf_id_dict = {0: "INERT"}
         self.feedback.pushInfo(
@@ -91,6 +91,6 @@ Landuse boundary conditions
     @property
     def bc_in_default(self) -> str:
         try:
-            return list(self.surf_id_dict)[-1]  # eg. burned
+            return list(self.surf_id_dict)[-1]  # eg. Burned
         except KeyError:
             return 0
