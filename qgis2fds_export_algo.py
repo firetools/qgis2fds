@@ -105,7 +105,6 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
     def processAlgorithm(self, parameters, context, model_feedback):
         feedback = QgsProcessingMultiStepFeedback(9, model_feedback)  # FIXME
         results, outputs, project = {}, {}, QgsProject.instance()
-        time0 = time.time()
 
         # Load parameter values
 
@@ -358,9 +357,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Interpolate UTM DEM points to DEM raster layer (Grid, IDW with nearest neighbor searching)
         # aligned to UTM sampling grid
         # Spatial index does not improve the performance here
-        feedback.setProgressText(
-            "\nInterpolate UTM DEM points to DEM raster layer (IDW)..."
-        )
+        feedback.setProgressText("\nInterpolate UTM DEM points (IDW)...")
         t0 = time.time()
         radius = max(dem_layer_rx, dem_layer_ry)
         e = utm_extent
@@ -452,9 +449,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Sample landuse values from landuse layer
-        feedback.setProgressText("\nSample landuse values from landuse layer...")
-        t0 = time.time()
         if landuse_layer and landuse_type_filepath:
+            feedback.setProgressText("\nSample landuse values from landuse layer...")
+            t0 = time.time()
             alg_params = {
                 "COLUMN_PREFIX": "landuse",
                 "INPUT": outputs["SetZFromDem"]["OUTPUT"],
@@ -474,9 +471,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             fds_grid_layer = context.getMapLayer(
                 outputs["SampleRasterValues"]["OUTPUT"]
             )
+            feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
         else:
             fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
-        feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
@@ -488,6 +485,78 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             project_path=fds_path,  # project_path,
             filepath=landuse_type_filepath,
         )
+
+        # Get UTM fire layer and buffered UTM fire layer
+        # and sample bc values from them
+        utm_fire_layer, utm_b_fire_layer = None, None
+        if fire_layer:
+            feedback.setProgressText("\nGet UTM fire layer...")
+            t0 = time.time()
+            # Reproject fire layer to UTM
+            alg_params = {
+                "INPUT": fire_layer,
+                "TARGET_CRS": utm_crs,
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            }
+            outputs["UTMFireLayer"] = processing.run(
+                "native:reprojectlayer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            utm_fire_layer = context.getMapLayer(outputs["UTMFireLayer"]["OUTPUT"])
+            # Buffer UTM fire layer
+            alg_params = {
+                "INPUT": utm_fire_layer,
+                "DISTANCE": pixel_size,
+                "SEGMENTS": 5,
+                "END_CAP_STYLE": 0,
+                "JOIN_STYLE": 0,
+                "MITER_LIMIT": 2,
+                "DISSOLVE": False,
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT,
+            }
+            outputs["UTMBufferedFireLayer"] = processing.run(
+                "native:buffer",
+                alg_params,
+                context=context,
+                feedback=feedback,
+                is_child_algorithm=True,
+            )
+            utm_b_fire_layer = context.getMapLayer(
+                outputs["UTMBufferedFireLayer"]["OUTPUT"]
+            )
+            # Sample them
+            _load_fire_layer_bc(
+                context,
+                feedback,
+                fds_grid_layer=fds_grid_layer,
+                fire_layer=utm_b_fire_layer,
+                bc_field="bc_out",
+                bc_default=landuse_type.bc_out_default,
+            )
+            _load_fire_layer_bc(
+                context,
+                feedback,
+                fds_grid_layer=fds_grid_layer,
+                fire_layer=utm_fire_layer,
+                bc_field="bc_in",
+                bc_default=landuse_type.bc_in_default,
+            )
+            feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
+
+        feedback.setCurrentStep(9)
+        if feedback.isCanceled():
+            return {}
+
+        utm_fire_layer, utm_b_fire_layer = None, None
+        if fire_layer:
+            feedback.setProgressText("\nGet UTM fire layer...")
+            t0 = time.time()
+            fds_grid_layer = fds_grid_layer  # FIXME
+
+            feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         # Get texture
         texture = Texture(
@@ -512,7 +581,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             Terrain = GEOMTerrain
         terrain = Terrain(
             feedback=feedback,
-            sampling_layer=fds_grid_layer,  # utm_grid_layer,
+            sampling_layer=fds_grid_layer,
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
@@ -588,3 +657,61 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         text = f"\nextent: {extent_str}"
         feedback.setProgressText(text)
+
+
+# FIXME move elsewhere
+
+from qgis.PyQt.QtCore import QVariant
+from qgis.core import (
+    QgsProcessing,
+    QgsProcessingException,
+    QgsField,
+    NULL,
+    edit,
+    QgsFeatureRequest,
+)
+
+
+def _load_fire_layer_bc(
+    context,
+    feedback,
+    fds_grid_layer,
+    fire_layer,
+    bc_field,
+    bc_default,
+):
+    feedback.pushInfo(f"Load fire layer bc ({bc_field})...")
+
+    # Edit fds grid layer
+    with edit(fds_grid_layer):
+        # Add new data field
+        if fds_grid_layer.dataProvider().fieldNameIndex("bc") == -1:
+            attributes = list((QgsField("bc", QVariant.Int),))
+            fds_grid_layer.dataProvider().addAttributes(attributes)
+            fds_grid_layer.updateFields()
+        output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
+
+        if fire_layer:
+            # For all fire layer features
+            bc_idx = fire_layer.fields().indexOf(bc_field)
+            for fire_feat in fire_layer.getFeatures():
+                # Check if user specified per feature bc available
+                if bc_idx != -1:
+                    bc = fire_feat[bc_idx]
+                else:
+                    bc = bc_default
+
+                # Set bc in sampling layer
+                # for speed, preselect points
+                fire_geom = fire_feat.geometry()
+                fire_geom_bbox = fire_geom.boundingBox()
+                for f in fds_grid_layer.getFeatures(QgsFeatureRequest(fire_geom_bbox)):
+                    g = f.geometry()
+                    if fire_geom.contains(g):
+                        if bc != NULL:
+                            fds_grid_layer.changeAttributeValue(
+                                f.id(), output_bc_idx, bc
+                            )
+                feedback.pushInfo(
+                    f"<bc={bc}> applyed from fire layer <{fire_feat.id()}> feature"
+                )

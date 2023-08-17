@@ -199,7 +199,7 @@ class DEMLayerParam:
         url = value.source()
         if not os.path.isfile(url):
             raise QgsProcessingException(
-                "DEM layer data is not saved locally, cannot proceed."
+                f"DEM layer data is not saved locally, cannot proceed.\n{url}"
             )
         # Check valid
         if not value.crs().isValid():
@@ -238,7 +238,7 @@ class LanduseLayerParam:
             url = value.source()
             if not os.path.isfile(url):
                 raise QgsProcessingException(
-                    "Landuse layer data is not saved locally, cannot proceed."
+                    f"Landuse layer data is not saved locally, cannot proceed.\n{url}"
                 )
             # Check valid
             if not value.crs().isValid():
@@ -309,18 +309,11 @@ class FireLayer:
         value = None
         if parameters.get(cls.label):
             value = algo.parameterAsVectorLayer(parameters, cls.label, context)
-        if value:
-            # Check local
-            url = value.source()
-            if not os.path.isfile(url):
-                raise QgsProcessingException(
-                    "Fire layer data is not saved locally, cannot proceed."
-                )
-            # Check valid
-            if not value.crs().isValid():
-                raise QgsProcessingException(
-                    f"Fire layer CRS <{value.crs().description()}> not valid, cannot proceed."
-                )
+        # Check valid
+        if value and not value.crs().isValid():
+            raise QgsProcessingException(
+                f"Fire layer CRS <{value.crs().description()}> not valid, cannot proceed."
+            )
         project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
