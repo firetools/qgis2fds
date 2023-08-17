@@ -139,8 +139,6 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         t_end = EndTimeParam.get(**kwargs)
         wind_filepath = WindFilepathParam.get(**kwargs)
 
-
-
         # Check parameter values
 
         text = ""
@@ -198,9 +196,11 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
         clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(idem_utm_extent)
-        rx = abs(dem_layer.rasterUnitsPerPixelX())
-        ry = abs(dem_layer.rasterUnitsPerPixelY())
-        delta = max((rx, ry)) * 2.0  # cover if larger dem resolution
+        dem_layer_rx = abs(dem_layer.rasterUnitsPerPixelX())
+        dem_layer_ry = abs(dem_layer.rasterUnitsPerPixelY())
+        delta = (
+            max((dem_layer_rx, dem_layer_ry)) * 2.0
+        )  # cover if larger dem resolution
         clipped_dem_extent.grow(delta=delta)
 
         text = f"\nidem_utm_extent: {idem_utm_extent}"
@@ -237,6 +237,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Geographic transformations
 
         # Create UTM sampling grid
+        feedback.setProgressText("\nCreate UTM sampling grid...")
         spacing = pixel_size
         alg_params = {
             "CRS": utm_crs,
@@ -257,6 +258,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
 
         # Check UTM sampling grid
+        feedback.setProgressText("\nCheck UTM sampling grid...")
         utm_grid_layer = context.getMapLayer(outputs["UtmGrid"]["OUTPUT"])
         if utm_grid_layer.featureCount() < 9:
             raise QgsProcessingException(
@@ -268,6 +270,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Clip DEM by needed extent
+        feedback.setProgressText("\nClip DEM by needed extent...")
         alg_params = {
             "DATA_TYPE": 0,  # use input layer data type
             "EXTRA": "",
@@ -293,6 +296,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Transform clipped DEM pixels to points
+        feedback.setProgressText("\nTransform clipped DEM pixels to points...")
         alg_params = {
             "FIELD_NAME": "DEM",
             "INPUT_RASTER": outputs["ClippedDemLayer"]["OUTPUT"],
@@ -312,6 +316,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Reproject DEM points to UTM
+        feedback.setProgressText("\nReproject DEM points to UTM...")
         alg_params = {
             "CONVERT_CURVED_GEOMETRIES": False,
             "INPUT": outputs["DemPixelsToPoints"]["OUTPUT"],
@@ -333,42 +338,80 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Interpolate UTM DEM points to DEM raster layer
+        # Interpolate UTM DEM points to DEM raster layer (Grid, IDW with nearest neighbor searching)
         # aligned to UTM sampling grid
-        utm_dem_layer = outputs["UtmDemPoints"]["OUTPUT"]
-        layer_source = context.getMapLayer(utm_dem_layer).source()
-        interpolation_source = 0
-        field_index = 0
-        input_type = 0  # points
-        interpolation_data = f"{layer_source}::~::{interpolation_source}::~::{field_index}::~::{input_type}"
+        feedback.setProgressText(
+            "\nInterpolate UTM DEM points to DEM raster layer (IDW)..."
+        )
+        radius = max(dem_layer_rx, dem_layer_ry)
+        e = utm_extent
+        extra = f"-txe {e.xMinimum()} {e.xMaximum()} -tye {e.yMinimum()} {e.yMaximum()} -tr {pixel_size} {pixel_size}"
         alg_params = {
-            "EXTENT": idem_utm_extent,
-            "INTERPOLATION_DATA": interpolation_data,
-            "METHOD": 0,  # Linear
-            "PIXEL_SIZE": pixel_size,  # interpolated DEM resolution
+            "INPUT": outputs["UtmDemPoints"]["OUTPUT"],
+            "Z_FIELD": "DEM",
+            "POWER": 2,
+            "SMOOTHING": 0,
+            "RADIUS": radius,
+            "MAX_POINTS": 4,
+            "MIN_POINTS": 1,
+            "NODATA": -999,
+            "OPTIONS": "",
+            "EXTRA": extra,
+            "DATA_TYPE": 5,
             "OUTPUT": DEBUG
             and parameters["UtmInterpolatedDemLayer"]
             or QgsProcessing.TEMPORARY_OUTPUT,
         }
-        outputs["TinInterpolation"] = processing.run(
-            "qgis:tininterpolation",
+        outputs["Interpolation"] = processing.run(
+            "gdal:gridinversedistancenearestneighbor",
             alg_params,
             context=context,
             feedback=feedback,
             is_child_algorithm=True,
         )
 
+        # # Interpolate UTM DEM points to DEM raster layer (TIN interpolation)
+        # # aligned to UTM sampling grid
+        # feedback.setProgressText(
+        #     "\nInterpolate UTM DEM points to DEM raster layer (TIN)..."
+        # )
+        # utm_dem_layer = outputs["UtmDemPoints"]["OUTPUT"]
+        # layer_source = context.getMapLayer(utm_dem_layer).source()
+        # interpolation_source = 0
+        # field_index = 0
+        # input_type = 0  # points
+        # interpolation_data = f"{layer_source}::~::{interpolation_source}::~::{field_index}::~::{input_type}"
+        # alg_params = {
+        #     "EXTENT": idem_utm_extent,
+        #     "INTERPOLATION_DATA": interpolation_data,
+        #     "METHOD": 0,  # Linear
+        #     "PIXEL_SIZE": pixel_size,  # interpolated DEM resolution
+        #     "OUTPUT": DEBUG
+        #     and parameters["UtmInterpolatedDemLayer"]
+        #     or QgsProcessing.TEMPORARY_OUTPUT,
+        # }
+        # outputs["Interpolation"] = processing.run(
+        #     "qgis:tininterpolation",
+        #     alg_params,
+        #     context=context,
+        #     feedback=feedback,
+        #     is_child_algorithm=True,
+        # )
+
         feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
         # Sample Z values from interpolated DEM raster layer
+        feedback.setProgressText(
+            "\nSample Z values from interpolated DEM raster layer..."
+        )
         alg_params = {
             "BAND": 1,
             "INPUT": outputs["UtmGrid"]["OUTPUT"],
             "NODATA": -999,
             "OFFSET": 0,
-            "RASTER": outputs["TinInterpolation"]["OUTPUT"],
+            "RASTER": outputs["Interpolation"]["OUTPUT"],
             "SCALE": 1,
             "OUTPUT": DEBUG and parameters["UtmGrid"] or QgsProcessing.TEMPORARY_OUTPUT,
         }
@@ -385,6 +428,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Sample landuse values from landuse layer
+        feedback.setProgressText("\nSample landuse values from landuse layer...")
         if landuse_layer and landuse_type_filepath:
             alg_params = {
                 "COLUMN_PREFIX": "landuse",
@@ -402,7 +446,9 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 is_child_algorithm=True,
             )
             # results["UtmGrid"] = outputs["SampleRasterValues"]["OUTPUT"]
-            fds_grid_layer = context.getMapLayer(outputs["SampleRasterValues"]["OUTPUT"])
+            fds_grid_layer = context.getMapLayer(
+                outputs["SampleRasterValues"]["OUTPUT"]
+            )
         else:
             fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
 
@@ -410,15 +456,13 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        #return results  # script end
-        
         # Get landuse type
         landuse_type = LanduseType(
             feedback=feedback,
-            project_path=fds_path, #project_path,
+            project_path=fds_path,  # project_path,
             filepath=landuse_type_filepath,
         )
-        
+
         # Get texture
         texture = Texture(
             feedback=feedback,
@@ -430,10 +474,10 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             utm_extent=utm_extent,
             utm_crs=utm_crs,
         )
-        
+
         # Add empty wind
         wind = Wind(feedback=feedback, project_path=fds_path, filepath=wind_filepath)
-        
+
         # Prepare terrain, domain, fds_case
 
         if export_obst:
@@ -442,7 +486,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             Terrain = GEOMTerrain
         terrain = Terrain(
             feedback=feedback,
-            sampling_layer=fds_grid_layer, #utm_grid_layer,
+            sampling_layer=fds_grid_layer,  # utm_grid_layer,
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
@@ -453,7 +497,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         if feedback.isCanceled():
             return {}
-        
+
         domain = Domain(
             feedback=feedback,
             utm_crs=utm_crs,
