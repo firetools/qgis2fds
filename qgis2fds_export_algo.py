@@ -479,6 +479,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Get landuse type
+        # (we need landuse_type.bc_out_default and .bc_in_default)
         landuse_type = LanduseType(
             feedback=feedback,
             project_path=fds_path,  # project_path,
