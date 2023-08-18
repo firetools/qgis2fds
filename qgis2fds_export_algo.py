@@ -9,12 +9,10 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from qgis.core import (
     QgsProject,
-    QgsRasterLayer,
     QgsProcessing,
     QgsProcessingException,
     QgsProcessingAlgorithm,
     QgsProcessingMultiStepFeedback,
-    QgsProcessingParameterFeatureSink,
     QgsProcessingParameterRasterDestination,
     QgsProcessingParameterVectorDestination,
     QgsCoordinateReferenceSystem,
@@ -289,7 +287,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Clip DEM points by requested extent
-        # Spatial index does not improve the performance here
+        # (the previous raster clipping had issues with certain CRSs)
+        # Pre-generating the spatial index does not improve the performance here
         feedback.setProgressText("\nClip DEM points by requested extent...")
         t0 = time.time()
         alg_params = {
@@ -356,7 +355,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Interpolate UTM DEM points to DEM raster layer (Grid, IDW with nearest neighbor searching)
         # aligned to UTM sampling grid
-        # Spatial index does not improve the performance here
+        # Pre-generating the spatial index does not improve the performance here
         feedback.setProgressText("\nInterpolate UTM DEM points (IDW)...")
         t0 = time.time()
         radius = max(dem_layer_rx, dem_layer_ry)
@@ -684,12 +683,14 @@ def _load_fire_layer_bc(
 
     # Edit fds grid layer
     with edit(fds_grid_layer):
-        # Add new data field
-        if fds_grid_layer.dataProvider().fieldNameIndex("bc") == -1:
+        # Add new data field, if not existing
+        output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
+        if output_bc_idx == -1:
+            # not existing, add bc field
             attributes = list((QgsField("bc", QVariant.Int),))
             fds_grid_layer.dataProvider().addAttributes(attributes)
             fds_grid_layer.updateFields()
-        output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
+            output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
 
         if fire_layer:
             # For all fire layer features
