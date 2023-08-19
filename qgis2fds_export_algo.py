@@ -108,7 +108,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             )
 
     def processAlgorithm(self, parameters, context, model_feedback):
-        feedback = QgsProcessingMultiStepFeedback(9, model_feedback)  # FIXME
+        feedback = QgsProcessingMultiStepFeedback(8, model_feedback)
         results, outputs, project = {}, {}, QgsProject.instance()
 
         # Load parameter values
@@ -169,6 +169,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
+        feedback.setProgressText(f"Applicable UTM CRS: {utm_crs.authid()}")
 
         # Calc utm_origin, origin in UTM crs
 
@@ -182,66 +183,23 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         epsilon = 1e-6  # used to nudge the native:creategrid algo
         w = math.ceil(utm_extent.width() / pixel_size) * pixel_size + epsilon
         h = math.ceil(utm_extent.height() / pixel_size) * pixel_size + epsilon
-        utm_extent.setXMaximum(utm_extent.xMinimum() + w)
-        utm_extent.setYMinimum(utm_extent.yMaximum() - h)
-
-        # Output
-
-        text = f"\nUTM CRS: {utm_crs.authid()}"
-        text += f"\nWGS84 origin: {wgs84_origin}"
-        text += f"\nUTM origin: {utm_origin}"
-        text += f"\nUTM extent: {utm_extent}"
-        text += f"\nUTM extent size: {utm_extent.xMaximum()-utm_extent.xMinimum():.1f}x{utm_extent.yMaximum()-utm_extent.yMinimum():.1f}m"
-        feedback.setProgressText(text)
-
-        # Calc the extent for the interpolated DEM
-        # The interpolated DEM pixels are centered on the sampling grid points
-        #
-        # ·---·---·---· interpolated DEM pixels
-        # | * | * | * | sampling grid points
-        # ·---·---·---·
-        # | * | * | * |
-        # ·---·---·---·
-
-        epsilon = 2e-6  # used to nudge the gdal:gridinversedistancenearestneighbor algo
-        idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - epsilon)
-
-        # Calc clipping extent of the original DEM in DEM crs,
-        # two pixels larger than what is strictly needed
-        # to facilitate interpolation
-
-        utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
-        clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(idem_utm_extent)
-        dem_layer_rx = abs(dem_layer.rasterUnitsPerPixelX())
-        dem_layer_ry = abs(dem_layer.rasterUnitsPerPixelY())
-        clipped_dem_extent.grow(delta=max((dem_layer_rx, dem_layer_ry)) * 2.0)
-
-        # Output
+        x_min, x_max, y_min, y_max = (
+            utm_extent.xMinimum(),
+            utm_extent.xMaximum(),
+            utm_extent.yMinimum(),
+            utm_extent.yMaximum(),
+        )
+        utm_extent.setXMaximum(x_min + w)
+        utm_extent.setYMinimum(y_max - h)
+        feedback.setProgressText(f"Extent size: {x_max-x_min:.1f}x{y_max-y_min:.1f}m")
 
         if DEBUG:
-            self._show_extent(
-                e=utm_extent,
-                c=utm_crs,
+            _run_extent_to_layer(
                 parameters=parameters,
-                outputs=outputs,
                 context=context,
                 feedback=feedback,
-            )
-            self._show_extent(
-                e=idem_utm_extent,
-                c=utm_crs,
-                parameters=parameters,
-                outputs=outputs,
-                context=context,
-                feedback=feedback,
-            )
-            self._show_extent(
-                e=clipped_dem_extent,
-                c=dem_layer.crs(),
-                parameters=parameters,
-                outputs=outputs,
-                context=context,
-                feedback=feedback,
+                extent=utm_extent,
+                crs=utm_crs,
             )
 
         # Create UTM sampling grid
@@ -276,7 +234,48 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
+        # Calc the extent for the interpolated DEM
+        # The interpolated DEM pixels are centered on the sampling grid points
+        #
+        # ·---·---·---· interpolated DEM pixels
+        # | * | * | * | sampling grid points
+        # ·---·---·---·
+        # | * | * | * |
+        # ·---·---·---·
+
+        epsilon = 2e-6  # used to nudge the gdal:gridinversedistancenearestneighbor algo
+        utm_idem_extent = utm_extent.buffered(pixel_size / 2.0 - epsilon)
+
+        if DEBUG:
+            _run_extent_to_layer(
+                parameters=parameters,
+                context=context,
+                feedback=feedback,
+                extent=utm_idem_extent,
+                crs=utm_crs,
+            )
+
+        # Calc clipping extent of the original DEM in DEM crs,
+        # two pixels larger than what is strictly needed
+        # to facilitate interpolation
+
+        utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
+        clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(utm_idem_extent)
+        dem_layer_rx = abs(dem_layer.rasterUnitsPerPixelX())
+        dem_layer_ry = abs(dem_layer.rasterUnitsPerPixelY())
+        clipped_dem_extent.grow(delta=max((dem_layer_rx, dem_layer_ry)) * 2.0)
+
+        if DEBUG:
+            _run_extent_to_layer(
+                parameters=parameters,
+                context=context,
+                feedback=feedback,
+                extent=clipped_dem_extent,
+                crs=dem_layer.crs(),
+            )
+
         # Transform DEM pixels to points
+
         feedback.setProgressText("\nTransform DEM pixels to points...")
         t0 = time.time()
         alg_params = {
@@ -301,6 +300,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Clip DEM points by requested extent
         # (the previous raster clipping had issues with certain CRSs)
         # Pre-generating the spatial index does not improve the performance here
+
         feedback.setProgressText("\nClip DEM points by requested extent...")
         t0 = time.time()
         alg_params = {
@@ -320,11 +320,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
-        feedback.setCurrentStep(5)  # FIXME
+        feedback.setCurrentStep(3)  # FIXME
         if feedback.isCanceled():
             return {}
 
         # Reproject DEM points to UTM
+
         feedback.setProgressText("\nReproject DEM points to UTM...")
         t0 = time.time()
         alg_params = {
@@ -345,33 +346,18 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
-        feedback.setCurrentStep(6)
+        feedback.setCurrentStep(4)
         if feedback.isCanceled():
             return {}
-
-        # # Create spatial index to speed up the next process
-        # feedback.setProgressText("\nCreate spatial index...")
-        # t0 = time.time()
-        # input = outputs["UtmDemPoints"]["OUTPUT"]
-        # alg_params = {
-        #     "INPUT": input,
-        # }
-        # processing.run(
-        #     "native:createspatialindex",
-        #     alg_params,
-        #     context=context,
-        #     feedback=feedback,
-        #     is_child_algorithm=True,
-        # )
-        # feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         # Interpolate UTM DEM points to DEM raster layer (Grid, IDW with nearest neighbor searching)
         # aligned to UTM sampling grid
         # Pre-generating the spatial index does not improve the performance here
+
         feedback.setProgressText("\nInterpolate UTM DEM points (IDW)...")
         t0 = time.time()
         radius = max(dem_layer_rx, dem_layer_ry)
-        e = idem_utm_extent
+        e = utm_idem_extent
         extra = f"-txe {e.xMinimum()} {e.xMaximum()} -tye {e.yMinimum()} {e.yMaximum()} -tr {pixel_size} {pixel_size}"
         alg_params = {
             "INPUT": outputs["UtmDemPoints"]["OUTPUT"],
@@ -428,7 +414,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # )
         # feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
-        feedback.setCurrentStep(7)
+        feedback.setCurrentStep(5)
         if feedback.isCanceled():
             return {}
 
@@ -455,7 +441,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
-        feedback.setCurrentStep(8)
+        feedback.setCurrentStep(6)
         if feedback.isCanceled():
             return {}
 
@@ -493,7 +479,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 fds_grid_layer.dataProvider().addAttributes(attributes)
                 fds_grid_layer.updateFields()
 
-        feedback.setCurrentStep(9)
+        feedback.setCurrentStep(7)
         if feedback.isCanceled():
             return {}
 
@@ -567,7 +553,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         else:
             feedback.setProgressText("\nNo fire layer.")
 
-        feedback.setCurrentStep(9)
+        feedback.setCurrentStep(8)
         if feedback.isCanceled():
             return {}
 
@@ -652,27 +638,48 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
     def createInstance(self):
         return qgis2fdsExportAlgo()
 
-    def _show_extent(self, e, c, parameters, outputs, context, feedback):
-        # Show debug utm_extent FIXME
-        extent_str = f"{e.xMinimum()}, {e.xMaximum()}, {e.yMinimum()}, {e.yMaximum()} [{c.authid()}]"
-        alg_params = {
-            "INPUT": extent_str,
-            "OUTPUT": DEBUG
-            and parameters["ExtentDebug"]
-            or QgsProcessing.TEMPORARY_OUTPUT,
-        }
-        outputs["ExtentDebug"] = processing.run(
-            "native:extenttolayer",
-            alg_params,
-            context=context,
-            feedback=feedback,
-            is_child_algorithm=True,
-        )
-        text = f"\nextent: {extent_str}"
-        feedback.setProgressText(text)
-
 
 # FIXME move elsewhere
+
+
+def _run_create_spatial_index(parameters, context, feedback, vector_layer):
+    """Create spatial index of vector layer to speed up the next process."""
+    feedback.setProgressText("\nCreate spatial index...")
+    t0 = time.time()
+    alg_params = {
+        "INPUT": vector_layer,
+    }
+    output = processing.run(
+        "native:createspatialindex",
+        alg_params,
+        context=context,
+        feedback=feedback,
+        is_child_algorithm=True,
+    )
+    feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
+    return output
+
+
+def _run_extent_to_layer(parameters, context, feedback, extent, crs):
+    x_min, x_max, y_min, y_max = (
+        extent.xMinimum(),
+        extent.xMaximum(),
+        extent.yMinimum(),
+        extent.yMaximum(),
+    )
+    extent_str = f"{x_min}, {x_max}, {y_min}, {y_max} [{crs.authid()}]"
+    feedback.setProgressText(f"Extent to layer: {extent_str} ...")
+    alg_params = {
+        "INPUT": extent_str,
+        "OUTPUT": parameters["ExtentDebug"],  # or QgsProcessing.TEMPORARY_OUTPUT,
+    }
+    return processing.run(
+        "native:extenttolayer",
+        alg_params,
+        context=context,
+        feedback=feedback,
+        is_child_algorithm=True,
+    )
 
 
 def _load_fire_layer_bc(
