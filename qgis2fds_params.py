@@ -561,7 +561,7 @@ class EndTimeParam:
 
 class WindFilepathParam:
     label = "wind_filepath"
-    desc = "Wind text file"
+    desc = "Wind *.csv file"
     default = ""
     optional = True
 
