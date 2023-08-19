@@ -18,8 +18,15 @@ from qgis.core import (
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsPoint,
+    QgsField,
+    NULL,
+    edit,
+    QgsFeatureRequest,
 )
-import processing, math, time
+from qgis.PyQt.QtCore import QVariant
+
+import processing
+import math, time
 from .qgis2fds_params import *
 from .types import (
     utils,
@@ -151,41 +158,55 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             text += "\nTerrain resolution used as FDS MESH cell size"
         feedback.setProgressText(text)
 
-        # Calc wgs84_origin, applicable UTM crs, utm_origin
+        # Calc wgs84_origin, origin in WGS84 crs
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
         prj_to_wgs84_tr = QgsCoordinateTransform(project.crs(), wgs84_crs, project)
         wgs84_origin = origin.clone()
         wgs84_origin.transform(prj_to_wgs84_tr)
 
+        # Calc applicable UTM crs at the origin
+
         utm_epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(utm_epsg)
+
+        # Calc utm_origin, origin in UTM crs
+
         wgs84_to_utm_tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
-        utm_origin = wgs84_origin.clone()  # FIXME better way?
+        utm_origin = wgs84_origin.clone()
         utm_origin.transform(wgs84_to_utm_tr)
 
-        # Calc utm_extent, adjust dimensions as pixel_size multiples
+        # Calc utm_extent, the terrain extent in UTM crs
 
         utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
-
-        w = math.ceil(utm_extent.width() / pixel_size) * pixel_size + 0.000001
-        h = math.ceil(utm_extent.height() / pixel_size) * pixel_size + 0.000001
+        epsilon = 1e-6  # used to nudge the native:creategrid algo
+        w = math.ceil(utm_extent.width() / pixel_size) * pixel_size + epsilon
+        h = math.ceil(utm_extent.height() / pixel_size) * pixel_size + epsilon
         utm_extent.setXMaximum(utm_extent.xMinimum() + w)
         utm_extent.setYMinimum(utm_extent.yMaximum() - h)
+
+        # Output
 
         text = f"\nUTM CRS: {utm_crs.authid()}"
         text += f"\nWGS84 origin: {wgs84_origin}"
         text += f"\nUTM origin: {utm_origin}"
-        text += f"\nUTM extent: {utm_extent}, size: {utm_extent.xMaximum()-utm_extent.xMinimum()}x{utm_extent.yMaximum()-utm_extent.yMinimum()}m"
+        text += f"\nUTM extent: {utm_extent}"
+        text += f"\nUTM extent size: {utm_extent.xMaximum()-utm_extent.xMinimum():.1f}x{utm_extent.yMaximum()-utm_extent.yMinimum():.1f}m"
         feedback.setProgressText(text)
 
-        # Calc the interpolated DEM extent in UTM crs
-        # so that the interpolation is aligned to the sampling grid
+        # Calc the extent for the interpolated DEM
+        # The interpolated DEM pixels are centered on the sampling grid points
+        # ·---·---·---· interpolated DEM pixels
+        # | * | * | * | sampling grid points
+        # ·---·---·---·
+        # | * | * | * |
+        # ·---·---·---·
+        epsilon = 2e-6  # used to nudge the gdal:gridinversedistancenearestneighbor algo
+        idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - epsilon)
 
-        idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - 0.000002)
-
-        # Calc clipping extent of the original DEM in DEM crs
-        # so that it is enough for interpolation
+        # Calc clipping extent of the original DEM in DEM crs,
+        # slightly larger than
+        # The clipped DEM is enough for interpolation
 
         utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
         clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(idem_utm_extent)
@@ -232,13 +253,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         # Create UTM sampling grid
         feedback.setProgressText("\nCreate UTM sampling grid...")
         t0 = time.time()
-        spacing = pixel_size
         alg_params = {
             "CRS": utm_crs,
             "EXTENT": utm_extent,
             "TYPE": 0,  # Point
-            "HSPACING": spacing,
-            "VSPACING": spacing,
+            "HSPACING": pixel_size,
+            "VSPACING": pixel_size,
             "HOVERLAY": 0.0,
             "VOVERLAY": 0.0,
             "OUTPUT": DEBUG and parameters["UtmGrid"] or QgsProcessing.TEMPORARY_OUTPUT,
@@ -359,7 +379,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         feedback.setProgressText("\nInterpolate UTM DEM points (IDW)...")
         t0 = time.time()
         radius = max(dem_layer_rx, dem_layer_ry)
-        e = utm_extent
+        e = idem_utm_extent
         extra = f"-txe {e.xMinimum()} {e.xMaximum()} -tye {e.yMinimum()} {e.yMaximum()} -tr {pixel_size} {pixel_size}"
         alg_params = {
             "INPUT": outputs["UtmDemPoints"]["OUTPUT"],
@@ -448,11 +468,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         # Sample landuse values from landuse layer
+        # The new data column name is bc1
         if landuse_layer and landuse_type_filepath:
             feedback.setProgressText("\nSample landuse values from landuse layer...")
             t0 = time.time()
             alg_params = {
-                "COLUMN_PREFIX": "landuse",
+                "COLUMN_PREFIX": "bc",  # creates the bc1 field from landuse
                 "INPUT": outputs["SetZFromDem"]["OUTPUT"],
                 "RASTERCOPY": landuse_layer,
                 "OUTPUT": parameters[
@@ -472,13 +493,19 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             )
             feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
         else:
+            feedback.setProgressText("\nNo landuse layer or type.")
             fds_grid_layer = context.getMapLayer(outputs["SetZFromDem"]["OUTPUT"])
+            # Create an empty bc1 field
+            with edit(fds_grid_layer):
+                attributes = list((QgsField("bc1", QVariant.Int),))
+                fds_grid_layer.dataProvider().addAttributes(attributes)
+                fds_grid_layer.updateFields()
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
 
-        # Get landuse type
+        # Get landuse type # FIXME what if not existant?
         # (we need landuse_type.bc_out_default and .bc_in_default)
         landuse_type = LanduseType(
             feedback=feedback,
@@ -545,18 +572,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 bc_default=landuse_type.bc_in_default,
             )
             feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
+        else:
+            feedback.setProgressText("\nNo fire layer.")
 
         feedback.setCurrentStep(9)
         if feedback.isCanceled():
             return {}
-
-        utm_fire_layer, utm_b_fire_layer = None, None
-        if fire_layer:
-            feedback.setProgressText("\nGet UTM fire layer...")
-            t0 = time.time()
-            fds_grid_layer = fds_grid_layer  # FIXME
-
-            feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         # Get texture
         texture = Texture(
@@ -581,7 +602,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             Terrain = GEOMTerrain
         terrain = Terrain(
             feedback=feedback,
-            sampling_layer=fds_grid_layer,
+            fds_grid_layer=fds_grid_layer,
             utm_origin=utm_origin,
             landuse_layer=landuse_layer,
             landuse_type=landuse_type,
@@ -661,59 +682,36 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
 # FIXME move elsewhere
 
-from qgis.PyQt.QtCore import QVariant
-from qgis.core import (
-    QgsProcessing,
-    QgsProcessingException,
-    QgsField,
-    NULL,
-    edit,
-    QgsFeatureRequest,
-)
-
 
 def _load_fire_layer_bc(
-    context,
-    feedback,
-    fds_grid_layer,
-    fire_layer,
-    bc_field,
-    bc_default,
+    context, feedback, fds_grid_layer, fire_layer, bc_field, bc_default
 ):
     feedback.pushInfo(f"Load fire layer bc ({bc_field})...")
 
-    # Edit fds grid layer
-    with edit(fds_grid_layer):
-        # Add new data field, if not existing
-        output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
-        if output_bc_idx == -1:
-            # not existing, add bc field
-            attributes = list((QgsField("bc", QVariant.Int),))
-            fds_grid_layer.dataProvider().addAttributes(attributes)
-            fds_grid_layer.updateFields()
-            output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc")
+    # Get bc1 data field index
+    output_bc_idx = fds_grid_layer.dataProvider().fieldNameIndex("bc1")
+    if output_bc_idx == -1:
+        raise QgsProcessingException("No bc1 data field, cannot proceed.")
 
-        if fire_layer:
-            # For all fire layer features
-            bc_idx = fire_layer.fields().indexOf(bc_field)
-            for fire_feat in fire_layer.getFeatures():
-                # Check if user specified per feature bc available
-                if bc_idx != -1:
-                    bc = fire_feat[bc_idx]
-                else:
-                    bc = bc_default
+    # For all fire layer features
+    bc_idx = fire_layer.fields().indexOf(bc_field)
+    for fire_feat in fire_layer.getFeatures():
+        # Check if user specified per feature bc available
+        if bc_idx != -1:
+            bc = fire_feat[bc_idx]
+        else:
+            bc = bc_default
 
-                # Set bc in sampling layer
-                # for speed, preselect points
-                fire_geom = fire_feat.geometry()
-                fire_geom_bbox = fire_geom.boundingBox()
-                for f in fds_grid_layer.getFeatures(QgsFeatureRequest(fire_geom_bbox)):
-                    g = f.geometry()
-                    if fire_geom.contains(g):
-                        if bc != NULL:
-                            fds_grid_layer.changeAttributeValue(
-                                f.id(), output_bc_idx, bc
-                            )
-                feedback.pushInfo(
-                    f"<bc={bc}> applyed from fire layer <{fire_feat.id()}> feature"
-                )
+        # Set bc in fds_grid_layer
+        # for speed, preselect points
+        fire_geom = fire_feat.geometry()
+        fire_geom_bbox = fire_geom.boundingBox()
+        with edit(fds_grid_layer):
+            for f in fds_grid_layer.getFeatures(QgsFeatureRequest(fire_geom_bbox)):
+                g = f.geometry()
+                if fire_geom.contains(g):
+                    if bc != NULL:
+                        fds_grid_layer.changeAttributeValue(f.id(), output_bc_idx, bc)
+        feedback.pushInfo(
+            f"Boundary condition <bc={bc}> applied from fire layer <{fire_feat.id()}> feature"
+        )

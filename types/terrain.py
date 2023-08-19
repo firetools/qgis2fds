@@ -17,7 +17,7 @@ class GEOMTerrain:
     def __init__(
         self,
         feedback,
-        sampling_layer,
+        fds_grid_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
@@ -26,7 +26,7 @@ class GEOMTerrain:
         name,
     ) -> None:
         self.feedback = feedback
-        self.sampling_layer = sampling_layer
+        self.fds_grid_layer = fds_grid_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
@@ -79,55 +79,42 @@ class GEOMTerrain:
     # o verts
 
     def _init_matrix(self) -> None:
-        """Init the matrix from the sampling layer."""
+        """Init the matrix from the fds grid layer."""
         self.feedback.pushInfo("Init the matrix of sampling points...")
         self.feedback.setProgress(0)
 
         # Init
-        sampling_layer = self.sampling_layer
-        nfeatures = sampling_layer.featureCount()
+        nfeatures = self.fds_grid_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
         m = np.empty((nfeatures, 4))  # allocate the np array
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
 
-        # Fill the array with point coordinates, points are listed by column
-        # calc min and max z
+        # Fill the matrix with point coordinates and boundary conditions
+        # Points are listed by column
         min_z, max_z = 1e6, -1e6
-        for i, f in enumerate(self.sampling_layer.getFeatures()):
-            g = f.geometry().get()  # QgsPoint
+        output_bc_idx = self.fds_grid_layer.fields().indexOf("bc1")
+        for i, f in enumerate(self.fds_grid_layer.getFeatures()):
+            # Get elevation
+            g = f.geometry().get()  # it is a QgsPoint
             z = g.z()
+            # Calc max and min elevation
             if z > max_z:
                 max_z = z
             if z < min_z:
                 min_z = z
+            # Get bc
+            a = f.attributes()
+            bc = a[output_bc_idx] or 0
+            # Set elevation and bc in the matrix
             m[i] = (
                 g.x() - ox,  # x, relative to origin
                 g.y() - oy,  # y, relative to origin
-                g.z(),  # z absolute
-                0,  # for landuse
+                z,  # z absolute
+                bc,  # boundary condition
             )
             if i % partial_progress == 0:
                 self.feedback.setProgress(int(i / nfeatures * 100))
         self.max_z, self.min_z = max_z, min_z
-
-        # Fill the array with the landuse
-        if self.landuse_layer:
-            landuse_idx = self.sampling_layer.fields().indexOf("landuse1")
-            for i, f in enumerate(self.sampling_layer.getFeatures()):
-                a = f.attributes()
-                m[i][3] = a[landuse_idx] or 0
-                if i % partial_progress == 0:
-                    self.feedback.setProgress(int(i / nfeatures * 100))
-
-        # Fill the array with the fire layer bcs
-        if self.fire_layer:
-            bc_idx = self.sampling_layer.fields().indexOf("bc")
-            for i, f in enumerate(self.sampling_layer.getFeatures()):
-                a = f.attributes()
-                if a[bc_idx]:
-                    m[i][3] = a[bc_idx]
-                if i % partial_progress == 0:
-                    self.feedback.setProgress(int(i / nfeatures * 100))
 
         # Get point column length
         column_len = 2
@@ -142,6 +129,7 @@ class GEOMTerrain:
         # Split matrix into columns list, get np array, and transpose
         # Now points are by row
         m = np.array(np.split(m, nfeatures // column_len)).transpose(1, 0, 2)
+
         # Check
         if m.shape[0] < 3 or m.shape[1] < 3:
             raise QgsProcessingException(
@@ -301,7 +289,7 @@ class OBSTTerrain(GEOMTerrain):
     def __init__(
         self,
         feedback,
-        sampling_layer,
+        fds_grid_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
@@ -310,7 +298,7 @@ class OBSTTerrain(GEOMTerrain):
         name=None,  # unused
     ) -> None:
         self.feedback = feedback
-        self.sampling_layer = sampling_layer
+        self.fds_grid_layer = fds_grid_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
