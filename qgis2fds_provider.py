@@ -11,7 +11,6 @@ from qgis.core import QgsProcessingProvider
 from .qgis2fds_export_algo import qgis2fdsExportAlgo
 from .extract_server_layer import extractServerLayerAlgorithm
 
-enable_debug_algorithms = False
 
 class qgis2fdsProvider(QgsProcessingProvider):
     def __init__(self):
@@ -32,9 +31,7 @@ class qgis2fdsProvider(QgsProcessingProvider):
         """
         self.addAlgorithm(qgis2fdsExportAlgo())
         self.addAlgorithm(extractServerLayerAlgorithm())
-        if enable_debug_algorithms:
-            self.addAlgorithm(debug_terrain())
-            
+
     def id(self):
         """
         Returns the unique provider id.
