@@ -196,61 +196,56 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Calc the extent for the interpolated DEM
         # The interpolated DEM pixels are centered on the sampling grid points
+        #
         # ·---·---·---· interpolated DEM pixels
         # | * | * | * | sampling grid points
         # ·---·---·---·
         # | * | * | * |
         # ·---·---·---·
+
         epsilon = 2e-6  # used to nudge the gdal:gridinversedistancenearestneighbor algo
         idem_utm_extent = utm_extent.buffered(pixel_size / 2.0 - epsilon)
 
         # Calc clipping extent of the original DEM in DEM crs,
-        # slightly larger than
-        # The clipped DEM is enough for interpolation
+        # two pixels larger than what is strictly needed
+        # to facilitate interpolation
 
         utm_to_dem_tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
         clipped_dem_extent = utm_to_dem_tr.transformBoundingBox(idem_utm_extent)
         dem_layer_rx = abs(dem_layer.rasterUnitsPerPixelX())
         dem_layer_ry = abs(dem_layer.rasterUnitsPerPixelY())
-        delta = (
-            max((dem_layer_rx, dem_layer_ry)) * 2.0
-        )  # cover if larger dem resolution
-        clipped_dem_extent.grow(delta=delta)
+        clipped_dem_extent.grow(delta=max((dem_layer_rx, dem_layer_ry)) * 2.0)
 
-        text = f"\nidem_utm_extent: {idem_utm_extent}"
-        text += f"\nclipped_dem_extent: {clipped_dem_extent}"
-        feedback.setProgressText(text)
+        # Output
 
-        self._show_extent(  # FIXME
-            e=utm_extent,
-            c=utm_crs,
-            parameters=parameters,
-            outputs=outputs,
-            context=context,
-            feedback=feedback,
-        )
-
-        self._show_extent(  # FIXME
-            e=idem_utm_extent,
-            c=utm_crs,
-            parameters=parameters,
-            outputs=outputs,
-            context=context,
-            feedback=feedback,
-        )
-
-        self._show_extent(  # FIXME
-            e=clipped_dem_extent,
-            c=dem_layer.crs(),
-            parameters=parameters,
-            outputs=outputs,
-            context=context,
-            feedback=feedback,
-        )
-
-        # Geographic transformations
+        if DEBUG:
+            self._show_extent(
+                e=utm_extent,
+                c=utm_crs,
+                parameters=parameters,
+                outputs=outputs,
+                context=context,
+                feedback=feedback,
+            )
+            self._show_extent(
+                e=idem_utm_extent,
+                c=utm_crs,
+                parameters=parameters,
+                outputs=outputs,
+                context=context,
+                feedback=feedback,
+            )
+            self._show_extent(
+                e=clipped_dem_extent,
+                c=dem_layer.crs(),
+                parameters=parameters,
+                outputs=outputs,
+                context=context,
+                feedback=feedback,
+            )
 
         # Create UTM sampling grid
+
         feedback.setProgressText("\nCreate UTM sampling grid...")
         t0 = time.time()
         alg_params = {
@@ -270,15 +265,12 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             feedback=feedback,
             is_child_algorithm=True,
         )
-        feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
-
-        # Check UTM sampling grid
-        feedback.setProgressText("\nCheck UTM sampling grid...")
         utm_grid_layer = context.getMapLayer(outputs["UtmGrid"]["OUTPUT"])
         if utm_grid_layer.featureCount() < 9:
             raise QgsProcessingException(
                 f"Too few features in sampling layer ({utm_grid_layer.featureCount()}), cannot proceed.\n"
             )
+        feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         feedback.setCurrentStep(1)
         if feedback.isCanceled():
