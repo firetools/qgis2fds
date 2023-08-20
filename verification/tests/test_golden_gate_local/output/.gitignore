@@ -1,9 +1,0 @@
-# No files
-*
-
-# but Smokeview initialization file
-!*.ini
-
-# and Smokeview script
-!*.ssf
-
