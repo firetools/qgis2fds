@@ -53,7 +53,7 @@ class ChidParam:
 class FDSPathParam:
     label = "fds_path"
     desc = "Save in folder"
-    default = "./"
+    default = "../FDS"
     optional = False
 
     @classmethod
@@ -509,7 +509,7 @@ class ExportOBSTParam:
 
 class StartTimeParam:
     label = "t_begin"
-    desc = "FDS start time"  # FIXME
+    desc = "FDS TIME T_BEGIN"
     default = 0.0
     optional = True
 
@@ -523,6 +523,7 @@ class StartTimeParam:
             optional=cls.optional,
             type=QgsProcessingParameterNumber.Double,
         )
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         algo.addParameter(param)
 
     @classmethod
@@ -535,7 +536,7 @@ class StartTimeParam:
 
 class EndTimeParam:
     label = "t_end"
-    desc = "FDS end time"  # FIXME
+    desc = "FDS TIME T_END"
     default = 0.0
     optional = True
 
@@ -549,6 +550,7 @@ class EndTimeParam:
             optional=cls.optional,
             type=QgsProcessingParameterNumber.Double,
         )
+        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         algo.addParameter(param)
 
     @classmethod
