@@ -52,6 +52,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Define parameters
 
+        # Basic
         kwargs = {"algo": self, "config": config, "project": project}
         ChidParam.set(**kwargs)
         FDSPathParam.set(**kwargs)
@@ -62,15 +63,16 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         LanduseLayerParam.set(**kwargs)
         LanduseTypeFilepathParam.set(**kwargs)
         FireLayer.set(**kwargs)
-        TextFilepathParam.set(**kwargs)
+        # Advanced
         TexLayerParam.set(**kwargs)
         TexPixelSizeParam.set(**kwargs)
         NMeshParam.set(**kwargs)
         CellSizeParam.set(**kwargs)
-        ExportOBSTParam.set(**kwargs)
         StartTimeParam.set(**kwargs)
         EndTimeParam.set(**kwargs)
         WindFilepathParam.set(**kwargs)
+        TextFilepathParam.set(**kwargs)
+        ExportOBSTParam.set(**kwargs)
 
         # Define destination layers
 
@@ -129,7 +131,6 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         landuse_layer = LanduseLayerParam.get(**kwargs)
         landuse_type_filepath = LanduseTypeFilepathParam.get(**kwargs)
         fire_layer = FireLayer.get(**kwargs)
-        text_filepath = TextFilepathParam.get(**kwargs)
         tex_layer = TexLayerParam.get(**kwargs)
         tex_pixel_size = TexPixelSizeParam.get(**kwargs)
         nmesh = NMeshParam.get(**kwargs)
@@ -138,6 +139,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         t_begin = StartTimeParam.get(**kwargs)
         t_end = EndTimeParam.get(**kwargs)
         wind_filepath = WindFilepathParam.get(**kwargs)
+        text_filepath = TextFilepathParam.get(**kwargs)
 
         # Check parameter values
 
