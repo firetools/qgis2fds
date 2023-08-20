@@ -76,3 +76,7 @@ EOF
 
 fds "$CHID.fds"
 smokeview -runscript "$CHID"
+
+# Compare images with baseline FIXME
+
+# Send result to logfile FIXME
