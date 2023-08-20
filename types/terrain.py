@@ -17,7 +17,7 @@ class GEOMTerrain:
     def __init__(
         self,
         feedback,
-        fds_grid_layer,
+        sampling_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
@@ -26,7 +26,7 @@ class GEOMTerrain:
         name,
     ) -> None:
         self.feedback = feedback
-        self.fds_grid_layer = fds_grid_layer
+        self.sampling_layer = sampling_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
@@ -84,7 +84,7 @@ class GEOMTerrain:
         self.feedback.setProgress(0)
 
         # Init
-        nfeatures = self.fds_grid_layer.featureCount()
+        nfeatures = self.sampling_layer.featureCount()
         partial_progress = nfeatures // 100 or 1
         m = np.empty((nfeatures, 4))  # allocate the np array
         ox, oy = self.utm_origin.x(), self.utm_origin.y()  # get origin
@@ -92,8 +92,8 @@ class GEOMTerrain:
         # Fill the matrix with point coordinates and boundary conditions
         # Points are listed by column
         min_z, max_z = 1e6, -1e6
-        output_bc_idx = self.fds_grid_layer.fields().indexOf("bc1")
-        for i, f in enumerate(self.fds_grid_layer.getFeatures()):
+        output_bc_idx = self.sampling_layer.fields().indexOf("bc1")
+        for i, f in enumerate(self.sampling_layer.getFeatures()):
             # Get elevation
             g = f.geometry().get()  # it is a QgsPoint
             z = g.z()
@@ -289,7 +289,7 @@ class OBSTTerrain(GEOMTerrain):
     def __init__(
         self,
         feedback,
-        fds_grid_layer,
+        sampling_layer,
         utm_origin,
         landuse_layer,
         landuse_type,
@@ -298,7 +298,7 @@ class OBSTTerrain(GEOMTerrain):
         name=None,  # unused
     ) -> None:
         self.feedback = feedback
-        self.fds_grid_layer = fds_grid_layer
+        self.sampling_layer = sampling_layer
         self.utm_origin = utm_origin
         self.landuse_layer = landuse_layer
         self.landuse_type = landuse_type
