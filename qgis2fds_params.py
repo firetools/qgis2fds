@@ -72,6 +72,7 @@ class FDSPathParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsFile(parameters, cls.label, context)
+        value = os.path.join(*value.split("\\"))  # Windows safe
         project.writeEntry("qgis2fds", cls.label, value)
         # Make and check absolute path
         project_path = project.absolutePath()
@@ -277,6 +278,7 @@ class LanduseTypeFilepathParam:
         value = None
         if parameters.get(cls.label):
             value = algo.parameterAsFile(parameters, cls.label, context)
+            value = os.path.join(*value.split("\\"))  # Windows safe
         project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
             # Make and check absolute path
@@ -350,6 +352,7 @@ class TextFilepathParam:
         value = None
         if parameters.get(cls.label):
             value = algo.parameterAsFile(parameters, cls.label, context)
+            value = os.path.join(*value.split("\\"))  # Windows safe
         project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
             # Make and check absolute path
@@ -595,6 +598,7 @@ class WindFilepathParam:
         value = None
         if parameters.get(cls.label):
             value = algo.parameterAsFile(parameters, cls.label, context)
+            value = os.path.join(*value.split("\\"))  # Windows safe
         project.writeEntry("qgis2fds", cls.label, value or "")  # protect
         if value:
             # Make and check absolute path
