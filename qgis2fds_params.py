@@ -78,6 +78,9 @@ class FDSPathParam:
         if not project_path:
             raise QgsProcessingException("Save QGIS project to disk, cannot proceed.")
         value = os.path.join(project_path, value)
+        # Check existance
+        if not os.path.isdir(value):
+            raise QgsProcessingException(f"Folder <{value}> not found, cannot proceed.")
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -283,6 +286,9 @@ class LanduseTypeFilepathParam:
                     "Save QGIS project to disk, cannot proceed."
                 )
             value = os.path.join(project_path, value)
+            # Check existance
+            if not os.path.isfile(value):
+                raise QgsProcessingException(f"File <{value}> not found.")
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -353,6 +359,9 @@ class TextFilepathParam:
                     "Save QGIS project to disk, cannot proceed."
                 )
             value = os.path.join(project_path, value)
+            # Check existance
+            if not os.path.isfile(value):
+                raise QgsProcessingException(f"File <{value}> not found.")
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
 
@@ -595,5 +604,8 @@ class WindFilepathParam:
                     "Save QGIS project to disk, cannot proceed."
                 )
             value = os.path.join(project_path, value)
+            # Check existance
+            if not os.path.isfile(value):
+                raise QgsProcessingException(f"File <{value}> not found.")
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value
