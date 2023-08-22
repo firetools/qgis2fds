@@ -9,6 +9,7 @@ __pycache__/
 # QGIS
 *.qgs~
 *.qgz
+*.zip
 
 # Deploy
 deploy_qgis2fds
