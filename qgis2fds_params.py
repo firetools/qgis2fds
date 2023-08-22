@@ -86,16 +86,43 @@ class FDSPathParam:
         return value
 
 
-class ExtentParam:
-    label = "extent"
-    desc = "Domain extent"
+# class ExtentParam:  # FIXME
+#     label = "extent"
+#     desc = "Domain extent"
+#     default = None
+#     optional = False
+
+#     @classmethod
+#     def set(cls, algo, config, project):
+#         defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+#         param = QgsProcessingParameterExtent(
+#             cls.label,
+#             cls.desc,
+#             defaultValue=defaultValue,
+#             optional=cls.optional,
+#         )
+#         algo.addParameter(param)
+
+#     @classmethod
+#     def get(cls, algo, parameters, context, feedback, project):
+#         value = algo.parameterAsExtent(
+#             parameters, cls.label, context, crs=project.crs()
+#         )  # in project crs
+#         project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
+#         feedback.setProgressText(f"{cls.desc}: <{value}>")
+#         return value
+
+
+class ExtentLayerParam:
+    label = "extent_layer"
+    desc = "Domain extent layer"
     default = None
     optional = False
 
     @classmethod
     def set(cls, algo, config, project):
         defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterExtent(
+        param = QgsProcessingParameterVectorLayer(
             cls.label,
             cls.desc,
             defaultValue=defaultValue,
@@ -105,9 +132,12 @@ class ExtentParam:
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsExtent(
-            parameters, cls.label, context, crs=project.crs()
-        )  # in project crs
+        value = algo.parameterAsVectorLayer(parameters, cls.label, context)
+        # Check valid
+        if not value.crs().isValid():
+            raise QgsProcessingException(
+                f"Domain extent layer CRS <{value.crs().description()}> not valid, cannot proceed."
+            )
         project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: <{value}>")
         return value

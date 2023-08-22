@@ -17,6 +17,7 @@ from qgis.core import (
     QgsProcessingParameterVectorDestination,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
+    QgsPointXY,
     QgsPoint,
     QgsField,
     NULL,
@@ -56,7 +57,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         kwargs = {"algo": self, "config": config, "project": project}
         ChidParam.set(**kwargs)
         FDSPathParam.set(**kwargs)
-        ExtentParam.set(**kwargs)
+        ExtentLayerParam.set(**kwargs)
         PixelSizeParam.set(**kwargs)
         OriginParam.set(**kwargs)
         DEMLayerParam.set(**kwargs)
@@ -124,7 +125,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         }
         chid = ChidParam.get(**kwargs)
         fds_path = FDSPathParam.get(**kwargs)
-        extent = ExtentParam.get(**kwargs)  # in project crs
+        extent_layer = ExtentLayerParam.get(**kwargs)  # in project crs
         pixel_size = PixelSizeParam.get(**kwargs)
         origin = OriginParam.get(**kwargs)  # in project crs
         dem_layer = DEMLayerParam.get(**kwargs)
@@ -141,49 +142,49 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         wind_filepath = WindFilepathParam.get(**kwargs)
         text_filepath = TextFilepathParam.get(**kwargs)
 
-        # Check parameter values
-
-        text = ""
-        if not origin:
-            origin = QgsPoint(extent.center())  # in project crs
-            text += "\nDomain extent centroid used as origin"
-        if not landuse_layer or not landuse_type_filepath:
-            landuse_layer, landuse_type_filepath = None, None
-            text += "\nLanduse not exported"
-        if not tex_layer:
-            text += "\nCurrent canvas view exported as texture"
-        if not tex_pixel_size:
-            tex_pixel_size = pixel_size
-            text += "\nTerrain resolution used as texture resolution"
-        if not cell_size:
-            cell_size = pixel_size
-            text += "\nTerrain resolution used as FDS MESH cell size"
-        feedback.setProgressText(text)
-
-        # Calc wgs84_origin, origin in WGS84 crs
+        # Get wgs84_extent from extent_layer in WGS84
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        wgs84_origin = origin.clone()
-        _tr = QgsCoordinateTransform(project.crs(), wgs84_crs, project)
-        wgs84_origin.transform(_tr)
+        wgs84_extent = _transform_extent(
+            extent=extent_layer.extent(),
+            source_crs=extent_layer.crs(),
+            dest_crs=wgs84_crs,
+        )
+        feedback.setProgressText(f"\nWGS84 extent: {wgs84_extent}")
+
+        # Get wgs84_origin
+
+        if origin:
+            wgs84_origin = _transform_point(
+                point=origin, source_crs=project.crs(), dest_crs=wgs84_crs
+            )
+        else:
+            wgs84_origin = wgs84_extent.center()  # in project crs
         feedback.setProgressText(f"WGS84 origin: {wgs84_origin}")
 
         # Calc applicable UTM crs at the origin
 
         _epsg = utils.lonlat_to_epsg(lon=wgs84_origin.x(), lat=wgs84_origin.y())
         utm_crs = QgsCoordinateReferenceSystem(_epsg)
-        feedback.setProgressText(f"Applicable UTM CRS: {utm_crs.authid()}")
+        feedback.setProgressText(f"Selected UTM CRS: {utm_crs.authid()}")
 
-        # Calc utm_origin, origin in UTM crs
+        # Calc utm_origin
 
-        utm_origin = wgs84_origin.clone()
-        _tr = QgsCoordinateTransform(wgs84_crs, utm_crs, project)
-        utm_origin.transform(_tr)
-        feedback.setProgressText(f"UTM origin: {wgs84_origin}")
+        utm_origin = _transform_point(
+            point=wgs84_origin,
+            source_crs=wgs84_crs,
+            dest_crs=utm_crs,
+        )
+        feedback.setProgressText(f"UTM origin: {utm_origin}")
 
-        # Calc utm_extent, the terrain extent in UTM crs
+        # Calc utm_extent
+        # Align it to pixel_size, better for sampling grid and DEM interpolation
 
-        utm_extent = self.parameterAsExtent(parameters, "extent", context, crs=utm_crs)
+        utm_extent = _transform_extent(
+            extent=wgs84_extent,
+            source_crs=wgs84_crs,
+            dest_crs=utm_crs,
+        )
         e = 1e-6  # epsilon used to nudge the native:creategrid algo
         w = math.ceil(utm_extent.width() / pixel_size) * pixel_size + e
         h = math.ceil(utm_extent.height() / pixel_size) * pixel_size + e
@@ -195,6 +196,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         utm_extent.setXMaximum(x_min + w)
         utm_extent.setYMinimum(y_max - h)
+        feedback.setProgressText(f"UTM extent: {utm_extent}")
         feedback.setProgressText(f"Extent size: {x_max-x_min:.1f}x{y_max-y_min:.1f}m")
 
         if DEBUG:
@@ -238,7 +240,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         if feedback.isCanceled():
             return {}
 
-        # Calc the extent for the interpolated DEM
+        # Calc utm_idem_extent, the extent for the interpolated DEM
         # The interpolated DEM pixels are centered on the sampling grid points
         #
         # ·---·---·---· interpolated DEM pixels
@@ -259,12 +261,10 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 extent_crs=utm_crs,
             )
 
-        # Calc clipping extent of the original DEM in DEM crs,
-        # two pixels larger than what is strictly needed
-        # to facilitate interpolation
+        # Calc clipped_dem_extent, clipping extent of the original DEM in DEM crs,
+        # two pixels larger than what is strictly needed to facilitate interpolation
 
-        _tr = QgsCoordinateTransform(utm_crs, dem_layer.crs(), project)
-        clipped_dem_extent = _tr.transformBoundingBox(utm_idem_extent)
+        clipped_dem_extent = _transform_extent(ext=utm_idem_extent, source_crs=utm_crs, dest_crs=dem_layer.crs())
         dem_resolution = max(
             (
                 abs(dem_layer.rasterUnitsPerPixelX()),
@@ -622,6 +622,16 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
 
 # FIXME move elsewhere
+
+
+def _transform_extent(extent, source_crs, dest_crs):
+    _tr = QgsCoordinateTransform(source_crs, dest_crs, QgsProject.instance())
+    return _tr.transformBoundingBox(extent)
+
+
+def _transform_point(point, source_crs, dest_crs):
+    _tr = QgsCoordinateTransform(source_crs, dest_crs, QgsProject.instance())
+    return _tr.transform(QgsPointXY(point))
 
 
 def _run_create_spatial_index(parameters, context, feedback, vector_layer):
