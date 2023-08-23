@@ -20,6 +20,9 @@ from qgis.core import (
     QgsProcessingParameterDefinition,
     QgsProcessingParameterBoolean,
     QgsPoint,
+    QgsRasterFileWriter,
+    QgsRasterPipe,
+    QgsRasterLayer,
 )
 import os
 
@@ -202,12 +205,6 @@ class DEMLayerParam:
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        # Check local
-        url = value.source()
-        if not os.path.isfile(url):
-            raise QgsProcessingException(
-                f"DEM layer data is not saved locally, cannot proceed.\n{url}"
-            )
         # Check valid
         if not value.crs().isValid():
             raise QgsProcessingException(
@@ -216,6 +213,69 @@ class DEMLayerParam:
         project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
         feedback.setProgressText(f"{cls.desc}: {value}")
         return value
+
+    @classmethod
+    def get_local(
+        cls,
+        algo,
+        parameters,
+        context,
+        feedback,
+        project,
+        extent,  # in layer crs!
+        relpath="./layers",
+    ):
+        layer = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        url = layer.source()
+        if os.path.isfile(url):
+            return layer
+        # Make and check absolute path
+        project_path = project.absolutePath()
+        if not project_path:
+            raise QgsProcessingException(
+                "Save QGIS project to disk, cannot proceed."
+            )  # FIXME message
+        path = os.path.join(project_path, relpath)
+        # Create layers directory
+        # FIXME see https://stackoverflow.com/questions/273192/how-do-i-create-a-directory-and-any-missing-parent-directories
+        if not os.path.isdir(path):
+            feedback.setProgressText(f"Create directory {path}...")
+            os.makedirs(path, exist_ok=True)
+            if not os.path.isdir(path):
+                raise QgsProcessingException(
+                    f"Error creating directory {path}, cannot proceed."
+                )
+        # Save layer
+        # FIXME set style
+        filepath = os.path.join(path, f"{layer.name()}_saved.tif")
+        file_writer = QgsRasterFileWriter(filepath)
+        pipe = QgsRasterPipe()
+        provider = layer.dataProvider()
+        ok = pipe.set(provider.clone())
+        if not ok:
+            raise QgsProcessingException(
+                f"Error saving layer data (pipe, {ok}), cannot proceed.\n{url}"
+            )
+        feedback.setProgressText(f"pipe prepared. ok: {ok}, url: {url}, path: {path}")
+        nCols = round(extent.width() / layer.rasterUnitsPerPixelX())  # FIXME
+        nRows = round(extent.height() / layer.rasterUnitsPerPixelY())  # FIXME
+        # FIXME align extent with original grid
+        err = file_writer.writeRaster(
+            pipe=pipe, nCols=nCols, nRows=nRows, outputExtent=extent, crs=layer.crs()
+        )
+        if err:
+            raise QgsProcessingException(
+                f"Error saving layer data (write, {err}), cannot proceed.\n{url}"
+            )
+        feedback.setProgressText(f"tif saved. ok: {ok}, url: {url}, path: {filepath}")
+        new_layer = QgsRasterLayer(filepath, f"{layer.name()}_saved")  # FIXME var name
+        if not new_layer.isValid():
+            raise QgsProcessingException(
+                f"Error loading saved layer, cannot proceed.\n{url}"
+            )
+        project.addMapLayer(new_layer)
+        project.writeEntry("qgis2fds", cls.label, filepath)
+        return new_layer
 
 
 class LanduseLayerParam:

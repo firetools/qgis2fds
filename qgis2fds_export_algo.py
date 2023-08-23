@@ -268,6 +268,21 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
                 extent_crs=utm_crs,
             )
 
+        # Check DEM layer is local, otherwise save it
+
+        dem_layer = DEMLayerParam.get_local(
+            algo=self,
+            parameters=parameters,
+            context=context,
+            feedback=feedback,
+            project=project,
+            extent=_transform_extent(
+                extent=utm_idem_extent, source_crs=utm_crs, dest_crs=dem_layer.crs()
+            ),  # FIXME not useful here
+        )
+
+        return {}  # FIXME
+
         # Clip, reproject, and interpolate the DEM
 
         feedback.setProgressText("\nClip, reproject, and interpolate the DEM...")
@@ -301,8 +316,6 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         feedback.setCurrentStep(2)
         if feedback.isCanceled():
             return {}
-
-
 
         # Sample Z values from interpolated DEM raster layer
 
@@ -617,4 +630,3 @@ def _load_fire_layer_bc(
                 if fire_geom.contains(g):
                     if bc != NULL:
                         sampling_layer.changeAttributeValue(f.id(), output_bc_idx, bc)
-
