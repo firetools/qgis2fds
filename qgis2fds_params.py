@@ -25,6 +25,7 @@ from qgis.core import (
     QgsRasterLayer,
 )
 import os
+from . import utils2
 
 
 class ChidParam:
@@ -173,148 +174,6 @@ class OriginParam:
             return QgsPoint(
                 algo.parameterAsPoint(parameters, cls.label, context, crs=project.crs())
             )  # in project crs
-
-
-class DEMLayerParam:
-    label = "dem_layer"
-    desc = "DEM layer"
-    default = None
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        # Suggest first layer name containing "dem"
-        if not defaultValue:
-            try:
-                defaultValue = [
-                    layer.name()
-                    for layer in project.mapLayers().values()
-                    if "DEM" in layer.name() or "dem" in layer.name()
-                ][0]
-            except IndexError:
-                pass
-        param = QgsProcessingParameterRasterLayer(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        # Check valid
-        if not value.crs().isValid():
-            raise QgsProcessingException(
-                f"DEM layer CRS {value.crs().description()} not valid, cannot proceed."
-            )
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-    @classmethod
-    def get_local(
-        cls,
-        algo,
-        parameters,
-        context,
-        feedback,
-        project,
-        extent,  # in layer crs!
-        relpath="./layers",
-    ):
-        layer = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        url = layer.source()
-        if os.path.isfile(url):
-            return layer
-        # Make and check absolute path
-        project_path = project.absolutePath()
-        if not project_path:
-            raise QgsProcessingException(
-                "Save QGIS project to disk, cannot proceed."
-            )  # FIXME message
-        path = os.path.join(project_path, relpath)
-        # Create layers directory
-        # FIXME see https://stackoverflow.com/questions/273192/how-do-i-create-a-directory-and-any-missing-parent-directories
-        if not os.path.isdir(path):
-            feedback.setProgressText(f"Create directory {path}...")
-            os.makedirs(path, exist_ok=True)
-            if not os.path.isdir(path):
-                raise QgsProcessingException(
-                    f"Error creating directory {path}, cannot proceed."
-                )
-        # Save layer
-        # FIXME set style
-        filepath = os.path.join(path, f"{layer.name()}_saved.tif")
-        file_writer = QgsRasterFileWriter(filepath)
-        pipe = QgsRasterPipe()
-        provider = layer.dataProvider()
-        ok = pipe.set(provider.clone())
-        if not ok:
-            raise QgsProcessingException(
-                f"Error saving layer data (pipe, {ok}), cannot proceed.\n{url}"
-            )
-        feedback.setProgressText(f"pipe prepared. ok: {ok}, url: {url}, path: {path}")
-        nCols = round(extent.width() / layer.rasterUnitsPerPixelX())  # FIXME
-        nRows = round(extent.height() / layer.rasterUnitsPerPixelY())  # FIXME
-        # FIXME align extent with original grid
-        err = file_writer.writeRaster(
-            pipe=pipe, nCols=nCols, nRows=nRows, outputExtent=extent, crs=layer.crs()
-        )
-        if err:
-            raise QgsProcessingException(
-                f"Error saving layer data (write, {err}), cannot proceed.\n{url}"
-            )
-        feedback.setProgressText(f"tif saved. ok: {ok}, url: {url}, path: {filepath}")
-        new_layer = QgsRasterLayer(filepath, f"{layer.name()}_saved")  # FIXME var name
-        if not new_layer.isValid():
-            raise QgsProcessingException(
-                f"Error loading saved layer, cannot proceed.\n{url}"
-            )
-        project.addMapLayer(new_layer)
-        project.writeEntry("qgis2fds", cls.label, filepath)
-        return new_layer
-
-
-class LanduseLayerParam:
-    label = "landuse_layer"
-    desc = "Landuse layer (if not set, landuse is not exported)"
-    default = None
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterRasterLayer(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        if value:
-            # Check local
-            url = value.source()
-            if not os.path.isfile(url):
-                raise QgsProcessingException(
-                    f"Landuse layer data is not saved locally, cannot proceed.\n{url}"
-                )
-            # Check valid
-            if not value.crs().isValid():
-                raise QgsProcessingException(
-                    f"Landuse layer CRS {value.crs().description()} not valid, cannot proceed."
-                )
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
 
 
 class LanduseTypeFilepathParam:
@@ -672,3 +531,99 @@ class WindFilepathParam:
                 raise QgsProcessingException(f"File {value} not found.")
         feedback.setProgressText(f"{cls.desc}: {value}")
         return value
+
+
+# Layer Params
+
+
+class _LayerParam:
+    label = "example_layer"
+    desc = "Example layer"
+    default = None
+    optional = False
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        param = QgsProcessingParameterRasterLayer(
+            cls.label,
+            cls.desc,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+        )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project, extent, extent_crs):
+        layer = None
+        if parameters.get(cls.label):
+            layer = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        if layer:
+            # Check validity
+            if not layer.crs().isValid():
+                msg = f"{cls.desc} CRS {layer.crs().description()} not valid, cannot proceed."
+                raise QgsProcessingException(msg)
+
+            # Check local otherwise save it
+            url = layer.source()
+            if not os.path.isfile(url):
+                # Make and check absolute path
+                project_path = project.absolutePath()
+                if not project_path:
+                    msg = "QGIS project is not saved to disk, cannot proceed."
+                    raise QgsProcessingException(msg)
+                path = os.path.join(project_path, "layers")
+
+                # Create layers directory
+                if not os.path.isdir(path):
+                    try:
+                        os.makedirs(path, exist_ok=True)
+                    except:
+                        msg = "Error creating path {path}."
+                        raise QgsProcessingException(msg)
+
+                # Trasform extent to the layer crs
+                extent = utils2.transform_extent(
+                    extent=extent,
+                    source_crs=extent_crs,
+                    dest_crs=layer.crs(),
+                )
+
+                # Save the layer
+                filename = f"{layer.name()}_downloaded.tif"
+                filepath = os.path.join(path, filename)
+                utils2.save_raster_layer(layer=layer, extent=extent, filepath=filepath)
+
+                # Load the layer, but do not link
+                layer = QgsRasterLayer(filepath, filename)
+                if not layer.isValid():
+                    msg = f"Layer {filename} is not valid, cannot proceed.\n{filepath}"
+                    raise QgsProcessingException(msg)
+
+                # Inform the user
+                msg = f"""
+\n{cls.desc} is a link to a *remote data repository*.
+The required layer data was just downloaded at:
+{filepath}
+To avoid downloading again, replace the remote repository with local data.
+For help, see: https://github.com/firetools/qgis2fds/wiki/Save-remote-layers
+"""
+                feedback.pushWarning(msg)
+
+        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
+        feedback.setProgressText(f"{cls.desc}: {layer}")
+        return layer
+
+
+class DEMLayerParam(_LayerParam):
+    label = "dem_layer"
+    desc = "DEM layer"
+    default = None
+    optional = False
+
+
+class LanduseLayerParam(_LayerParam):
+    label = "landuse_layer"
+    desc = "Landuse layer (if not set, landuse is not exported)"
+    default = None
+    optional = True
