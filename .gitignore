@@ -10,6 +10,9 @@ __pycache__/
 *.qgs~
 *.qgz
 *.zip
+*.aux.xml
+
+*_downloaded.tif
 
 # Deploy
 deploy_qgis2fds
