@@ -13,555 +13,372 @@ from qgis.core import (
     QgsProcessingParameterRasterLayer,
     QgsProcessingParameterVectorLayer,
     QgsProcessingParameterPoint,
-    QgsProcessingParameterExtent,
     QgsProcessingParameterFile,
     QgsProcessingParameterString,
     QgsProcessingParameterNumber,
     QgsProcessingParameterDefinition,
     QgsProcessingParameterBoolean,
     QgsPoint,
-    QgsRasterFileWriter,
-    QgsRasterPipe,
     QgsRasterLayer,
 )
 import os
-from . import utils2
+from . import utils
 
 
-class ChidParam:
-    label = "chid"
-    desc = "FDS case identificator (CHID)"
+class _Param:
+    name = "example"
+    label = "Example"
+    info = ""
+    default = None
+    optional = False
+    kwargs = {}
+    advanced = False
+
+
+# String params
+
+
+class ChidParam(_Param):
+    name = "chid"
+    label = "FDS HEAD CHID"
+    info = "case identificator"
     default = "terrain"
     optional = False
+    kwargs = {}
+    advanced = False
 
     @classmethod
     def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
         param = QgsProcessingParameterString(
-            cls.label,
-            cls.desc,
+            cls.name,
+            label,
             defaultValue=defaultValue,
             optional=cls.optional,
-            multiLine=False,
+            **cls.kwargs,
         )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsString(parameters, cls.label, context)
-        project.writeEntry("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class FDSPathParam:
-    label = "fds_path"
-    desc = "Save in folder"
-    default = "../FDS"
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterFile(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            behavior=QgsProcessingParameterFile.Folder,
-            fileFilter="All files (*.*)",
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsFile(parameters, cls.label, context)
-        value = os.path.join(*value.split("\\"))  # Windows safe
-        project.writeEntry("qgis2fds", cls.label, value)
-        # Make and check absolute path
-        project_path = project.absolutePath()
-        if not project_path:
-            raise QgsProcessingException("Save QGIS project to disk, cannot proceed.")
-        value = os.path.join(project_path, value)
-        # Check existance
-        if not os.path.isdir(value):
-            raise QgsProcessingException(f"Folder {value} not found, cannot proceed.")
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class ExtentLayerParam:
-    label = "extent_layer"
-    desc = "Domain extent layer"
-    default = None
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterVectorLayer(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsVectorLayer(parameters, cls.label, context)
-        # Check valid
-        if not value.crs().isValid():
-            raise QgsProcessingException(
-                f"Domain extent layer CRS {value.crs().description()} not valid, cannot proceed."
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
             )
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class PixelSizeParam:
-    label = "pixel_size"
-    desc = "Desired terrain resolution (in meters)"
-    default = 10.0
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            type=QgsProcessingParameterNumber.Double,
-            minValue=0.01,
-        )
         algo.addParameter(param)
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsDouble(parameters, cls.label, context)
-        project.writeEntryDouble("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
+        value = algo.parameterAsString(parameters, cls.name, context)
+        project.writeEntry("qgis2fds", cls.name, value)
+        feedback.setProgressText(f"{cls.label}: {value}")
         return value
 
 
-class OriginParam:
-    label = "origin"
-    desc = "Domain origin (if not set, use domain extent centroid)"
+# Point param
+
+
+class OriginParam(_Param):
+    name = "origin"
+    label = "Domain origin"
+    info = "if not set, use domain extent centroid"
     default = None
     optional = True
+    kwargs = {}
+    advanced = True
 
     @classmethod
     def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
         param = QgsProcessingParameterPoint(
-            cls.label,
-            cls.desc,
+            cls.name,
+            label,
             defaultValue=defaultValue,
             optional=cls.optional,
+            **cls.kwargs,
         )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
         algo.addParameter(param)
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = parameters.get(cls.label)
-        project.writeEntry("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
+        value = parameters.get(cls.name)
+        project.writeEntry("qgis2fds", cls.name, value)
+        feedback.setProgressText(f"{cls.label}: {value}")
         if value:
             return QgsPoint(
-                algo.parameterAsPoint(parameters, cls.label, context, crs=project.crs())
+                algo.parameterAsPoint(parameters, cls.name, context, crs=project.crs())
             )  # in project crs
 
 
-class LanduseTypeFilepathParam:
-    label = "landuse_type_filepath"
-    desc = "Landuse type *.csv file (if not set, landuse is not exported)"
-    default = ""
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterFile(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            behavior=QgsProcessingParameterFile.File,
-            fileFilter="CSV files (*.csv)",
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsFile(parameters, cls.label, context)
-            value = os.path.join(*value.split("\\"))  # Windows safe
-        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
-        if value:
-            # Make and check absolute path
-            project_path = project.absolutePath()
-            if not project_path:
-                raise QgsProcessingException(
-                    "Save QGIS project to disk, cannot proceed."
-                )
-            value = os.path.join(project_path, value)
-            # Check existance
-            if not os.path.isfile(value):
-                raise QgsProcessingException(f"File {value} not found.")
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
+# Int param
 
 
-class FireLayer:
-    label = "fire_layer"
-    desc = "Fire layer (if not set, fire is not exported)"
-    default = None
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterVectorLayer(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-        )
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsVectorLayer(parameters, cls.label, context)
-        # Check valid
-        if value and not value.crs().isValid():
-            raise QgsProcessingException(
-                f"Fire layer CRS {value.crs().description()} not valid, cannot proceed."
-            )
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class TextFilepathParam:
-    label = "text_filepath"
-    desc = "Free text file"
-    default = ""
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterFile(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            behavior=QgsProcessingParameterFile.File,
-            # fileFilter="TXT files (*.txt)",
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsFile(parameters, cls.label, context)
-            value = os.path.join(*value.split("\\"))  # Windows safe
-        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
-        if value:
-            # Make and check absolute path
-            project_path = project.absolutePath()
-            if not project_path:
-                raise QgsProcessingException(
-                    "Save QGIS project to disk, cannot proceed."
-                )
-            value = os.path.join(project_path, value)
-            # Check existance
-            if not os.path.isfile(value):
-                raise QgsProcessingException(f"File {value} not found.")
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class TexLayerParam:
-    label = "tex_layer"
-    desc = "Texture layer (if not set, export current canvas view)"
-    default = None
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterRasterLayer(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsRasterLayer(parameters, cls.label, context)
-        if value and not value.crs().isValid():
-            raise QgsProcessingException(
-                f"Texture layer CRS {value.crs().description()} not valid, cannot proceed."
-            )
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class TexPixelSizeParam:
-    label = "tex_pixel_size"
-    desc = "Desired texture resolution (in meters)"
-    default = 10.0
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            type=QgsProcessingParameterNumber.Double,
-            minValue=0.01,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsDouble(parameters, cls.label, context)
-        project.writeEntryDouble("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class NMeshParam:
-    label = "nmesh"
-    desc = "Max number of FDS MESH namelists"
+class NMeshParam(_Param):
+    name = "nmesh"
+    label = "Max number of FDS MESH namelists"
     default = 1
     optional = False
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Integer,
+        "minValue": 1,
+    }
+    advanced = True
 
     @classmethod
     def set(cls, algo, config, project):
-        defaultValue, _ = project.readNumEntry("qgis2fds", cls.label, cls.default)
+        defaultValue, _ = project.readNumEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
         param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
+            cls.name,
+            label,
             defaultValue=defaultValue,
             optional=cls.optional,
-            type=QgsProcessingParameterNumber.Integer,
-            minValue=1,
+            **cls.kwargs,
         )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
         algo.addParameter(param)
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsInt(parameters, cls.label, context)
-        project.writeEntryDouble("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
+        value = algo.parameterAsInt(parameters, cls.name, context)
+        project.writeEntryDouble("qgis2fds", cls.name, value)
+        feedback.setProgressText(f"{cls.label}: {value}")
         return value
 
 
-class CellSizeParam:
-    label = "cell_size"
-    desc = "Desired FDS MESH cell size (in meters; if not set, use desired terrain resolution)"
+# Float param
+
+
+class _FloatParam(_Param):
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
+        param = QgsProcessingParameterNumber(
+            cls.name,
+            label,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+            **cls.kwargs,
+        )
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        if cls.name in parameters:
+            value = algo.parameterAsDouble(parameters, cls.name, context)
+            project.writeEntryDouble("qgis2fds", cls.name, value)
+        else:
+            value = None
+            project.writeEntry("qgis2fds", cls.name, None)
+        feedback.setProgressText(f"{cls.label}: {value}")
+        return value
+
+
+class PixelSizeParam(_FloatParam):
+    name = "pixel_size"
+    label = "Terrain resolution"
+    info = "in meters"
+    default = 10.0
+    optional = False
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Double,
+        "minValue": 0.01,
+    }
+    advanced = False
+
+
+class TexPixelSizeParam(_FloatParam):
+    name = "tex_pixel_size"
+    label = "Texture resolution"
+    info = "in meters"
+    default = 10.0
+    optional = False
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Double,
+        "minValue": 0.01,
+    }
+    advanced = True
+
+
+class CellSizeParam(_FloatParam):
+    name = "cell_size"
+    label = "FDS MESH cell size"
+    info = "in meters; if not set, use desired terrain resolution"
     default = 10.0
     optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue or None,  # protect
-            optional=cls.optional,
-            type=QgsProcessingParameterNumber.Double,
-            minValue=0.01,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        if parameters.get(cls.label):
-            value = algo.parameterAsDouble(parameters, cls.label, context)
-            project.writeEntryDouble("qgis2fds", cls.label, value)
-        else:  # protect
-            value = None
-            project.writeEntry("qgis2fds", cls.label, None)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Double,
+        "minValue": 0.01,
+    }
+    advanced = True
 
 
-class ExportOBSTParam:
-    label = "export_obst"
-    desc = "Export FDS OBST namelists"
-    default = True
-    optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readBoolEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterBoolean(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue or None,  # protect, why?
-            optional=cls.optional,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsBool(parameters, cls.label, context)
-        project.writeEntryBool("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class StartTimeParam:
-    label = "t_begin"
-    desc = "FDS TIME T_BEGIN"
+class StartTimeParam(_FloatParam):
+    name = "t_begin"
+    label = "FDS TIME T_BEGIN"
+    info = "simulation start time"
     default = 0.0
     optional = False
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            type=QgsProcessingParameterNumber.Double,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsDouble(parameters, cls.label, context)
-        project.writeEntryDouble("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Double,
+    }
+    advanced = True
 
 
-class EndTimeParam:
-    label = "t_end"
-    desc = "FDS TIME T_END"
+class EndTimeParam(_FloatParam):
+    name = "t_end"
+    label = "FDS TIME T_END"
+    info = "simulation end time"
     default = 0.0
     optional = False
+    kwargs = {
+        "type": QgsProcessingParameterNumber.Double,
+    }
+    advanced = True
+
+
+# Path param
+
+
+class _PathParam(_Param):
+    kwargs = {
+        "behavior": QgsProcessingParameterFile.Folder,
+        "fileFilter": "All files (*.*)",
+    }
 
     @classmethod
     def set(cls, algo, config, project):
-        defaultValue, _ = project.readDoubleEntry("qgis2fds", cls.label, cls.default)
-        param = QgsProcessingParameterNumber(
-            cls.label,
-            cls.desc,
-            defaultValue=defaultValue,
-            optional=cls.optional,
-            type=QgsProcessingParameterNumber.Double,
-        )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        algo.addParameter(param)
-
-    @classmethod
-    def get(cls, algo, parameters, context, feedback, project):
-        value = algo.parameterAsDouble(parameters, cls.label, context)
-        project.writeEntryDouble("qgis2fds", cls.label, value)
-        feedback.setProgressText(f"{cls.desc}: {value}")
-        return value
-
-
-class WindFilepathParam:
-    label = "wind_filepath"
-    desc = "Wind *.csv file"
-    default = ""
-    optional = True
-
-    @classmethod
-    def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
         param = QgsProcessingParameterFile(
-            cls.label,
-            cls.desc,
+            cls.name,
+            label,
             defaultValue=defaultValue,
             optional=cls.optional,
-            behavior=QgsProcessingParameterFile.File,
-            # fileFilter="TXT files (*.txt)",
+            **cls.kwargs,
         )
-        param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
         algo.addParameter(param)
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project):
         value = None
-        if parameters.get(cls.label):
-            value = algo.parameterAsFile(parameters, cls.label, context)
+        if parameters.get(cls.name):
+            value = algo.parameterAsFile(parameters, cls.name, context)
             value = os.path.join(*value.split("\\"))  # Windows safe
-        project.writeEntry("qgis2fds", cls.label, value or "")  # protect
+        project.writeEntry("qgis2fds", cls.name, value or "")  # protect
         if value:
             # Make and check absolute path
             project_path = project.absolutePath()
             if not project_path:
-                raise QgsProcessingException(
-                    "Save QGIS project to disk, cannot proceed."
-                )
+                msg = "QGIS project is not saved to disk, cannot proceed."
+                raise QgsProcessingException(msg)
             value = os.path.join(project_path, value)
             # Check existance
-            if not os.path.isfile(value):
-                raise QgsProcessingException(f"File {value} not found.")
-        feedback.setProgressText(f"{cls.desc}: {value}")
+            if cls.kwargs["behavior"] == QgsProcessingParameterFile.Folder:
+                if not os.path.isdir(value):
+                    raise QgsProcessingException(f"Folder {value} not found.")
+            else:
+                if not os.path.isfile(value):
+                    raise QgsProcessingException(f"File {value} not found.")
+        feedback.setProgressText(f"{cls.label}: {value}")
         return value
 
 
-# Layer Params
-
-
-class _LayerParam:
-    label = "example_layer"
-    desc = "Example layer"
-    default = None
+class FDSPathParam(_PathParam):
+    name = "fds_path"
+    label = "FDS case folder"
+    default = "../FDS"
     optional = False
+    kwargs = {
+        "behavior": QgsProcessingParameterFile.Folder,
+        "fileFilter": "All files (*.*)",
+    }
+    advanced = False
 
+
+class LanduseTypeFilepathParam(_PathParam):
+    name = "landuse_type_filepath"
+    label = "Landuse type file"
+    info = "*.csv"
+    default = ""
+    optional = True
+    kwargs = {
+        "behavior": QgsProcessingParameterFile.File,
+        "fileFilter": "CSV files (*.csv)",
+    }
+    advanced = False
+
+
+class TextFilepathParam(_PathParam):
+    name = "text_filepath"
+    label = "Free text file"
+    info = "text appended to FDS case"
+    default = ""
+    optional = True
+    kwargs = {
+        "behavior": QgsProcessingParameterFile.File,
+        # "fileFilter": "TXT files (*.txt)",
+    }
+    advanced = False
+
+
+class WindFilepathParam(_PathParam):
+    name = "wind_filepath"
+    label = "Wind file"
+    info = "*.csv"
+    default = ""
+    optional = True
+    kwargs = {
+        "behavior": QgsProcessingParameterFile.File,
+        "fileFilter": "CSV files (*.csv)",
+    }
+    advanced = False
+
+
+# Raster layer Params
+
+
+class _RasterLayerParam(_Param):
     @classmethod
     def set(cls, algo, config, project):
-        defaultValue, _ = project.readEntry("qgis2fds", cls.label, cls.default)
+        defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
         param = QgsProcessingParameterRasterLayer(
-            cls.label,
-            cls.desc,
+            cls.name,
+            label,
             defaultValue=defaultValue,
             optional=cls.optional,
+            **cls.kwargs,
         )
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
         algo.addParameter(param)
 
     @classmethod
     def get(cls, algo, parameters, context, feedback, project, extent, extent_crs):
         layer = None
-        if parameters.get(cls.label):
-            layer = algo.parameterAsRasterLayer(parameters, cls.label, context)
+        if parameters.get(cls.name):
+            layer = algo.parameterAsRasterLayer(parameters, cls.name, context)
         if layer:
             # Check validity
             if not layer.crs().isValid():
-                msg = f"{cls.desc} CRS {layer.crs().description()} not valid, cannot proceed."
+                msg = f"{cls.label} CRS {layer.crs().description()} not valid, cannot proceed."
                 raise QgsProcessingException(msg)
 
             # Check local otherwise save it
@@ -583,7 +400,7 @@ class _LayerParam:
                         raise QgsProcessingException(msg)
 
                 # Trasform extent to the layer crs
-                extent = utils2.transform_extent(
+                extent = utils.transform_extent(
                     extent=extent,
                     source_crs=extent_crs,
                     dest_crs=layer.crs(),
@@ -592,7 +409,7 @@ class _LayerParam:
                 # Save the layer
                 filename = f"{layer.name()}_downloaded.tif"
                 filepath = os.path.join(path, filename)
-                utils2.save_raster_layer(layer=layer, extent=extent, filepath=filepath)
+                utils.save_raster_layer(layer=layer, extent=extent, filepath=filepath)
 
                 # Load the layer, but do not link
                 layer = QgsRasterLayer(filepath, filename)
@@ -602,7 +419,7 @@ class _LayerParam:
 
                 # Inform the user
                 msg = f"""
-\n{cls.desc} is a link to a *remote data repository*.
+\n{cls.label} is a link to a *remote data repository*.
 The required layer data was just downloaded at:
 {filepath}
 To avoid downloading again, replace the remote repository with local data.
@@ -610,20 +427,142 @@ For help, see: https://github.com/firetools/qgis2fds/wiki/Save-remote-layers
 """
                 feedback.pushWarning(msg)
 
-        project.writeEntry("qgis2fds", cls.label, parameters.get(cls.label))  # protect
-        feedback.setProgressText(f"{cls.desc}: {layer}")
+        project.writeEntry("qgis2fds", cls.name, parameters.get(cls.name))  # protect
+        feedback.setProgressText(f"{cls.label}: {layer}")
         return layer
 
 
-class DEMLayerParam(_LayerParam):
-    label = "dem_layer"
-    desc = "DEM layer"
+class DEMLayerParam(_RasterLayerParam):
+    name = "dem_layer"
+    label = "DEM layer"
     default = None
     optional = False
 
 
-class LanduseLayerParam(_LayerParam):
-    label = "landuse_layer"
-    desc = "Landuse layer (if not set, landuse is not exported)"
+class LanduseLayerParam(_RasterLayerParam):
+    name = "landuse_layer"
+    label = "Landuse layer"
+    info = "if not set, landuse is not exported"
     default = None
     optional = True
+
+
+# class TexLayerParam:
+#     name = "tex_layer"
+#     label = "Texture layer"
+#     info = "if not set, export current canvas view"
+#     default = None
+#     optional = True
+
+#     @classmethod
+#     def set(cls, algo, config, project):
+#         defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+#         label = cls.info and f"{cls.label} ({cls.info})" or cls.label
+#         param = QgsProcessingParameterRasterLayer(
+#             cls.name,
+#             label,
+#             defaultValue=defaultValue,
+#             optional=cls.optional,
+#         )
+#         param.setFlags(param.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
+#         algo.addParameter(param)
+
+#     @classmethod
+#     def get(cls, algo, parameters, context, feedback, project):
+#         value = None
+#         if parameters.get(cls.name):
+#             value = algo.parameterAsRasterLayer(parameters, cls.name, context)
+#         if value and not value.crs().isValid():
+#             raise QgsProcessingException(
+#                 f"Texture layer CRS {value.crs().description()} not valid, cannot proceed."
+#             )
+#         project.writeEntry("qgis2fds", cls.name, parameters.get(cls.name))  # protect
+#         feedback.setProgressText(f"{cls.label}: {value}")
+#         return value
+
+
+# Vector layer param
+
+
+class _VectorLayerParam(_Param):
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
+        param = QgsProcessingParameterVectorLayer(
+            cls.name,
+            label,
+            defaultValue=defaultValue,
+            optional=cls.optional,
+            **cls.kwargs,
+        )
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        layer = None
+        if parameters.get(cls.name):
+            layer = algo.parameterAsVectorLayer(parameters, cls.name, context)
+        if layer:
+            # Check validity
+            if not layer.crs().isValid():
+                msg = f"{cls.label} CRS {layer.crs().description()} not valid, cannot proceed."
+                raise QgsProcessingException(msg)
+        project.writeEntry("qgis2fds", cls.name, parameters.get(cls.name))  # protect
+        feedback.setProgressText(f"{cls.label}: {layer}")
+        return layer
+
+
+class ExtentLayerParam(_VectorLayerParam):
+    name = "extent_layer"
+    label = "Domain extent layer"
+    default = None
+    optional = False
+
+
+class FireLayer(_VectorLayerParam):
+    name = "fire_layer"
+    label = "Fire layer"
+    info = "if not set, fire is not exported"
+    default = None
+    optional = True
+
+
+# Bool param
+
+
+class ExportOBSTParam(_Param):
+    name = "export_obst"
+    label = "Export FDS OBST namelists"
+    default = True
+    optional = False
+    kwargs = {}
+    advanced = True
+
+    @classmethod
+    def set(cls, algo, config, project):
+        defaultValue, _ = project.readBoolEntry("qgis2fds", cls.name, cls.default)
+        label = cls.info and f"{cls.label} ({cls.info})" or cls.label
+        param = QgsProcessingParameterBoolean(
+            cls.name,
+            label,
+            defaultValue=defaultValue or None,  # protect
+            optional=cls.optional,
+            **cls.kwargs,
+        )
+        if cls.advanced:
+            param.setFlags(
+                param.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+            )
+        algo.addParameter(param)
+
+    @classmethod
+    def get(cls, algo, parameters, context, feedback, project):
+        value = algo.parameterAsBool(parameters, cls.name, context)
+        project.writeEntryBool("qgis2fds", cls.name, value)
+        feedback.setProgressText(f"{cls.label}: {value}")
+        return value
