@@ -51,7 +51,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         LanduseTypeFilepathParam.set(**kwargs)
         FireLayer.set(**kwargs)
         # Advanced
-        TexLayerParam.set(**kwargs)
+        # TexLayerParam.set(**kwargs) # FIXME remove?
         TexPixelSizeParam.set(**kwargs)
         NMeshParam.set(**kwargs)
         CellSizeParam.set(**kwargs)
@@ -101,7 +101,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         fds_path = FDSPathParam.get(**kwargs)
 
         fire_layer = FireLayer.get(**kwargs)
-        tex_layer = TexLayerParam.get(**kwargs)
+        # tex_layer = TexLayerParam.get(**kwargs) # FIXME remove?
         tex_pixel_size = TexPixelSizeParam.get(**kwargs)
         nmesh = NMeshParam.get(**kwargs)
 
@@ -205,9 +205,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         )
         utm_grid_layer = context.getMapLayer(outputs["UtmGrid"]["OUTPUT"])
         if utm_grid_layer.featureCount() < 9:
-            raise QgsProcessingException(
-                f"Too few features in sampling layer ({utm_grid_layer.featureCount()}), cannot proceed.\n"
-            )
+            msg = f"Too few features in sampling layer ({utm_grid_layer.featureCount()}), cannot proceed.\n"
+            raise QgsProcessingException(msg)
         feedback.setProgressText(f"time: {time.time()-t0:.1f}s")
 
         feedback.setCurrentStep(1)
@@ -442,7 +441,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             name=chid,
             image_type="png",
             pixel_size=tex_pixel_size,
-            tex_layer=tex_layer,
+            tex_layer=None,  # tex_layer, # FIXME remove?
             utm_extent=utm_extent,
             utm_crs=utm_crs,
         )
