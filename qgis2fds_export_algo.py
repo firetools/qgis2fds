@@ -25,20 +25,12 @@ from qgis.PyQt.QtCore import QVariant
 
 import processing
 import time
-from .qgis2fds_params import *
-from .types import (
-    utils,
-    FDSCase,
-    Domain,
-    OBSTTerrain,
-    GEOMTerrain,
-    LanduseType,
-    Texture,
-    Wind,
-)
-from . import utils2
 
-DEBUG = True
+from .qgis2fds_params import *
+from .lang import FDSCase, Domain, OBSTTerrain, GEOMTerrain, LanduseType, Texture, Wind
+from . import utils
+
+DEBUG = False
 
 
 class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
@@ -47,12 +39,8 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
     """
 
     def initAlgorithm(self, config=None):
-        project = QgsProject.instance()
-
         # Define parameters
-
-        # Basic
-        kwargs = {"algo": self, "config": config, "project": project}
+        kwargs = {"algo": self, "config": config, "project": QgsProject.instance()}
         ChidParam.set(**kwargs)
         FDSPathParam.set(**kwargs)
         ExtentLayerParam.set(**kwargs)
@@ -121,7 +109,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         t_begin = StartTimeParam.get(**kwargs)
         t_end = EndTimeParam.get(**kwargs)
         wind_filepath = WindFilepathParam.get(**kwargs)
-        text_filepath = TextFilepathParam.get(**kwargs)
+        text_filepath = TextFilepathParam.get(**kwargs)  # FIXME develop!
 
         # Get extent_layer and origin
         # Calc wgs84_extent and wgs84_origin
@@ -130,14 +118,14 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         origin = OriginParam.get(**kwargs)  # in project crs
 
         wgs84_crs = QgsCoordinateReferenceSystem("EPSG:4326")
-        wgs84_extent = utils2.transform_extent(
+        wgs84_extent = utils.transform_extent(
             extent=extent_layer.extent(),
             source_crs=extent_layer.crs(),
             dest_crs=wgs84_crs,
         )
 
         if origin:
-            wgs84_origin = utils2.transform_point(
+            wgs84_origin = utils.transform_point(
                 point=origin,
                 source_crs=project.crs(),
                 dest_crs=wgs84_crs,
@@ -155,26 +143,25 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Calc utm_origin
 
-        utm_origin = utils2.transform_point(
+        utm_origin = utils.transform_point(
             point=wgs84_origin,
             source_crs=wgs84_crs,
             dest_crs=utm_crs,
         )
         feedback.setProgressText(f"UTM origin: {utm_origin}")
 
-        # Get pixel_size
-        # Calc and adapt utm_extent:
+        # Get pixel_size, calc and adapt utm_extent:
         # align it to the pixel_size, better for sampling grid and DEM interpolation
 
         pixel_size = PixelSizeParam.get(**kwargs)
 
-        utm_extent = utils2.transform_extent(
+        utm_extent = utils.transform_extent(
             extent=wgs84_extent,
             source_crs=wgs84_crs,
             dest_crs=utm_crs,
         )
 
-        utm_extent = utils2.get_extent_multiple_of_pixels(
+        utm_extent = utils.get_extent_multiple_of_pixels(
             extent=utm_extent, pixel_size=pixel_size, epsilon=1e-6
         )  # epsilon used to nudge the native:creategrid algo
 
@@ -182,7 +169,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         feedback.setProgressText(msg)
 
         if DEBUG:
-            utils2.show_extent(
+            utils.show_extent(
                 context=context,
                 feedback=feedback,
                 extent=utm_extent,
@@ -240,7 +227,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
         utm_idem_extent = utm_extent.buffered(pixel_size / 2.0 - e)
 
         if DEBUG:
-            utils2.show_extent(
+            utils.show_extent(
                 context=context,
                 feedback=feedback,
                 extent=utm_idem_extent,
@@ -362,7 +349,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
             return {}
 
         if DEBUG:
-            utils2.show_layer(
+            utils.show_layer(
                 context=context,
                 feedback=feedback,
                 layer=sampling_layer,

@@ -10,7 +10,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 import os
 import numpy as np
 from qgis.core import QgsProcessingException
-from . import utils
+from .. import utils
 
 
 class GEOMTerrain:
