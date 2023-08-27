@@ -30,7 +30,8 @@ class LanduseType:
         self.feedback = feedback
         self.filepath = filepath and os.path.join(project_path, filepath) or str()
         if filepath:
-            self.feedback.pushInfo(f"\nImport landuse type *.csv file: <{self.filepath}>")
+            msg = f"\nImport landuse type *.csv file: <{self.filepath}>"
+            self.feedback.pushInfo(msg)
             self.surf_dict = dict()
             self.surf_id_dict = dict()
             self._import()
@@ -38,9 +39,8 @@ class LanduseType:
             self.feedback.pushInfo(f"\nNo landuse type *.csv file.")
             self.surf_dict = {}  # INERT is predefined, FDS SURF not needed
             self.surf_id_dict = {0: "INERT"}
-        self.feedback.pushInfo(
-            f"Default bcs for the fire layer: bc_in=<{self.bc_in_default}>, bc_out=<{self.bc_out_default}>."
-        )
+        msg = f"Default bcs for the fire layer: bc_in=<{self.bc_in_default}>, bc_out=<{self.bc_out_default}>."
+        self.feedback.pushInfo(msg)
 
     def _import(self) -> None:
         try:
@@ -53,20 +53,17 @@ class LanduseType:
                     key, value_surf = int(r[0]), str(r[1])
                     found_id = re.search(self._scan_id, value_surf)
                     if not found_id:
-                        raise QgsProcessingException(
-                            f"No FDS ID found in <{value_surf}> from landuse type *.csv file."
-                        )
+                        msg = f"No FDS SURF ID found in <{value_surf}> from landuse type *.csv file."
+                        raise QgsProcessingException(msg)
                     value_id = found_id.groups()[0]
                     self.surf_dict[key] = value_surf  # eg: {98: "&SURF ID='A04' ... /"}
                     self.surf_id_dict[key] = value_id  # eg: {98: 'A04'}
         except IOError as err:
-            raise QgsProcessingException(
-                f"Error importing landuse type *.csv file from <{self.filepath}>:\n{err}"
-            )
+            msg = f"Error importing landuse type *.csv file from <{self.filepath}>:\n{err}"
+            raise QgsProcessingException(msg)
         if len(set(self.surf_id_dict.values())) != len(self.surf_id_dict):
-            raise QgsProcessingException(
-                f"Duplicated FDS ID in landuse type *.csv file not allowed."
-            )
+            msg = f"Duplicated FDS ID in landuse type *.csv file not allowed."
+            raise QgsProcessingException(msg)
 
     def get_comment(self) -> str:
         return f"Landuse type file: <{self.filepath and utils.shorten(self.filepath) or 'none'}>"

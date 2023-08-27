@@ -8,7 +8,7 @@ __copyright__ = "(C) 2020 by Emanuele Gissi"
 __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 from .domain import Domain
-from .fds import FDSCase
+from .fds_case import FDSCase
 from .landuse import LanduseType
 from .terrain import GEOMTerrain, OBSTTerrain
 from .texture import Texture

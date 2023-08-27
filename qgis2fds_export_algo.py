@@ -63,7 +63,7 @@ class qgis2fdsExportAlgo(QgsProcessingAlgorithm):
 
         # Define destination layers
 
-        self.addParameter(
+        self.addParameter(  # FIXME currently not used
             QgsProcessingParameterVectorDestination(
                 "UtmGrid",
                 "UTM sampling grid",

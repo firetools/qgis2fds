@@ -111,7 +111,7 @@ Output quantities
 """
 
     def save(self):
-        self.feedback.pushInfo(f"Write the fds case to <{self.filepath}>...")
+        self.feedback.pushInfo(f"\nWrite the fds case to <{self.filepath}>...")
         utils.write_file(
             feedback=self.feedback,
             filepath=self.filepath,

@@ -24,44 +24,51 @@ class Domain:
         cell_size,
         nmesh,
     ) -> None:
-        feedback.pushInfo("\nInit MESH...")
+        feedback.pushInfo("\nCalc FDS MESH...")
 
         self.feedback = feedback
         self.utm_extent = utm_extent
         self.utm_origin = utm_origin
 
         # Calc domain XB, relative to origin,
-        # and a little smaller than the terrain
-        dom_xb = (
-            utm_extent.xMinimum() - utm_origin.x() + 1.0,
-            utm_extent.xMaximum() - utm_origin.x() - 1.0,
-            utm_extent.yMinimum() - utm_origin.y() + 1.0,
-            utm_extent.yMaximum() - utm_origin.y() - 1.0,
+        # a little smaller than the terrain
+        x0, y0, x1, y1 = (
+            utm_extent.xMinimum(),
+            utm_extent.yMinimum(),
+            utm_extent.xMaximum(),
+            utm_extent.yMaximum(),
+        )
+        ox, oy = utm_origin.x(), utm_origin.y()
+        domain_xb = (
+            x0 - ox + 1.0,
+            x1 - ox - 1.0,
+            y0 - oy + 1.0,
+            y1 - oy - 1.0,
             min_z,
             max_z + cell_size * 10,  # 10 cells over max z
         )
 
-        # Calc number of MESH along x and y
-        ratio = abs((dom_xb[1] - dom_xb[0]) / (dom_xb[3] - dom_xb[2]))
+        # Calc number of MESHes along x and y
+        ratio = abs((domain_xb[1] - domain_xb[0]) / (domain_xb[3] - domain_xb[2]))
         nmesh_y = round(sqrt(nmesh / ratio))
         nmesh_x = int(nmesh / nmesh_y)
 
         # Calc MESH XB
         m_xb = (
-            dom_xb[0],
-            dom_xb[0] + (dom_xb[1] - dom_xb[0]) / nmesh_x,
-            dom_xb[2],
-            dom_xb[2] + (dom_xb[3] - dom_xb[2]) / nmesh_y,
-            dom_xb[4],
-            dom_xb[5],
+            domain_xb[0],
+            domain_xb[0] + (domain_xb[1] - domain_xb[0]) / nmesh_x,
+            domain_xb[2],
+            domain_xb[2] + (domain_xb[3] - domain_xb[2]) / nmesh_y,
+            domain_xb[4],
+            domain_xb[5],
         )
-        m_xb = [round(x, 2) for x in m_xb]
+        m_xb = [round(c, 2) for c in m_xb]
 
         # Calc MESH IJK
         m_ijk = (
-            int((m_xb[1] - m_xb[0]) / cell_size),
-            int((m_xb[3] - m_xb[2]) / cell_size),
-            int((m_xb[5] - m_xb[4]) / cell_size),
+            round((m_xb[1] - m_xb[0]) / cell_size),
+            round((m_xb[3] - m_xb[2]) / cell_size),
+            round((m_xb[5] - m_xb[4]) / cell_size),
         )
 
         # Calc MESH MULT DX DY
@@ -73,9 +80,9 @@ class Domain:
 
         # Prepare comment string
         utm_crs_desc = utm_crs.description()
-        utm_origin_desc = f"{utm_origin.x():.1f}E {utm_origin.y():.1f}N"
+        utm_origin_desc = f"{ox:.1f}E {oy:.1f}N"
         e = utm_extent
-        domain_extent_desc = f"{e.xMinimum():.1f}-{e.xMaximum():.1f}E {e.yMinimum():.1f}-{e.yMaximum():.1f}N"
+        domain_extent_desc = f"{x0:.1f}-{x1:.1f}E {y0:.1f}-{y1:.1f}N"
 
         self._comment = f"""
 Selected UTM CRS: {utm_crs_desc}
