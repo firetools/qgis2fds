@@ -9,7 +9,7 @@ rm -f ../FDS/*  # does not rm .gitignore
 cd ../QGIS
 CHID=$(basename "$0" ".sh")
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate_local.qgs" \
+    --project_path="golden_gate.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
@@ -34,7 +34,6 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --UtmDemPoints=TEMPORARY_OUTPUT \
     --UtmInterpolatedDemLayer=TEMPORARY_OUTPUT \
     --ExtentDebug=TEMPORARY_OUTPUT
-#    --tex_layer='crs=EPSG:3857&format&type=xyz&url=https://tile.openstreetmap.org/%7Bz%7D/%7Bx%7D/%7By%7D.png&zmax=19&zmin=0' \
 
 # Run FDS
 

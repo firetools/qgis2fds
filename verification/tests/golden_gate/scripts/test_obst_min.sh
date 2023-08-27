@@ -9,7 +9,7 @@ rm -f ../FDS/*  # does not rm .gitignore
 cd ../QGIS
 CHID=$(basename "$0" ".sh")
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate_local.qgs" \
+    --project_path="golden_gate.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
