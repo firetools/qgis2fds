@@ -9,7 +9,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 
 import csv, re, os
 from qgis.core import QgsProcessingException
-from .. import utils
+from . import utils
 
 
 class LanduseType:

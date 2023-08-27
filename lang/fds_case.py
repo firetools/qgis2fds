@@ -10,7 +10,7 @@ __revision__ = "$Format:%H$"  # replaced with git SHA1
 import time, os
 from qgis.core import Qgis, QgsProject
 from qgis.utils import pluginMetadata
-from .. import utils
+from . import utils
 
 
 class FDSCase:

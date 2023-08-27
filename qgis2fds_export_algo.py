@@ -26,9 +26,7 @@ from qgis.PyQt.QtCore import QVariant
 import processing
 import time
 
-from .qgis2fds_params import *
-from .lang import FDSCase, Domain, OBSTTerrain, GEOMTerrain, LanduseType, Texture, Wind
-from . import utils
+from .lang import *
 
 DEBUG = False
 
