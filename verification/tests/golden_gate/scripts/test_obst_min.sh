@@ -15,14 +15,10 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --ellipsoid=EPSG:7019 \
     --chid="$CHID" \
     --fds_path='../FDS' \
-    --extent='-122.491206899,-122.481181391,37.827810126,37.833676214 [EPSG:4326]' \
+    --extent_layer='layers/Extent.gpkg' \
     --pixel_size=10 \
     --dem_layer='layers/US_DEM2016_local.tif' \
-    --export_obst=true \
-    --UtmGrid=TEMPORARY_OUTPUT \
-    --UtmDemPoints=TEMPORARY_OUTPUT \
-    --UtmInterpolatedDemLayer=TEMPORARY_OUTPUT \
-    --ExtentDebug=TEMPORARY_OUTPUT
+    --export_obst=true 
 
 # Run FDS
 
