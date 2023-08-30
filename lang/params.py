@@ -178,7 +178,7 @@ class _FloatParam(_Param):
             value = algo.parameterAsDouble(parameters, cls.name, context)
             project.writeEntryDouble("qgis2fds", cls.name, value)
         else:
-            value = None
+            value = cls.default
             project.writeEntry("qgis2fds", cls.name, None)
         feedback.setProgressText(f"{cls.label}: {value}")
         return value
