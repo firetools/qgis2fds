@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
 
-#BASE_DIR=$1
-#NEW_DIR=$2
-#DIFF_DIR=$3
-#ERROR_DIR=$4
-#TOLERANCE=$5
+BASE_DIR=$1
+NEW_DIR=$2
+DIFF_DIR=$3
+CHID=$4
+TOLERANCE=$5
 
-BASE_DIR=../../qgis2fds.figures/baseline
-NEW_DIR=tests/test_out
-DIFF_DIR=tests/test_diff
-ERROR_DIR=tests/test_err
-TOLERANCE=0.025
 METRIC=rmse
 
 file_list=$DIFF_DIR/file_list
 
-for f in $NEW_DIR/*.png; do
+for f in $NEW_DIR/$CHID*.png; do
   base=`basename $f`
   echo "checking $base..."
   blur_base=blur_$base
@@ -58,8 +53,6 @@ for f in $NEW_DIR/*.png; do
         echo "***$FYI: The image $base has changed. $METRIC error=$diff > $TOLERANCE"
         touch $diff_file_changed
         IMAGE_ERRORS=$((IMAGE_ERRORS + 1))
-#        cp $base $ERROR_SUBDIR/.
-        cp $f $ERROR_DIR/.
       else
         echo "PASSED: The image $base has not changed. $METRIC error=$diff <= $TOLERANCE"
       fi
@@ -71,6 +64,5 @@ for f in $NEW_DIR/*.png; do
   if [[ ! -e $from_file ]]; then
     echo "***$FYI: The base image $from_file does not exist."
     echo "            Copy $to_file to the fig repo"
-    cp $f $ERROR_DIR/.
   fi
 done
