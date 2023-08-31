@@ -65,6 +65,8 @@ jobs:
         run: sudo apt install qgis qgis-plugin-grass
       - name: Check out repository code
         uses: actions/checkout@v3
+        with:
+          submodules: 'true'
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "The workflow is now ready to test your code on the runner."
       - name: Configure plugin in qgis
