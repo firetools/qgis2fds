@@ -65,6 +65,8 @@ jobs:
         run: sudo apt install qgis qgis-plugin-grass
       - name: Check out repository code
         uses: actions/checkout@v3
+      - name: Checkout submodules
+        run: git submodule update --init --recursive
       - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
       - run: echo "The workflow is now ready to test your code on the runner."
       - name: Configure plugin in qgis
@@ -86,46 +88,62 @@ jobs:
         run: |
           Xvfb :$display_port -fp /usr/share/X11/fonts/misc -screen 0 1280x1024x24 &
           echo "setting up graphics environment (pausing $PAUSE s)"
-      - name: Run Verification
-        run: |
-          cd verification
-          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
-          bash headless_verify.sh
       - name: Download baseline results
         run: |
           cd /home/runner/work/qgis2fds
           git clone https://github.com/firetools/qgis2fds.figures.git
-          cp qgis2fds.figures/baseline/*/*.png qgis2fds.figures/baseline/
-      - name: Calculating image differences
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
+      - name: Run Verification
         run: |
           cd verification
-          mkdir -p tests/test_out
-          mkdir -p tests/test_diff
-          mkdir -p tests/test_err
-          cp tests/*/output/*.png tests/test_out/
-          bash compare_images.sh
+          source /home/runner/FDS/FDS6/bin/FDS6VARS.sh
+          bash run.sh
+      #- name: Calculating image differences
+      #  run: |
+      #    cd verification
+      #    mkdir -p tests/test_out
+      #    mkdir -p tests/test_diff
+      #    mkdir -p tests/test_err
+      #    cp tests/*/output/*.png tests/test_out/
+      #    bash compare_images.sh
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
       - name: Push results to release
         run: |
-          cp verification/tests/*/output/*.fds verification/tests/test_out/
-          cp verification/tests/*/output/*.bingeom verification/tests/test_out/
           cd verification/tests
-          tar -cvzf ubuntu.tar.gz test_out
-          gh release upload verify-${{ github.ref_name }} ubuntu.tar.gz --clobber
+          find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" -o -name "*.ini" -o -name "*.ssf" -o -name "*.smv" > tarnames.txt
+          tar -cvf ../ubuntu.tar.gz -T tarnames.txt
+          gh release upload verify-${{ github.ref_name }} ../ubuntu.tar.gz --clobber
         #  gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
         #  gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
         #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
-      - name: List files in the repository
-        shell: bash
+      - name: Check for errors
         run: |
-          ls ${{ github.workspace }}/verification/tests/*/output/
-          NUMBER_OF_ERR_FILES=$(ls verification/tests/test_err/ -1 | wc -l)
-          echo "NUMBER_OF_ERR_FILES=$NUMBER_OF_ERR_FILES" >> "$GITHUB_ENV"
+          cd verification/logs
+          cat log.txt
+          if grep "err" log.txt; then
+            echo "Errors present in log file"
+            exit 1
+          fi
+
+          if grep "Err" log.txt; then
+            echo "Errors present in log file"
+            exit 1
+          fi
+          
+      #- name: List files in the repository
+      #  shell: bash
+      #  run: |
+      #    ls ${{ github.workspace }}/verification/tests/*/output/
+      #    NUMBER_OF_ERR_FILES=$(ls verification/tests/test_err/ -1 | wc -l)
+      #    echo "NUMBER_OF_ERR_FILES=$NUMBER_OF_ERR_FILES" >> "$GITHUB_ENV"
       #- name: Setup upterm session
       #  uses: lhotari/action-upterm@v1
-      - name: Check coverage tolerance
-        if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
-        uses: actions/github-script@v3
-        with:
-          script: |
-            core.setFailed('Rendered images out of tolerance')
+      #- name: Check coverage tolerance
+      #  if: ${{ env.NUMBER_OF_ERR_FILES > 0.0 }}
+      #  uses: actions/github-script@v3
+      #  with:
+      #    script: |
+      #      core.setFailed('Rendered images out of tolerance')
       - run: echo "This job's status is ${{ job.status }}."

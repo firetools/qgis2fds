@@ -29,16 +29,22 @@ rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 # Run QGIS
 
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate.qgs" \
+    --project_path="$CASEDIRNAME.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
     --chid="$CHID" \
     --fds_path='../FDS' \
     --extent_layer='layers/Extent.gpkg' \
-    --pixel_size=10 \
-    --dem_layer='layers/US_DEM2016_local.tif' \
-    --export_obst=true 
+    --pixel_size=1 \
+    --dem_layer='layers/dem_layer.tif' \
+    --tex_pixel_size=0.5 \
+    --nmesh=4 \
+    --cell_size=0.5 \
+    --t_begin=0 \
+    --t_end=0 \
+    --text_filepath='' \
+    --export_obst=false 
 
 # Run FDS
 
@@ -91,7 +97,7 @@ RENDERDOUBLEONCE
 EOF
 
 fds "$CHID.fds"
-#smokeview -runscript "$CHID"
+smokeview -runscript "$CHID"
 
 # Compare images with baseline FIXME
 bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE

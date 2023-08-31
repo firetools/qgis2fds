@@ -29,7 +29,7 @@ rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 # Run QGIS
 
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate.qgs" \
+    --project_path="golden_gate_remote.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
@@ -37,7 +37,7 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --fds_path='../FDS' \
     --extent_layer='layers/Extent.gpkg' \
     --pixel_size=10 \
-    --dem_layer='layers/US_DEM2016_local.tif' \
+    --dem_layer="dpiMode=7&identifier=landfire_wcs:LC20_Elev_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_topo/wcs" \
     --export_obst=true 
 
 # Run FDS

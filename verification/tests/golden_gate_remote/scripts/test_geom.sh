@@ -29,7 +29,7 @@ rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 # Run QGIS
 
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate.qgs" \
+    --project_path="golden_gate_remote.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
@@ -37,8 +37,19 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --fds_path='../FDS' \
     --extent_layer='layers/Extent.gpkg' \
     --pixel_size=10 \
-    --dem_layer='layers/US_DEM2016_local.tif' \
-    --export_obst=true 
+    --origin='-2279360.204651,1963332.020198 [EPSG:5070]' \
+    --dem_layer="dpiMode=7&identifier=landfire_wcs:LC20_Elev_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_topo/wcs" \
+    --landuse_layer="dpiMode=7&identifier=landfire_wcs:LC22_F13_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_220/wcs" \
+    --landuse_type_filepath='sheets/Landfire F13 landuse type.csv' \
+    --fire_layer='layers/Fire.gpkg' \
+    --tex_pixel_size=1 \
+    --nmesh=4 \
+    --cell_size=5 \
+    --t_begin=0 \
+    --t_end=0 \
+    --wind_filepath='sheets/wind.csv' \
+    --text_filepath='' \
+    --export_obst=false 
 
 # Run FDS
 
@@ -91,7 +102,7 @@ RENDERDOUBLEONCE
 EOF
 
 fds "$CHID.fds"
-#smokeview -runscript "$CHID"
+smokeview -runscript "$CHID"
 
 # Compare images with baseline FIXME
 bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE

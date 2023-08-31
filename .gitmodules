@@ -1,0 +1,3 @@
+[submodule "verification/tests/firemodels_cad"]
+	path = verification/tests/firemodels_cad
+	url = https://github.com/firemodels/cad

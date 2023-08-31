@@ -28,8 +28,10 @@ rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 
 # Run QGIS
 
+cd ../QGIS
+CHID=$(basename "$0" ".sh")
 qgis_process run 'NIST FDS:Export FDS case' \
-    --project_path="golden_gate.qgs" \
+    --project_path="golden_gate_remote.qgs" \
     --distance_units=meters \
     --area_units=m2 \
     --ellipsoid=EPSG:7019 \
@@ -37,8 +39,8 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --fds_path='../FDS' \
     --extent_layer='layers/Extent.gpkg' \
     --pixel_size=10 \
-    --dem_layer='layers/US_DEM2016_local.tif' \
-    --export_obst=true 
+    --dem_layer="dpiMode=7&identifier=landfire_wcs:LC20_Elev_220&url=https://edcintl.cr.usgs.gov/geoserver/landfire_wcs/us_topo/wcs" \
+    --export_obst=false
 
 # Run FDS
 
@@ -91,8 +93,8 @@ RENDERDOUBLEONCE
 EOF
 
 fds "$CHID.fds"
-#smokeview -runscript "$CHID"
+smokeview -runscript "$CHID"
 
-# Compare images with baseline FIXME
+# Compare images with baseline
 bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE
 

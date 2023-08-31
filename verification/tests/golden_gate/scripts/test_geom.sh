@@ -1,13 +1,33 @@
 #!/usr/bin/env bash
 
-# Clean
+# Get case name
+ABSOLUTE_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+IFS='/'
+read -a strarr <<< $ABSOLUTE_PATH
+CASEDIRNAME=${strarr[-3]}
+IFS=""
 
-rm -f ../FDS/*  # does not rm .gitignore
+# Get CHID
+cd ../QGIS
+CHID=$(basename "$0" ".sh")
+
+# Configure parameters
+BASE_DIR="$(pwd)/../../../../../qgis2fds.figures/tests/$CASEDIRNAME/FDS/"
+NEW_DIR="$(pwd)/../FDS/"
+DIFF_DIR="$(pwd)/../../../diff/"
+LOG_FILE="$(pwd)/../../../logs/log.txt"
+TOLERANCE=0.025
+
+# Make output directories if they do not exist
+if ! test -d $DIFF_DIR; then
+  mkdir $DIFF_DIR
+fi
+
+# Clean
+rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 
 # Run QGIS
 
-cd ../QGIS
-CHID=$(basename "$0" ".sh")
 qgis_process run 'NIST FDS:Export FDS case' \
     --project_path="golden_gate.qgs" \
     --distance_units=meters \
@@ -15,7 +35,7 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --ellipsoid=EPSG:7019 \
     --chid="$CHID" \
     --fds_path='../FDS' \
-    --extent='-122.491206899,-122.481181391,37.827810126,37.833676214 [EPSG:4326]' \
+    --extent_layer='layers/Extent.gpkg' \
     --pixel_size=10 \
     --origin='-2279360.204651,1963332.020198 [EPSG:5070]' \
     --dem_layer='layers/US_DEM2016_local.tif' \
@@ -29,11 +49,7 @@ qgis_process run 'NIST FDS:Export FDS case' \
     --t_end=0 \
     --wind_filepath='sheets/wind.csv' \
     --text_filepath='' \
-    --export_obst=false \
-    --UtmGrid=TEMPORARY_OUTPUT \
-    --UtmDemPoints=TEMPORARY_OUTPUT \
-    --UtmInterpolatedDemLayer=TEMPORARY_OUTPUT \
-    --ExtentDebug=TEMPORARY_OUTPUT
+    --export_obst=false 
 
 # Run FDS
 
@@ -89,5 +105,5 @@ fds "$CHID.fds"
 smokeview -runscript "$CHID"
 
 # Compare images with baseline FIXME
+bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE
 
-# Send result to logfile FIXME
