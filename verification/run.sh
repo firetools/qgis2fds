@@ -20,11 +20,24 @@ if ! test -d $DIFF_DIR; then
 fi
 
 cd tests/golden_gate/scripts
+#bash test_geom.sh
+#bash test_geom_min.sh
+#bash test_obst.sh
+#bash test_obst_min.sh
+cd ../../..
+cd tests/cern_meyrin/scripts
 bash test_geom.sh
-bash test_geom_min.sh
 bash test_obst.sh
-bash test_obst_min.sh
 #find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" | tar -cf ../output.tar.gz -T -
 
-cd ../../../scripts
+cd ../../../logs
+cat log.txt
+if grep "err" log.txt; then
+  echo "Errors present in log file"
+  exit 1
+fi
 
+if grep "Err" log.txt; then
+  echo "Errors present in log file"
+  exit 1
+fi
