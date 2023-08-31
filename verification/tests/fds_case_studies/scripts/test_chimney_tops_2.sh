@@ -14,7 +14,7 @@ CHID=$(basename "$0" ".sh")
 BASE_DIR="$(pwd)/../../../../../../../qgis2fds.figures/tests/$CASEDIRNAME/FDS/"
 NEW_DIR="$(pwd)/../FDS/"
 DIFF_DIR="$(pwd)/../../../../diff/"
-LOG_FILE="$(pwd)/../../../../logs/log.txt"
+LOG_FILE="$(pwd)/../../../../../logs/log.txt"
 TOLERANCE=0.025
 
 # Make output directories if they do not exist
