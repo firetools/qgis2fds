@@ -50,11 +50,11 @@ for f in $NEW_DIR/$CHID*.png; do
     if [[ "$diff" != "0" ]] && [[ ! $diff == *"e"* ]]; then
       iftest=`echo "${diff} > ${TOLERANCE}" | bc`
       if [ 1 -eq $iftest ]; then
-        echo "***$FYI: The image $base has changed. $METRIC error=$diff > $TOLERANCE"
+        echo "***$FYI: The image $base has changed. $METRIC =$diff > $TOLERANCE"
         touch $diff_file_changed
         IMAGE_ERRORS=$((IMAGE_ERRORS + 1))
       else
-        echo "PASSED: The image $base has not changed. $METRIC error=$diff <= $TOLERANCE"
+        echo "PASSED: The image $base has not changed. $METRIC =$diff <= $TOLERANCE"
       fi
     fi
     if [[ "$diff" != "0" ]]; then
