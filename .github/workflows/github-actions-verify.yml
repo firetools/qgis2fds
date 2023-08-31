@@ -110,7 +110,7 @@ jobs:
       - name: Push results to release
         run: |
           cd verification/tests
-          find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" > tarnames.txt
+          find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" -o -name "*.ini -o -name "*.ssf" > tarnames.txt
           tar -cvf ../ubuntu.tar.gz -T tarnames.txt
           gh release upload verify-${{ github.ref_name }} ../ubuntu.tar.gz --clobber
         #  gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
