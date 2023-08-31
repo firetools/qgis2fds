@@ -28,8 +28,6 @@ rm -f $NEW_DIR/$CHID*  # does not rm .gitignore
 
 # Run QGIS
 
-cd ../QGIS
-CHID=$(basename "$0" ".sh")
 qgis_process run 'NIST FDS:Export FDS case' \
     --project_path="golden_gate.qgs" \
     --distance_units=meters \
@@ -104,7 +102,7 @@ RENDERDOUBLEONCE
 EOF
 
 fds "$CHID.fds"
-smokeview -runscript "$CHID"
+#smokeview -runscript "$CHID"
 
 # Compare images with baseline FIXME
 bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE
