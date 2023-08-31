@@ -90,8 +90,8 @@ jobs:
         run: |
           cd /home/runner/work/qgis2fds
           git clone https://github.com/firetools/qgis2fds.figures.git
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
       - name: Run Verification
         run: |
           cd verification
