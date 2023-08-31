@@ -28,6 +28,9 @@ cd ../../..
 cd tests/cern_meyrin/scripts
 bash test_geom.sh
 bash test_obst.sh
+cd ../../..
+cd tests/fds_case_studies/scripts
+bash test_chimney_tops_2.sh
 #find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" | tar -cf ../output.tar.gz -T -
 
 cd ../../../logs
