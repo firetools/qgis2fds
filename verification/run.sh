@@ -20,10 +20,10 @@ if ! test -d $DIFF_DIR; then
 fi
 
 cd tests/golden_gate/scripts
-#bash test_geom.sh
-#bash test_geom_min.sh
-#bash test_obst.sh
-#bash test_obst_min.sh
+bash test_geom.sh
+bash test_geom_min.sh
+bash test_obst.sh
+bash test_obst_min.sh
 cd ../../..
 cd tests/cern_meyrin/scripts
 bash test_geom.sh
