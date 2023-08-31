@@ -90,6 +90,8 @@ jobs:
         run: |
           cd /home/runner/work/qgis2fds
           git clone https://github.com/firetools/qgis2fds.figures.git
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Run Verification
         run: |
           cd verification
@@ -113,9 +115,14 @@ jobs:
         #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
       - name: Check for errors
         run: |
-          cd verifcation/logs
+          cd verification/logs
           cat log.txt
-          if grep "***" log.txt; then
+          if grep "err" log.txt; then
+            echo "Errors present in log file"
+            exit 1
+          fi
+
+          if grep "Err" log.txt; then
             echo "Errors present in log file"
             exit 1
           fi
