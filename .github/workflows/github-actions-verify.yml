@@ -105,6 +105,8 @@ jobs:
       #    mkdir -p tests/test_err
       #    cp tests/*/output/*.png tests/test_out/
       #    bash compare_images.sh
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
       - name: Push results to release
         run: |
           cd verification/tests
