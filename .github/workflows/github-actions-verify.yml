@@ -105,13 +105,14 @@ jobs:
       #    mkdir -p tests/test_err
       #    cp tests/*/output/*.png tests/test_out/
       #    bash compare_images.sh
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
+      #- name: Setup upterm session
+      #  uses: lhotari/action-upterm@v1
       - name: Push results to release
         run: |
           cd verification/tests
-          find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" | tar -cf ../ubuntu.tar.gz -T -
-          gh release upload verify-${{ github.ref_name }} ubuntu.tar.gz --clobber
+          find . -name "*.png" -o -name "*.fds" -o -name "*.bingeom" > tarnames.txt
+          tar -cvf ../ubuntu.tar.gz -T tarnames.txt -
+          gh release upload verify-${{ github.ref_name }} ../ubuntu.tar.gz --clobber
         #  gh release delete verify-${{ github.ref_name }} -y --cleanup-tag
         #  gh release create -n "verify ${{ github.ref_name }} branch" verify-${{ github.ref_name }} ubuntu.tar.gz
         #  gh release create ${{ github.ref }}-${{ runner.os }} data_out.tar.gz
