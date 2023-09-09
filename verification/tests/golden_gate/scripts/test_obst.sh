@@ -102,7 +102,7 @@ RENDERDOUBLEONCE
 EOF
 
 fds "$CHID.fds"
-#smokeview -runscript "$CHID"
+smokeview -runscript "$CHID"
 
 # Compare images with baseline FIXME
 bash ../../../scripts/compare_images.sh $BASE_DIR $NEW_DIR $DIFF_DIR $CHID 0.025 2>&1 | tee -a $LOG_FILE
