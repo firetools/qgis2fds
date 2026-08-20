@@ -301,7 +301,7 @@ class _PathParam(_Param):
 class FDSPathParam(_PathParam):
     name = "fds_path"
     label = "FDS case folder"
-    default = "../FDS"
+    default = "./FDS"
     optional = False
     kwargs = {
         "behavior": QgsProcessingParameterFile.Folder,
