@@ -14,9 +14,6 @@ __pycache__/
 
 *_downloaded.tif
 
-# Deploy
-deploy_qgis2fds
-
 # FDS calculations
 *.s3d
 *.s3d.sz

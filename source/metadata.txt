@@ -1,0 +1,18 @@
+[general]
+name=qgis2fds
+description=Export terrain and wildfire data from QGIS to NIST FDS
+about=Creates NIST Fire Dynamics Simulator input files for surface wildfire propagation from a DEM, landuse raster, simulation extent, optional ignition areas, and optional wind data. Terrain can be exported as FDS OBST namelists or binary GEOM geometry.
+version=2.0.0
+qgisMinimumVersion=4.2
+author=Emanuele Gissi, Ruggero Poletto
+email=emanuele.gissi@gmail.com
+repository=https://github.com/firetools/qgis2fds
+tracker=https://github.com/firetools/qgis2fds/issues
+homepage=https://github.com/firetools/qgis2fds
+category=Raster
+icon=firetools-logo_64.png
+tags=FDS,wildfire,fire,terrain,DEM,landuse,simulation
+hasProcessingProvider=yes
+experimental=False
+deprecated=False
+server=False
