@@ -8,8 +8,9 @@ from .provider import FdsProvider
 class Qgis2FdsPlugin:
     """Register the qgis2fds processing provider."""
 
-    def __init__(self, iface):
-        self.iface = iface
+    def __init__(self, _iface):
+        # QGIS supplies its interface object as part of the plugin contract. This
+        # Processing-only plugin does not need to retain it.
         self.provider = None
 
     def initProcessing(self):

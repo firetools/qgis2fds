@@ -22,6 +22,8 @@ class SpatialGrid:
     # origin_y are the corresponding coordinates in the metric grid CRS.
     longitude: float
     latitude: float
+    # Clockwise angle from projected grid north (+y) to true north, matching FDS.
+    north_bearing: float = 0.0
 
     @property
     def width(self):
@@ -82,16 +84,3 @@ class TerrainData:
     @property
     def max_elevation(self):
         return float(np.max(self.elevations))
-
-    def corner_elevation(self, row, column):
-        """Average the adjacent cell centers at a grid corner."""
-        # Interior vertices average four cells; boundary vertices use only the
-        # available neighbors, avoiding extrapolation beyond the raster.
-        row_start = max(0, row - 1)
-        row_stop = min(self.grid.rows, row + 1)
-        column_start = max(0, column - 1)
-        column_stop = min(self.grid.columns, column + 1)
-        neighbors = self.elevations[
-            row_start:row_stop, column_start:column_stop
-        ]
-        return float(np.mean(neighbors))

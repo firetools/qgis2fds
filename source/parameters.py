@@ -105,9 +105,9 @@ SPECS = (
     ),
     ParameterSpec(
         "export_obst",
-        "Export terrain as FDS OBST namelists",
+        "Export terrain as FDS OBST namelists (otherwise GEOM)",
         "boolean",
-        True,
+        False,
         advanced=True,
     ),
 )
@@ -180,7 +180,7 @@ def add_parameters(algorithm, project):
 
 
 def read_parameters(algorithm, parameters, context, project, feedback):
-    """Read typed values and persist them under the historical project keys."""
+    """Read typed values and persist them under the qgis2fds project keys."""
     values = {}
     for spec in SPECS:
         # Keep both forms: QGIS supplies the typed value to the exporter, while
@@ -240,8 +240,8 @@ def _store_value(project, spec, raw, value):
     elif spec.kind == "boolean":
         project.writeEntryBool(PROJECT_GROUP, spec.name, bool(value))
     elif spec.kind in ("raster", "vector"):
-        # Layer IDs are stable within a saved project and are what legacy cases
-        # stored under the qgis2fds property group.
+        # Layer IDs are stable within a saved project and are the values stored
+        # under the qgis2fds property group.
         project.writeEntry(PROJECT_GROUP, spec.name, value.id() if value else "")
     elif spec.kind == "point":
         if value is None:

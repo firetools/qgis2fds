@@ -9,6 +9,7 @@ from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     Qgis,
+    QgsBearingUtils,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsGeometry,
@@ -54,8 +55,8 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
     wgs84_extent = extent_to_wgs84.transformBoundingBox(extent_layer.extent())
 
     if origin is None:
-        # The extent centroid preserves the historical default when a project has
-        # no explicitly stored FDS origin.
+        # The extent centroid is the current default when a project has no
+        # explicitly stored FDS origin.
         wgs84_origin = wgs84_extent.center()
     else:
         origin_to_wgs84 = QgsCoordinateTransform(
@@ -72,6 +73,22 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
     utm_extent = extent_to_utm.transformBoundingBox(extent_layer.extent())
     origin_to_utm = QgsCoordinateTransform(wgs84, utm_crs, QgsProject.instance())
     utm_origin = origin_to_utm.transform(wgs84_origin)
+    # FDS NORTH_BEARING and QgsBearingUtils use the same convention: degrees
+    # clockwise from the projected grid's vertical axis to true north.
+    try:
+        north_bearing = QgsBearingUtils.bearingTrueNorth(
+            utm_crs,
+            QgsProject.instance().transformContext(),
+            utm_origin,
+        )
+    except Exception as error:
+        raise QgsProcessingException(
+            "Cannot calculate true north at the domain origin: {}".format(error)
+        )
+    if not math.isfinite(north_bearing):
+        raise QgsProcessingException(
+            "Cannot calculate true north at the domain origin."
+        )
 
     # Expand symmetrically to complete pixels. At least two cells per axis keeps
     # terrain triangulation and mesh generation meaningful.
@@ -93,6 +110,7 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
         origin_y=utm_origin.y(),
         longitude=wgs84_origin.x(),
         latitude=wgs84_origin.y(),
+        north_bearing=north_bearing,
     )
     return grid, utm_crs
 
@@ -129,8 +147,8 @@ def sample_terrain(
             feedback,
         )
         raw_landuse = _read_block(landuse, grid, required=False)
-        # Missing categorical cells use code zero; rint matches the historical
-        # conversion of raster samples to the nearest integer class identifier.
+        # Missing categorical cells use code zero; raster samples are converted
+        # to the nearest integer class identifier.
         landuse_values = np.rint(
             np.nan_to_num(raw_landuse, nan=0.0, posinf=0.0, neginf=0.0)
         ).astype("<i8")
@@ -178,8 +196,8 @@ def apply_fire_layer(
         records.append(
             (
                 geometry,
-                # This one-cell buffer implements the historical bc_out/bc_in
-                # perimeter convention used by existing fire layers.
+                # This one-cell buffer implements the current bc_out/bc_in
+                # perimeter convention used by fire layers.
                 geometry.buffer(terrain.grid.pixel_size, 8),
                 inside_code,
                 outside_code,

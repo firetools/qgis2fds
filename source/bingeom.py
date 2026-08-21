@@ -74,7 +74,8 @@ def _vertices(terrain):
     x_coordinates = grid.x_min + columns * grid.pixel_size - grid.origin_x
 
     for row in range(grid.rows + 1):
-        # Accumulate neighbors in the same order as TerrainData.corner_elevation.
+        # Average the adjacent cell centers at each vertex. Boundary vertices use
+        # only available neighbors, avoiding extrapolation beyond the raster.
         corner_sum = np.zeros(grid.columns + 1, dtype="<f8")
         neighbor_count = np.zeros(grid.columns + 1, dtype="<i4")
         for cell_row in (row - 1, row):

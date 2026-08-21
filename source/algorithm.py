@@ -1,6 +1,9 @@
 """The single qgis2fds processing algorithm."""
 
 import os
+import time
+
+import numpy as np
 
 from qgis.core import (
     Qgis,
@@ -15,13 +18,19 @@ from .bingeom import write_binary_geometry
 from .fds import (
     CHID,
     SurfaceCatalog,
+    build_assumptions,
     build_mesh_layout,
     read_wind,
     render_case,
     write_text,
 )
 from .parameters import add_parameters, read_parameters
-from .spatial import apply_fire_layer, prepare_grid, render_texture, sample_terrain
+from .spatial import (
+    apply_fire_layer,
+    prepare_grid,
+    render_texture,
+    sample_terrain,
+)
 
 
 PLUGIN_VERSION = "2.0.0"
@@ -37,37 +46,71 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
         self.addOutput(QgsProcessingOutputFile(self.OUTPUT_FDS, "FDS input file"))
 
     def processAlgorithm(self, parameters, context, model_feedback):
-        # Keep the work split into coarse steps so QGIS can scale child-algorithm
-        # progress (notably GDAL warping) into one progress bar.
+        """Run the export with enough context to diagnose failures from logs."""
         feedback = QgsProcessingMultiStepFeedback(6, model_feedback)
         project = QgsProject.instance()
-        # Reading also persists the values under the historical project keys.
-        # Existing .qgs/.qgz cases therefore keep supplying their saved defaults.
-        values = read_parameters(self, parameters, context, project, feedback)
-
-        chid = values["chid"].strip()
-        if not CHID.fullmatch(chid):
-            raise QgsProcessingException(
-                "CHID may contain only letters, digits, underscores, periods, and hyphens."
-            )
-        if values["t_end"] < values["t_begin"]:
-            raise QgsProcessingException("t_end must be greater than or equal to t_begin.")
-        if values["landuse_layer"] is not None and not values["landuse_type_filepath"]:
-            raise QgsProcessingException(
-                "landuse_type_filepath is required when landuse_layer is set."
-            )
-
-        output_directory = _resolve_path(values["fds_path"], project)
-        os.makedirs(output_directory, exist_ok=True)
-        fds_filepath = os.path.join(output_directory, chid + ".fds")
-        # Auxiliary files are referenced by basename in the FDS input, making the
-        # whole case directory portable after it has been generated.
-        binary_filename = chid + "_terrain.bingeom"
-        binary_filepath = os.path.join(output_directory, binary_filename)
-        texture_filename = chid + "_tex.png"
-        texture_filepath = os.path.join(output_directory, texture_filename)
-
+        started_at = time.monotonic()
+        stage = "initialization"
+        _diagnostic(
+            feedback,
+            "Starting export with qgis2fds {} on QGIS {}.".format(
+                PLUGIN_VERSION, Qgis.QGIS_VERSION
+            ),
+        )
+        _diagnostic(
+            feedback,
+            "Project: {}; project CRS: {}.".format(
+                project.fileName() or "unsaved",
+                project.crs().authid() or "unset",
+            ),
+        )
         try:
+            stage = "reading and validating parameters"
+            # Reading also persists values under the current project keys so saved
+            # projects keep supplying their configured defaults.
+            values = read_parameters(self, parameters, context, project, feedback)
+            chid = values["chid"].strip()
+            if not CHID.fullmatch(chid):
+                raise QgsProcessingException(
+                    "CHID may contain only letters, digits, underscores, periods, "
+                    "and hyphens."
+                )
+            if values["t_end"] < values["t_begin"]:
+                raise QgsProcessingException(
+                    "t_end must be greater than or equal to t_begin."
+                )
+            if (
+                values["landuse_layer"] is not None
+                and not values["landuse_type_filepath"]
+            ):
+                raise QgsProcessingException(
+                    "landuse_type_filepath is required when landuse_layer is set."
+                )
+
+            stage = "preparing the output directory"
+            output_directory = _resolve_path(values["fds_path"], project)
+            os.makedirs(output_directory, exist_ok=True)
+            fds_filepath = os.path.join(output_directory, chid + ".fds")
+            # Auxiliary files use basenames in the FDS input, keeping the generated
+            # case portable as one directory.
+            binary_filename = chid + "_terrain.bingeom"
+            binary_filepath = os.path.join(output_directory, binary_filename)
+            texture_filename = chid + "_tex.png"
+            texture_filepath = os.path.join(output_directory, texture_filename)
+            _diagnostic(
+                feedback,
+                "Parameters validated for CHID '{}'; output directory: {}; terrain "
+                "representation: {}.".format(
+                    chid,
+                    output_directory,
+                    "OBST" if values["export_obst"] else "GEOM",
+                ),
+            )
+
+            feedback.setCurrentStep(0)
+            _check_canceled(feedback)
+            stage = "loading support files"
+            _diagnostic(feedback, "Stage 1/6: loading surface, wind, and text files.")
             landuse_filepath = _resolve_optional_file(
                 values["landuse_type_filepath"], project
             )
@@ -76,23 +119,56 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
             catalog = SurfaceCatalog.load(landuse_filepath)
             wind = read_wind(wind_filepath)
             extra_text = _read_extra_text(text_filepath)
+            _diagnostic(
+                feedback,
+                "Support files loaded: {} surfaces; {} wind samples; {} bytes of "
+                "appended FDS text.".format(
+                    len(catalog.surfaces),
+                    len(wind),
+                    len(extra_text.encode("utf-8")),
+                ),
+            )
 
             feedback.setCurrentStep(1)
             _check_canceled(feedback)
+            stage = "preparing the terrain grid"
+            _diagnostic(feedback, "Stage 2/6: preparing the metric terrain grid.")
             grid, utm_crs = prepare_grid(
                 values["extent_layer"],
                 values["origin"],
                 project.crs(),
                 values["pixel_size"],
             )
-            feedback.pushInfo(
-                "Terrain grid: {} x {} cells in {}".format(
-                    grid.columns, grid.rows, grid.crs_authid
-                )
+            _diagnostic(
+                feedback,
+                "Grid ready: {} x {} cells at {:.6g} m in {} ({}); bounds "
+                "X={:.3f}:{:.3f}, Y={:.3f}:{:.3f}; origin={:.3f},{:.3f}; "
+                "NORTH_BEARING={:.6f}.".format(
+                    grid.columns,
+                    grid.rows,
+                    grid.pixel_size,
+                    grid.crs_description,
+                    grid.crs_authid,
+                    grid.x_min,
+                    grid.x_max,
+                    grid.y_min,
+                    grid.y_max,
+                    grid.origin_x,
+                    grid.origin_y,
+                    grid.north_bearing,
+                ),
             )
 
             feedback.setCurrentStep(2)
             _check_canceled(feedback)
+            stage = "sampling terrain rasters"
+            _diagnostic(
+                feedback,
+                "Stage 3/6: sampling DEM {} and landuse {}.".format(
+                    _raster_description(values["dem_layer"]),
+                    _raster_description(values["landuse_layer"]),
+                ),
+            )
             terrain = sample_terrain(
                 values["dem_layer"],
                 values["landuse_layer"],
@@ -101,9 +177,37 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 context,
                 feedback,
             )
+            observed_codes = np.unique(terrain.landuse)
+            _diagnostic(
+                feedback,
+                "Raster sampling complete: elevations {:.3f}:{:.3f} m; {} landuse "
+                "classes {}.".format(
+                    terrain.min_elevation,
+                    terrain.max_elevation,
+                    observed_codes.size,
+                    _code_preview(observed_codes),
+                ),
+            )
 
             feedback.setCurrentStep(3)
             _check_canceled(feedback)
+            stage = "applying fire polygons"
+            if values["fire_layer"] is None:
+                _diagnostic(
+                    feedback,
+                    "Stage 4/6: no fire layer supplied; skipping ignition polygons.",
+                )
+            else:
+                _diagnostic(
+                    feedback,
+                    "Stage 4/6: applying {} features from fire layer '{}' with "
+                    "perimeter/interior defaults {}/{}.".format(
+                        values["fire_layer"].featureCount(),
+                        values["fire_layer"].name(),
+                        catalog.outside_fire_code,
+                        catalog.inside_fire_code,
+                    ),
+                )
             apply_fire_layer(
                 terrain,
                 values["fire_layer"],
@@ -119,17 +223,77 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                         ", ".join(str(code) for code in unknown)
                     )
                 )
+            _diagnostic(
+                feedback,
+                "Fire processing complete; {} unknown landuse codes use the fallback "
+                "surface.".format(len(unknown)),
+            )
 
             feedback.setCurrentStep(4)
             _check_canceled(feedback)
+            stage = "building the FDS domain"
+            _diagnostic(feedback, "Stage 5/6: building meshes, assumptions, and texture.")
             cell_size = values["cell_size"] or values["pixel_size"]
             layout = build_mesh_layout(terrain, cell_size, values["nmesh"])
-            feedback.pushInfo(
-                "FDS domain: {} meshes ({} x {})".format(
-                    layout.count, layout.count_x, layout.count_y
-                )
+            _diagnostic(
+                feedback,
+                "Mesh layout ready: {} meshes ({} x {}), {} x {} x {} cells each; "
+                "domain XB={:.3f}:{:.3f}, {:.3f}:{:.3f}, {:.3f}:{:.3f}.".format(
+                    layout.count,
+                    layout.count_x,
+                    layout.count_y,
+                    layout.cells_x,
+                    layout.cells_y,
+                    layout.cells_z,
+                    layout.x_min,
+                    layout.x_max,
+                    layout.y_min,
+                    layout.y_max,
+                    layout.z_min,
+                    layout.z_max,
+                ),
             )
+            provenance = "{} on QGIS {}".format(
+                PLUGIN_VERSION, Qgis.QGIS_VERSION
+            )
+            dem_name = values["dem_layer"].name()
+            landuse_name = (
+                values["landuse_layer"].name()
+                if values["landuse_layer"] is not None
+                else ""
+            )
+            fire_name = (
+                values["fire_layer"].name()
+                if values["fire_layer"] is not None
+                else ""
+            )
+            assumptions = build_assumptions(
+                terrain=terrain,
+                catalog=catalog,
+                layout=layout,
+                wind_filepath=wind_filepath,
+                provenance=provenance,
+                qgis_filepath=project.fileName() or "not saved",
+                generated_at=time.strftime(
+                    "%a, %d %b %Y, %H:%M:%S", time.localtime()
+                ),
+                dem_name=dem_name,
+                landuse_name=landuse_name,
+                fire_name=fire_name,
+            )
+            _diagnostic(
+                feedback,
+                "Prepared {} assumptions.".format(len(assumptions)),
+            )
+            _report_assumptions(feedback, assumptions)
 
+            stage = "rendering the terrain texture"
+            _diagnostic(
+                feedback,
+                "Rendering terrain texture at {:.6g} m per pixel.".format(
+                    values["tex_pixel_size"]
+                ),
+            )
             rendered_texture = render_texture(
                 grid,
                 utm_crs,
@@ -139,14 +303,40 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
             )
             if rendered_texture is None:
                 texture_filename_for_fds = ""
+                _diagnostic(
+                    feedback,
+                    "Terrain texture was not generated; continuing without it.",
+                )
             else:
                 texture_filename_for_fds = texture_filename
+                _diagnostic(
+                    feedback,
+                    "Terrain texture written: {} ({}).".format(
+                        rendered_texture, _file_size(rendered_texture)
+                    ),
+                )
 
             feedback.setCurrentStep(5)
             _check_canceled(feedback)
+            stage = "writing generated files"
+            _diagnostic(feedback, "Stage 6/6: serializing the FDS case.")
             if not values["export_obst"]:
+                stage = "writing BINGEOM terrain"
+                _diagnostic(
+                    feedback,
+                    "Writing BINGEOM terrain: {}.".format(binary_filepath),
+                )
                 write_binary_geometry(binary_filepath, terrain, catalog)
+                _diagnostic(
+                    feedback,
+                    "BINGEOM terrain written successfully ({}).".format(
+                        _file_size(binary_filepath)
+                    ),
+                )
+            else:
+                _diagnostic(feedback, "Writing terrain directly as OBST namelists.")
 
+            stage = "rendering the FDS input"
             case = render_case(
                 chid=chid,
                 t_begin=values["t_begin"],
@@ -159,31 +349,46 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 binary_filename=binary_filename,
                 texture_filename=texture_filename_for_fds,
                 extra_text=extra_text,
-                provenance="{} on QGIS {}".format(
-                    PLUGIN_VERSION, Qgis.QGIS_VERSION
-                ),
-                dem_name=values["dem_layer"].name(),
-                landuse_name=(
-                    values["landuse_layer"].name()
-                    if values["landuse_layer"] is not None
-                    else ""
-                ),
-                fire_name=(
-                    values["fire_layer"].name()
-                    if values["fire_layer"] is not None
-                    else ""
+                assumptions=assumptions,
+            )
+            _diagnostic(
+                feedback,
+                "Rendered FDS input in memory: {} lines, {} bytes.".format(
+                    len(case.splitlines()), len(case.encode("utf-8"))
                 ),
             )
+            stage = "writing the FDS input"
             write_text(fds_filepath, case)
-        except QgsProcessingException:
-            # Preserve actionable QGIS errors raised by spatial operations.
+            _diagnostic(
+                feedback,
+                "FDS input written successfully: {} ({}).".format(
+                    fds_filepath, _file_size(fds_filepath)
+                ),
+            )
+        except QgsProcessingException as error:
+            _report_failure(feedback, stage, error)
             raise
         except (OSError, UnicodeError, ValueError) as error:
-            # Present parser and filesystem failures consistently in Processing.
-            raise QgsProcessingException(str(error))
+            _report_failure(feedback, stage, error)
+            raise QgsProcessingException(
+                "Export failed while {}: {}".format(stage, error)
+            ) from error
+        except Exception as error:
+            # Include the stage and exception type for unexpected plugin or provider
+            # failures while retaining the original exception as the cause.
+            _report_failure(feedback, stage, error)
+            raise QgsProcessingException(
+                "Export failed while {}: {}: {}".format(
+                    stage, type(error).__name__, error
+                )
+            ) from error
 
-        feedback.setCurrentStep(6)
-        feedback.pushInfo("FDS case written to <{}>".format(fds_filepath))
+        _diagnostic(
+            feedback,
+            "Export completed in {:.2f} s; FDS case: <{}>.".format(
+                time.monotonic() - started_at, fds_filepath
+            ),
+        )
         return {self.OUTPUT_FDS: fds_filepath}
 
     def name(self):
@@ -241,3 +446,55 @@ def _read_extra_text(filepath):
 def _check_canceled(feedback):
     if feedback.isCanceled():
         raise QgsProcessingException("Export canceled.")
+
+
+def _diagnostic(feedback, message):
+    """Emit a searchable runtime message in GUI and qgis_process logs."""
+    feedback.pushInfo("[qgis2fds] " + message)
+
+
+def _report_failure(feedback, stage, error):
+    """Record the failed stage before QGIS presents the exception to the user."""
+    feedback.pushWarning(
+        "[qgis2fds] Export failed while {}: {}: {}".format(
+            stage, type(error).__name__, error
+        )
+    )
+
+
+def _raster_description(layer):
+    """Describe a raster without exposing its possibly credentialed source URI."""
+    if layer is None:
+        return "none"
+    return "'{}' (provider={}, CRS={}, source={}x{})".format(
+        layer.name(),
+        layer.providerType() or "unknown",
+        layer.crs().authid() or "unset",
+        layer.width(),
+        layer.height(),
+    )
+
+
+def _code_preview(codes, limit=12):
+    """Show a bounded landuse-code preview suitable for Processing logs."""
+    values = [str(int(code)) for code in codes[:limit]]
+    if len(codes) > limit:
+        values.append("...")
+    return "[{}]".format(", ".join(values))
+
+
+def _file_size(filepath):
+    """Format a generated file size without introducing another dependency."""
+    size = os.path.getsize(filepath)
+    if size < 1024:
+        return "{} B".format(size)
+    if size < 1024 * 1024:
+        return "{:.1f} KiB".format(size / 1024.0)
+    return "{:.1f} MiB".format(size / (1024.0 * 1024.0))
+
+
+def _report_assumptions(feedback, assumptions):
+    """Show exactly the assumptions written as comments in the FDS file."""
+    feedback.pushInfo("Assumptions:")
+    for assumption in assumptions:
+        feedback.pushInfo("  " + assumption)
