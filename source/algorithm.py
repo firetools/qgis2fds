@@ -41,6 +41,14 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
 
     OUTPUT_FDS = "fds_file"
 
+    def flags(self):
+        """Run on QGIS's main thread because the export updates the project."""
+        return (
+            super().flags()
+            | QgsProcessingAlgorithm.FlagNoThreading
+            | QgsProcessingAlgorithm.FlagRequiresProject
+        )
+
     def initAlgorithm(self, config=None):
         add_parameters(self, QgsProject.instance())
         self.addOutput(QgsProcessingOutputFile(self.OUTPUT_FDS, "FDS input file"))

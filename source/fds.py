@@ -566,6 +566,10 @@ def render_case(
 &HEAD CHID={chid}, TITLE={title} /
 &TIME T_BEGIN={t_begin:.6g}, T_END={t_end:.6g} /
 
+! Example REAC, used when LEVEL_SET_MODE=4
+_REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
+      HEAT_OF_COMBUSTION=17700. /
+
 &MISC ORIGIN_LAT={latitude:.7f}, ORIGIN_LON={longitude:.7f},
       NORTH_BEARING={north_bearing:.6f}, LEVEL_SET_MODE=1{image_entry} /
 &RADI RADIATION=F /
@@ -587,14 +591,22 @@ def render_case(
 ! Wind
 {wind_text}
 
-! Terrain geometry
-{terrain_text}
-
 ! Output
-&SLCF AGL_SLICE=5., QUANTITY='LEVEL SET VALUE' /
+&SLCF AGL_SLICE=5. QUANTITY='LEVEL SET VALUE' /
+&SLCF AGL_SLICE=5. QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBX=0.00 QUANTITY='TEMPERATURE' VECTOR=T /
+&SLCF PBY=0.00 QUANTITY='TEMPERATURE' VECTOR=T /
 &BNDF QUANTITY='FIRE ARRIVAL TIME' /
 &BNDF QUANTITY='FIRE RESIDENCE TIME' /
 &BNDF QUANTITY='LS SPREAD RATE' /
+
+! Wind rose at domain origin
+&DEVC ID='Origin_UV' XYZ=0.,0.,995.90 QUANTITY='U-VELOCITY' /
+&DEVC ID='Origin_VV' XYZ=0.,0.,995.90 QUANTITY='V-VELOCITY' /
+&DEVC ID='Origin_WV' XYZ=0.,0.,995.90 QUANTITY='W-VELOCITY' /
+
+! Terrain geometry
+{terrain_text}
 {free_text}
 &TAIL /
 """.format(

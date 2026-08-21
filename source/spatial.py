@@ -8,7 +8,6 @@ import processing
 from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
-    Qgis,
     QgsBearingUtils,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
@@ -24,21 +23,12 @@ from qgis.core import (
 )
 
 from .model import SpatialGrid, TerrainData
+from .remote import RASTER_NUMPY_DTYPES, ensure_local_raster
 
 
 NODATA = -9999.0
 MAX_TEXTURE_PIXELS = 100_000_000
 MAX_TEXTURE_DIMENSION = 16_384
-RASTER_NUMPY_DTYPES = {
-    Qgis.DataType.Byte: np.dtype("u1"),
-    Qgis.DataType.Int8: np.dtype("i1"),
-    Qgis.DataType.UInt16: np.dtype("=u2"),
-    Qgis.DataType.Int16: np.dtype("=i2"),
-    Qgis.DataType.UInt32: np.dtype("=u4"),
-    Qgis.DataType.Int32: np.dtype("=i4"),
-    Qgis.DataType.Float32: np.dtype("=f4"),
-    Qgis.DataType.Float64: np.dtype("=f8"),
-}
 
 
 def prepare_grid(extent_layer, origin, project_crs, pixel_size):
@@ -125,6 +115,15 @@ def sample_terrain(
 ):
     """Warp the source rasters once, then read aligned cell values."""
     _validate_raster(dem_layer, "DEM")
+    dem_layer = ensure_local_raster(
+        dem_layer,
+        grid,
+        utm_crs,
+        "DEM",
+        "dem_layer",
+        "bilinear",
+        feedback,
+    )
     # Elevation is continuous and uses bilinear resampling. Categorical landuse
     # below uses nearest-neighbor so class identifiers are never interpolated.
     dem = _warp_raster(
@@ -137,6 +136,15 @@ def sample_terrain(
         landuse_values = np.zeros((grid.rows, grid.columns), dtype="<i8")
     else:
         _validate_raster(landuse_layer, "Landuse")
+        landuse_layer = ensure_local_raster(
+            landuse_layer,
+            grid,
+            utm_crs,
+            "Landuse",
+            "landuse_layer",
+            "nearest neighbor",
+            feedback,
+        )
         landuse = _warp_raster(
             landuse_layer,
             grid,

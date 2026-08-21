@@ -13,6 +13,7 @@ __pycache__/
 *.aux.xml
 
 *_downloaded.tif
+*_qgis2fds_local_*.tif
 
 # Tests
 !dev/pytest.ini
