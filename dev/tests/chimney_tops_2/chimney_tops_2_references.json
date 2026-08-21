@@ -1,9 +1,9 @@
 {
   "geom_coarse": {
     "bingeom_sha256": "b8ef84540c71b6a9aad6e7d3a448e1e884b9a55dcc9c5d7f0bb10df257d41606",
-    "fds_line_count": 374,
+    "fds_line_count": 386,
     "geom_count": 1,
-    "normalized_fds_sha256": "c9b667107dc9eeb5cf927108c73d49bf846a9f101f35d3b46b5dfc1ffd517489",
+    "normalized_fds_sha256": "4a61eeaeabccbd766a5985f479200d72977bab41a7493c873b7ff824b3ada0b4",
     "obst_count": 0,
     "texture_dimensions": [
       237,
@@ -12,9 +12,9 @@
   },
   "geom_project": {
     "bingeom_sha256": "7d9873713a819369595dff1fbb87f794020fc065260f959acf0678be94c0eac4",
-    "fds_line_count": 374,
+    "fds_line_count": 386,
     "geom_count": 1,
-    "normalized_fds_sha256": "63081c30aaaa5ea77559b812bd62e6683dd51cf2ee1059600d91f607533e9b56",
+    "normalized_fds_sha256": "edeaaf6af8068028ecc352a2dde3d330944360078b43e2d7ff1d7b0661af785b",
     "obst_count": 0,
     "texture_dimensions": [
       2130,
@@ -23,9 +23,9 @@
   },
   "obst_coarse": {
     "bingeom_sha256": null,
-    "fds_line_count": 62752,
+    "fds_line_count": 62764,
     "geom_count": 0,
-    "normalized_fds_sha256": "92e1f701224d6819849d17d46d8e0f59e339b5733f070105a2f2e495358490af",
+    "normalized_fds_sha256": "79df6b9888b708f5df3168d9faee53f525283e70af517fc952022d043578042e",
     "obst_count": 62379,
     "texture_dimensions": [
       237,
