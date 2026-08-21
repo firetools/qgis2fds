@@ -49,7 +49,6 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
         """Run the export with enough context to diagnose failures from logs."""
         feedback = QgsProcessingMultiStepFeedback(6, model_feedback)
         project = QgsProject.instance()
-        started_at = time.monotonic()
         stage = "initialization"
         _diagnostic(
             feedback,
@@ -385,9 +384,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
 
         _diagnostic(
             feedback,
-            "Export completed in {:.2f} s; FDS case: <{}>.".format(
-                time.monotonic() - started_at, fds_filepath
-            ),
+            "Export completed, FDS case: <{}>.".format(fds_filepath),
         )
         return {self.OUTPUT_FDS: fds_filepath}
 

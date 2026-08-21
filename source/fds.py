@@ -210,7 +210,7 @@ def build_assumptions(
             )
         ),
         (
-            "Domain origin: {:.3f} E, {:.3f} N".format(
+            "Domain origin: {:.1f} E, {:.1f} N".format(
                 grid.origin_x, grid.origin_y
             )
         ),
@@ -220,11 +220,11 @@ def build_assumptions(
             )
         ),
         (
-            "True north bearing: {:.6f}° clockwise from grid north".format(
+            "True north bearing: {:.1f}° clockwise from grid north".format(
                 grid.north_bearing
             )
         ),
-        "Desired resolution: {:.3f} m".format(grid.pixel_size),
+        "Desired resolution: {:.1f} m".format(grid.pixel_size),
         "DEM layer: {}".format(dem_name),
         "Landuse layer: {}".format(landuse_name or "none"),
         "Landuse type file: {}".format(catalog.filepath or "none"),
