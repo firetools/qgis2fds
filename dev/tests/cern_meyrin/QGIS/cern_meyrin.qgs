@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis projectname="" saveDateTime="2026-08-21T10:19:57" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.0-Belém do Pará">
+<qgis projectname="" saveDateTime="2026-08-21T14:45:53" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.0-Belém do Pará">
   <homePath path=""/>
   <title></title>
   <transaction mode="Disabled"/>
@@ -1606,7 +1606,7 @@ def my_form_open(dialog, layer, feature):
       </spatialrefsys>
     </CoordinateCustomCrs>
   </ProjectDisplaySettings>
-  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Extent_aecca660_0811_44d7_9f24_f7f364999b60" destinationLayerName="Extent" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/dev/tests/cern_meyrin/assets/layers/Extent.gpkg|layername=Extent">
+  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Extent_aecca660_0811_44d7_9f24_f7f364999b60" destinationLayerName="Extent" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/dev/tests/cern_meyrin/QGIS/layers/Extent.gpkg|layername=Extent">
     <timeStampFields/>
   </ProjectGpsSettings>
 </qgis>

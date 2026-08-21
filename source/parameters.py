@@ -47,7 +47,7 @@ SPECS = (
     ParameterSpec("dem_layer", "DEM layer", "raster"),
     ParameterSpec(
         "landuse_layer",
-        "Landuse layer (optional)",
+        "Landuse layer",
         "raster",
         optional=True,
     ),
@@ -59,7 +59,7 @@ SPECS = (
         optional=True,
         file_filter="CSV files (*.csv)",
     ),
-    ParameterSpec("fire_layer", "Fire layer (optional)", "vector", optional=True),
+    ParameterSpec("fire_layer", "Fire layer", "vector", optional=True),
     ParameterSpec(
         "tex_pixel_size",
         "Texture resolution (m)",

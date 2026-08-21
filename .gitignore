@@ -14,7 +14,11 @@ __pycache__/
 
 *_downloaded.tif
 
+# Tests
+!dev/pytest.ini
+
 # FDS calculations
+FDS
 *.s3d
 *.s3d.sz
 *_cpu.csv
