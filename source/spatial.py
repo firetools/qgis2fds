@@ -3,10 +3,12 @@
 import math
 import os
 
+import numpy as np
 import processing
 from qgis.PyQt.QtCore import QSize
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
+    Qgis,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsGeometry,
@@ -26,6 +28,16 @@ from .model import SpatialGrid, TerrainData
 NODATA = -9999.0
 MAX_TEXTURE_PIXELS = 100_000_000
 MAX_TEXTURE_DIMENSION = 16_384
+RASTER_NUMPY_DTYPES = {
+    Qgis.DataType.Byte: np.dtype("u1"),
+    Qgis.DataType.Int8: np.dtype("i1"),
+    Qgis.DataType.UInt16: np.dtype("=u2"),
+    Qgis.DataType.Int16: np.dtype("=i2"),
+    Qgis.DataType.UInt32: np.dtype("=u4"),
+    Qgis.DataType.Int32: np.dtype("=i4"),
+    Qgis.DataType.Float32: np.dtype("=f4"),
+    Qgis.DataType.Float64: np.dtype("=f8"),
+}
 
 
 def prepare_grid(extent_layer, origin, project_crs, pixel_size):
@@ -42,6 +54,8 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
     wgs84_extent = extent_to_wgs84.transformBoundingBox(extent_layer.extent())
 
     if origin is None:
+        # The extent centroid preserves the historical default when a project has
+        # no explicitly stored FDS origin.
         wgs84_origin = wgs84_extent.center()
     else:
         origin_to_wgs84 = QgsCoordinateTransform(
@@ -49,6 +63,8 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
         )
         wgs84_origin = origin_to_wgs84.transform(QgsPointXY(origin))
 
+    # A local UTM CRS gives raster operations and FDS a metric coordinate system
+    # selected from the requested origin instead of the layer's native CRS.
     utm_crs = _utm_crs(wgs84_origin.x(), wgs84_origin.y())
     extent_to_utm = QgsCoordinateTransform(
         extent_layer.crs(), utm_crs, QgsProject.instance()
@@ -57,6 +73,8 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
     origin_to_utm = QgsCoordinateTransform(wgs84, utm_crs, QgsProject.instance())
     utm_origin = origin_to_utm.transform(wgs84_origin)
 
+    # Expand symmetrically to complete pixels. At least two cells per axis keeps
+    # terrain triangulation and mesh generation meaningful.
     columns = max(2, int(math.ceil(utm_extent.width() / pixel_size)))
     rows = max(2, int(math.ceil(utm_extent.height() / pixel_size)))
     width = columns * pixel_size
@@ -89,13 +107,16 @@ def sample_terrain(
 ):
     """Warp the source rasters once, then read aligned cell values."""
     _validate_raster(dem_layer, "DEM")
+    # Elevation is continuous and uses bilinear resampling. Categorical landuse
+    # below uses nearest-neighbor so class identifiers are never interpolated.
     dem = _warp_raster(
         dem_layer, grid, utm_crs, 1, "qgis2fds DEM", context, feedback
     )
     dem_values = _read_block(dem, grid, required=True)
 
     if landuse_layer is None:
-        landuse_values = [[0] * grid.columns for _ in range(grid.rows)]
+        # Code zero resolves to INERT in the built-in terrain-only catalog.
+        landuse_values = np.zeros((grid.rows, grid.columns), dtype="<i8")
     else:
         _validate_raster(landuse_layer, "Landuse")
         landuse = _warp_raster(
@@ -108,10 +129,11 @@ def sample_terrain(
             feedback,
         )
         raw_landuse = _read_block(landuse, grid, required=False)
-        landuse_values = [
-            [int(round(value)) if value is not None else 0 for value in row]
-            for row in raw_landuse
-        ]
+        # Missing categorical cells use code zero; rint matches the historical
+        # conversion of raster samples to the nearest integer class identifier.
+        landuse_values = np.rint(
+            np.nan_to_num(raw_landuse, nan=0.0, posinf=0.0, neginf=0.0)
+        ).astype("<i8")
 
     return TerrainData(grid, dem_values, landuse_values)
 
@@ -156,6 +178,8 @@ def apply_fire_layer(
         records.append(
             (
                 geometry,
+                # This one-cell buffer implements the historical bc_out/bc_in
+                # perimeter convention used by existing fire layers.
                 geometry.buffer(terrain.grid.pixel_size, 8),
                 inside_code,
                 outside_code,
@@ -173,6 +197,7 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
     """Render checked project layers into a Smokeview terrain texture."""
     width = max(1, int(math.ceil(grid.width / texture_pixel_size)))
     height = max(1, int(math.ceil(grid.height / texture_pixel_size)))
+    # Refuse images likely to exceed renderer/GPU limits or consume excessive RAM.
     if (
         width > MAX_TEXTURE_DIMENSION
         or height > MAX_TEXTURE_DIMENSION
@@ -185,8 +210,10 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
 
     project = QgsProject.instance()
     try:
+        # Only visible project layers belong in the Smokeview terrain texture.
         layers = project.layerTreeRoot().checkedLayers()
     except AttributeError:
+        # Retain a fallback for QGIS builds without checkedLayers().
         layers = list(project.mapLayers().values())
     layers = [layer for layer in layers if layer.isValid()]
     if not layers:
@@ -247,6 +274,8 @@ def _validate_raster(layer, label):
 
 
 def _warp_raster(layer, grid, utm_crs, resampling, name, context, feedback):
+    # Warping once into the common grid is faster and more reproducible than
+    # transforming and sampling each terrain cell independently.
     parameters = {
         "INPUT": layer,
         "SOURCE_CRS": layer.crs(),
@@ -279,6 +308,7 @@ def _warp_raster(layer, grid, utm_crs, resampling, name, context, feedback):
     if isinstance(output, QgsRasterLayer):
         warped = output
     else:
+        # Child algorithms may return either a context layer ID or a file path.
         warped = context.getMapLayer(output)
         if warped is None:
             warped = QgsRasterLayer(str(output), name)
@@ -296,24 +326,52 @@ def _read_block(layer, grid, required):
     if block is None or not block.isValid():
         raise QgsProcessingException("Cannot read the prepared raster.")
 
-    values = []
+    dtype = RASTER_NUMPY_DTYPES.get(block.dataType())
+    if dtype is None:
+        raise QgsProcessingException(
+            "Raster data type {} is not supported.".format(block.dataType())
+        )
+
+    # QGIS 4 exposes the contiguous raster payload as QByteArray. NumPy can read
+    # it without per-cell Python calls; astype below makes the owned float copy.
+    buffer = block.data()
+    raw = np.frombuffer(buffer, dtype=dtype)
+    expected_size = grid.rows * grid.columns
+    if raw.size != expected_size:
+        raise QgsProcessingException(
+            "Raster block contains {} values; expected {}.".format(
+                raw.size, expected_size
+            )
+        )
     # QgsRasterBlock rows run north to south; the model runs south to north.
-    for model_row in range(grid.rows):
-        raster_row = grid.rows - model_row - 1
-        row = []
-        for column in range(grid.columns):
-            is_nodata = block.isNoData(raster_row, column)
-            value = None if is_nodata else float(block.value(raster_row, column))
-            if value is not None and not math.isfinite(value):
-                value = None
-            if required and value is None:
-                raise QgsProcessingException(
-                    "DEM has no elevation at terrain cell ({}, {}).".format(
-                        column, model_row
-                    )
-                )
-            row.append(value)
-        values.append(row)
+    values = raw.reshape((grid.rows, grid.columns))[::-1].astype("<f8")
+
+    missing = ~np.isfinite(values)
+    if block.hasNoDataValue():
+        nodata = float(block.noDataValue())
+        if np.isfinite(nodata):
+            missing |= values == nodata
+    elif block.hasNoData():
+        # Some providers use a separate no-data bitmap instead of a sentinel.
+        bitmap = np.fromiter(
+            (
+                block.isNoData(row, column)
+                for row in range(grid.rows)
+                for column in range(grid.columns)
+            ),
+            dtype=bool,
+            count=expected_size,
+        ).reshape((grid.rows, grid.columns))
+        missing |= bitmap[::-1]
+
+    if required and np.any(missing):
+        model_row, column = np.argwhere(missing)[0]
+        raise QgsProcessingException(
+            "DEM has no elevation at terrain cell ({}, {}).".format(
+                int(column), int(model_row)
+            )
+        )
+    values[missing] = np.nan
     return values
 
 
@@ -330,6 +388,7 @@ def _feature_code(feature, field_index, default):
 def _paint_geometry(terrain, geometry, code, feedback):
     grid = terrain.grid
     bounds = geometry.boundingBox()
+    # Restrict point-in-polygon tests to cells touched by the feature bounds.
     first_column = max(
         0, int(math.floor((bounds.xMinimum() - grid.x_min) / grid.pixel_size))
     )
@@ -351,6 +410,7 @@ def _paint_geometry(terrain, geometry, code, feedback):
             raise QgsProcessingException("Export canceled.")
         y = grid.y_center(row)
         for column in range(first_column, last_column + 1):
+            # Cell-center classification matches the cell-centered raster model.
             point = QgsPointXY(grid.x_center(column), y)
             if geometry.contains(point):
                 terrain.landuse[row][column] = code

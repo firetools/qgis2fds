@@ -4,8 +4,9 @@ import csv
 import math
 import os
 import re
-import struct
 from dataclasses import dataclass
+
+import numpy as np
 
 
 SURFACE_ID = re.compile(
@@ -28,6 +29,8 @@ class SurfaceCatalog:
         self.surfaces = tuple(surfaces)
         self.filepath = filepath
         self._by_code = {surface.code: surface for surface in self.surfaces}
+        # BINGEOM stores 1-based positions in its SURF_ID list, not the original
+        # integer landuse codes found in the raster.
         self._index_by_code = {
             surface.code: index + 1 for index, surface in enumerate(self.surfaces)
         }
@@ -35,6 +38,7 @@ class SurfaceCatalog:
     @classmethod
     def load(cls, filepath):
         if not filepath:
+            # A DEM-only export remains a valid inert terrain case.
             return cls((Surface(0, "INERT"),))
 
         surfaces = []
@@ -79,6 +83,8 @@ class SurfaceCatalog:
 
     @property
     def outside_fire_code(self):
+        # Historical catalogs reserve their final two rows for the fire perimeter
+        # ring and interior. Preserve that convention for existing projects.
         return self.surfaces[-2].code if len(self.surfaces) >= 2 else self.surfaces[0].code
 
     @property
@@ -105,14 +111,10 @@ class SurfaceCatalog:
         )
 
     def unknown_codes(self, terrain):
-        return sorted(
-            {
-                code
-                for row in terrain.landuse
-                for code in row
-                if code not in self._by_code
-            }
-        )
+        # NumPy finds distinct raster classes in compiled code; only the usually
+        # small unique set needs Python dictionary lookups.
+        observed = np.unique(terrain.landuse)
+        return [int(code) for code in observed if int(code) not in self._by_code]
 
 
 @dataclass(frozen=True)
@@ -147,6 +149,7 @@ def read_wind(filepath):
                 if sample.speed < 0.0:
                     raise ValueError("line {} has a negative wind speed".format(line_number))
                 if samples and sample.time < samples[-1].time:
+                    # FDS ramp points must be emitted in chronological order.
                     raise ValueError("wind times must be in ascending order")
                 samples.append(sample)
     except (OSError, UnicodeError, csv.Error, ValueError) as error:
@@ -190,11 +193,15 @@ class MeshLayout:
 def build_mesh_layout(terrain, cell_size, maximum_meshes):
     """Build balanced equal-size meshes, never exceeding maximum_meshes."""
     grid = terrain.grid
+    # Replicated meshes need identical dimensions for FDS MULT, so round each
+    # axis up to a whole number of cells per mesh.
     count_x, count_y = _mesh_factors(grid.width, grid.height, maximum_meshes)
     cells_x = max(1, int(math.ceil(grid.width / (count_x * cell_size))))
     cells_y = max(1, int(math.ceil(grid.height / (count_y * cell_size))))
     mesh_width = cells_x * cell_size
     mesh_height = cells_y * cell_size
+    # Put at least one cell below the lowest terrain point and retain clearance
+    # above the highest point, even though Mode 1 does not solve atmospheric flow.
     z_min = math.floor((terrain.min_elevation - cell_size) / cell_size) * cell_size
     clearance = max(10.0 * cell_size, 0.1 * (terrain.max_elevation - z_min))
     cells_z = max(
@@ -216,47 +223,10 @@ def build_mesh_layout(terrain, cell_size, maximum_meshes):
     )
 
 
-def write_binary_geometry(filepath, terrain, catalog):
-    """Write the unformatted sequential binary file consumed by FDS GEOM."""
-    grid = terrain.grid
-    vertex_count = (grid.columns + 1) * (grid.rows + 1)
-    face_count = 2 * grid.columns * grid.rows
-    temporary = filepath + ".tmp"
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    try:
-        with open(temporary, "wb") as handle:
-            _write_record(handle, "i", (2,), 1)  # FDS terrain geometry type
-            _write_record(
-                handle,
-                "i",
-                (vertex_count, face_count, len(catalog.surfaces), 0),
-                4,
-            )
-            _write_record(
-                handle,
-                "d",
-                _vertices(terrain),
-                3 * vertex_count,
-            )
-            _write_record(handle, "i", _faces(grid), 3 * face_count)
-            _write_record(
-                handle,
-                "i",
-                _face_surfaces(terrain, catalog),
-                face_count,
-            )
-            _write_record(handle, "i", (), 0)
-        os.replace(temporary, filepath)
-    except Exception:
-        try:
-            os.remove(temporary)
-        except OSError:
-            pass
-        raise
-
-
 def terrain_namelists(terrain, catalog, layout, export_obst, binary_filename):
     if not export_obst:
+        # This order must match the 1-based surface indexes written for every
+        # triangle in the companion BINGEOM file.
         surface_ids = ",".join(_quote(fds_id) for fds_id in catalog.fds_ids)
         return (
             "! Terrain: {} vertices, {} triangular faces\n"
@@ -274,6 +244,8 @@ def terrain_namelists(terrain, catalog, layout, export_obst, binary_filename):
     ]
     grid = terrain.grid
     for row in range(grid.rows):
+        # Horizontal coordinates are local to the selected origin; elevations
+        # remain in the vertical datum of the source DEM.
         y0 = grid.y_min + row * grid.pixel_size - grid.origin_y
         y1 = y0 + grid.pixel_size
         for column in range(grid.columns):
@@ -330,6 +302,8 @@ def render_case(
     if free_text:
         free_text = "\n! User-supplied FDS text\n" + free_text + "\n"
 
+    # LEVEL_SET_MODE is deliberately fixed at 1. Changing it would enable wind
+    # field or atmosphere coupling and alter the meaning and cost of these cases.
     return """! Generated by qgis2fds {provenance}
 ! Coordinate system: {crs}
 ! Domain origin: {origin_x:.3f} E, {origin_y:.3f} N
@@ -434,6 +408,8 @@ def _mesh_factors(width, height, maximum):
         for count_y in range(1, maximum // count_x + 1):
             used = count_x * count_y
             mesh_aspect = (width / count_x) / (height / count_y)
+            # Favor nearly square meshes, then favor using more of the allowed
+            # count. The tuple supplies deterministic tie-breaking.
             score = abs(math.log(mesh_aspect)) + 3.0 * (maximum - used) / maximum
             candidate = (score, -used, count_x, count_y)
             if best is None or candidate < best:
@@ -441,64 +417,10 @@ def _mesh_factors(width, height, maximum):
     return best[2], best[3]
 
 
-def _vertices(terrain):
-    grid = terrain.grid
-    for row in range(grid.rows + 1):
-        y = grid.y_min + row * grid.pixel_size - grid.origin_y
-        for column in range(grid.columns + 1):
-            x = grid.x_min + column * grid.pixel_size - grid.origin_x
-            yield x
-            yield y
-            yield terrain.corner_elevation(row, column)
-
-
-def _faces(grid):
-    stride = grid.columns + 1
-    for row in range(grid.rows):
-        for column in range(grid.columns):
-            lower_left = row * stride + column + 1
-            lower_right = lower_left + 1
-            upper_left = lower_left + stride
-            upper_right = upper_left + 1
-            yield lower_left
-            yield lower_right
-            yield upper_left
-            yield upper_right
-            yield upper_left
-            yield lower_right
-
-
-def _face_surfaces(terrain, catalog):
-    for row in terrain.landuse:
-        for code in row:
-            index = catalog.fds_index(code)
-            yield index
-            yield index
-
-
-def _write_record(handle, code, values, count):
-    item_size = struct.calcsize("<" + code)
-    byte_count = count * item_size
-    handle.write(struct.pack("<i", byte_count))
-    chunk = []
-    written = 0
-    for value in values:
-        chunk.append(value)
-        if len(chunk) == 8192:
-            handle.write(struct.pack("<{}{}".format(len(chunk), code), *chunk))
-            written += len(chunk)
-            chunk.clear()
-    if chunk:
-        handle.write(struct.pack("<{}{}".format(len(chunk), code), *chunk))
-        written += len(chunk)
-    if written != count:
-        raise ValueError("Binary record expected {} values, got {}.".format(count, written))
-    handle.write(struct.pack("<i", byte_count))
-
-
 def _wind_namelists(samples):
     if not samples:
         return "&WIND SPEED=0., DIRECTION=0. /"
+    # SPEED=1 makes ramp values physical speeds rather than fractions of a base.
     lines = ["&WIND SPEED=1., RAMP_SPEED_T='q2f_ws', RAMP_DIRECTION_T='q2f_wd' /"]
     for sample in samples:
         lines.append(
@@ -516,4 +438,5 @@ def _wind_namelists(samples):
 
 
 def _quote(value):
+    # FDS follows Fortran escaping: apostrophes are doubled inside string literals.
     return "'{}'".format(str(value).replace("'", "''"))

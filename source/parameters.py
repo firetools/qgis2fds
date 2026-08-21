@@ -30,7 +30,8 @@ class ParameterSpec:
     file_filter: str = "All files (*.*)"
 
 
-# Order intentionally follows the original dialog.
+# Names, defaults, and order are part of the compatibility contract with saved
+# QGIS projects, Processing models, and existing qgis_process command lines.
 SPECS = (
     ParameterSpec("chid", "FDS HEAD CHID (case identifier)", "string", "terrain"),
     ParameterSpec("fds_path", "FDS case folder", "folder", "./FDS"),
@@ -182,6 +183,8 @@ def read_parameters(algorithm, parameters, context, project, feedback):
     """Read typed values and persist them under the historical project keys."""
     values = {}
     for spec in SPECS:
+        # Keep both forms: QGIS supplies the typed value to the exporter, while
+        # the raw value may preserve a relative path or a CRS-qualified point.
         raw = parameters.get(spec.name)
         if spec.kind == "string":
             value = algorithm.parameterAsString(parameters, spec.name, context)
@@ -219,6 +222,8 @@ def read_parameters(algorithm, parameters, context, project, feedback):
 
 
 def _stored_default(project, spec):
+    # QGIS custom properties have separate typed readers; numeric properties use
+    # the double reader even when the Processing parameter itself is integral.
     if spec.kind in ("float", "integer"):
         value, found = project.readDoubleEntry(PROJECT_GROUP, spec.name, spec.default)
         return int(value) if found and spec.kind == "integer" else value
@@ -235,11 +240,15 @@ def _store_value(project, spec, raw, value):
     elif spec.kind == "boolean":
         project.writeEntryBool(PROJECT_GROUP, spec.name, bool(value))
     elif spec.kind in ("raster", "vector"):
+        # Layer IDs are stable within a saved project and are what legacy cases
+        # stored under the qgis2fds property group.
         project.writeEntry(PROJECT_GROUP, spec.name, value.id() if value else "")
     elif spec.kind == "point":
         if value is None:
             stored = ""
         elif isinstance(raw, str):
+            # parameterAsPoint resolves the point, but the raw representation also
+            # carries the input CRS and is the safest value to restore later.
             stored = raw
         else:
             stored = "{:.12g},{:.12g} [{}]".format(

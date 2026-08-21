@@ -13,11 +13,14 @@ class Qgis2FdsPlugin:
         self.provider = None
 
     def initProcessing(self):
+        # QGIS may reach this method through different startup paths; guard
+        # against registering the provider twice.
         if self.provider is None:
             self.provider = FdsProvider()
             QgsApplication.processingRegistry().addProvider(self.provider)
 
     def initGui(self):
+        # The plugin intentionally exposes Processing only, with no toolbar UI.
         self.initProcessing()
 
     def unload(self):

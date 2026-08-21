@@ -9,6 +9,8 @@ class FdsProvider(QgsProcessingProvider):
     """Provide the FDS export algorithm."""
 
     def loadAlgorithms(self):
+        # There is one stable algorithm ID beneath this provider; keeping it here
+        # preserves existing Processing models and qgis_process commands.
         self.addAlgorithm(ExportFdsAlgorithm())
 
     def id(self):

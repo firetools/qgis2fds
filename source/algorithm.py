@@ -11,13 +11,13 @@ from qgis.core import (
     QgsProject,
 )
 
+from .bingeom import write_binary_geometry
 from .fds import (
     CHID,
     SurfaceCatalog,
     build_mesh_layout,
     read_wind,
     render_case,
-    write_binary_geometry,
     write_text,
 )
 from .parameters import add_parameters, read_parameters
@@ -37,8 +37,12 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
         self.addOutput(QgsProcessingOutputFile(self.OUTPUT_FDS, "FDS input file"))
 
     def processAlgorithm(self, parameters, context, model_feedback):
+        # Keep the work split into coarse steps so QGIS can scale child-algorithm
+        # progress (notably GDAL warping) into one progress bar.
         feedback = QgsProcessingMultiStepFeedback(6, model_feedback)
         project = QgsProject.instance()
+        # Reading also persists the values under the historical project keys.
+        # Existing .qgs/.qgz cases therefore keep supplying their saved defaults.
         values = read_parameters(self, parameters, context, project, feedback)
 
         chid = values["chid"].strip()
@@ -56,6 +60,8 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
         output_directory = _resolve_path(values["fds_path"], project)
         os.makedirs(output_directory, exist_ok=True)
         fds_filepath = os.path.join(output_directory, chid + ".fds")
+        # Auxiliary files are referenced by basename in the FDS input, making the
+        # whole case directory portable after it has been generated.
         binary_filename = chid + "_terrain.bingeom"
         binary_filepath = os.path.join(output_directory, binary_filename)
         texture_filename = chid + "_tex.png"
@@ -170,8 +176,10 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
             )
             write_text(fds_filepath, case)
         except QgsProcessingException:
+            # Preserve actionable QGIS errors raised by spatial operations.
             raise
         except (OSError, UnicodeError, ValueError) as error:
+            # Present parser and filesystem failures consistently in Processing.
             raise QgsProcessingException(str(error))
 
         feedback.setCurrentStep(6)
@@ -202,6 +210,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
 
 
 def _resolve_path(path, project):
+    # QGIS projects commonly store portable relative paths with either slash style.
     normalized = os.path.normpath(str(path).replace("\\", os.sep))
     if os.path.isabs(normalized):
         return normalized
