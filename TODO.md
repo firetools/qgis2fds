@@ -1,6 +1,11 @@
 - wiki documentation: document the algorithm, rewrite the quickstart
 - put the examples in a separate verification or examples directory
 - new devc layer
+- new github actions
+- Inspect 139 error in qgis
+- release and upload new plugin
+- import data from fds case with fdsreader
+- create fdswriter
 
 - tests:
 Measured line coverage from the six in-process unit tests:
