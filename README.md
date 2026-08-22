@@ -59,6 +59,16 @@ reference rebuild command are kept together in `dev/tests/integration/`.
 The `qgis_process` command is explicit in `dev/pytest.ini`; change that setting
 when testing against a native QGIS installation or a different Flatpak setup.
 
+Build the versioned ZIP for manual upload to the
+[QGIS plugin repository](https://plugins.qgis.org/):
+
+```sh
+python3 dev/build/build_plugin.py
+```
+
+The package is written to `dev/build/`. Uploading is never performed by the
+build script.
+
 ## Temporary reminder
 
 ~/.var/app/org.qgis.qgis/data/QGIS/QGIS4/profiles/default/python/plugins/qgis2fds
