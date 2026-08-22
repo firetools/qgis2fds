@@ -33,13 +33,13 @@ class ParameterSpec:
 # Names, defaults, and order are part of the compatibility contract with saved
 # QGIS projects, Processing models, and existing qgis_process command lines.
 SPECS = (
-    ParameterSpec("chid", "FDS HEAD CHID (case identifier)", "string", "terrain"),
+    ParameterSpec("chid", "FDS case identifier (CHID)", "string", "terrain"),
     ParameterSpec("fds_path", "FDS case folder", "folder", "./FDS"),
-    ParameterSpec("extent_layer", "Domain extent layer", "vector"),
+    ParameterSpec("extent_layer", "Terrain extent layer", "vector"),
     ParameterSpec("pixel_size", "Terrain resolution (m)", "float", 10.0, minimum=0.01),
     ParameterSpec(
         "origin",
-        "Domain origin (defaults to extent centroid)",
+        "FDS domain origin (defaults to extent centroid)",
         "point",
         optional=True,
         advanced=True,
@@ -105,7 +105,7 @@ SPECS = (
     ),
     ParameterSpec(
         "export_obst",
-        "Export terrain as FDS OBST namelists (otherwise GEOM)",
+        "Export terrain as FDS OBST namelists",
         "boolean",
         False,
         advanced=True,
