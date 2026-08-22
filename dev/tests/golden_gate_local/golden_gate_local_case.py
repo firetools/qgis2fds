@@ -4,6 +4,13 @@ from pathlib import Path
 
 
 CASE_DIRECTORY = Path(__file__).resolve().parent
+QGIS_DIRECTORY = (
+    CASE_DIRECTORY.parents[2]
+    / "assets"
+    / "cases"
+    / "golden_gate_local"
+    / "QGIS"
+)
 
 # Exercise the saved project resolution, a coarser GEOM export, and explicit
 # OBST terrain cells. Every row uses the local DEM, land use, ignition, and wind
@@ -52,7 +59,7 @@ CASES = (
 
 SUITE = {
     "name": "golden_gate_local",
-    "project_file": CASE_DIRECTORY / "QGIS" / "golden_gate.qgs",
+    "project_file": QGIS_DIRECTORY / "golden_gate.qgs",
     "reference_file": CASE_DIRECTORY / "golden_gate_local_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7019",
@@ -60,14 +67,9 @@ SUITE = {
         "extent_layer": "Extent_0642b0c8_932e_418f_9e94_a1a555ee0f05",
         "dem_layer": "US_DEM2016_local_ec8fe444_644d_4f3a_a065_e211b15dbea3",
         "landuse_layer": "US_200F13_20_local_2c3fbb52_c886_43b9_a912_89e08e7884b3",
-        "landuse_type_filepath": (
-            CASE_DIRECTORY
-            / "QGIS"
-            / "sheets"
-            / "Landfire F13 landuse type.csv"
-        ),
+        "landuse_type_filepath": "./sheets/Landfire F13 landuse type.csv",
         "fire_layer": "Fire_b0dc7bbb_6702_4e71_9afe_8048e4f66b7c",
-        "wind_filepath": CASE_DIRECTORY / "QGIS" / "sheets" / "wind.csv",
+        "wind_filepath": "./sheets/wind.csv",
     },
     "cases": CASES,
 }

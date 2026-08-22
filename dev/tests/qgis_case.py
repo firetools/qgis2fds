@@ -29,9 +29,10 @@ def compare_with_reference(suite, case):
         prefix=".qgis2fds-test-{}-".format(suite["name"]),
         dir=REPOSITORY_DIRECTORY,
     ) as temporary:
-        output_directory = Path(temporary) / case["name"]
-        output_directory.mkdir()
-        run_export(suite, case, output_directory)
+        project_file, output_directory = _prepare_case_copy(
+            suite, Path(temporary), case["name"]
+        )
+        run_export(suite, case, project_file, output_directory)
         return result_signature(case, output_directory), references[case["name"]]
 
 
@@ -45,9 +46,10 @@ def rebuild_references(suite):
         root = Path(temporary)
         for case in suite["cases"]:
             print("Rebuilding {}...".format(case["name"]), flush=True)
-            output_directory = root / case["name"]
-            output_directory.mkdir()
-            run_export(suite, case, output_directory)
+            project_file, output_directory = _prepare_case_copy(
+                suite, root, case["name"]
+            )
+            run_export(suite, case, project_file, output_directory)
             references[case["name"]] = result_signature(case, output_directory)
 
     content = json.dumps(references, indent=2, sort_keys=True) + "\n"
@@ -55,11 +57,27 @@ def rebuild_references(suite):
     print("Wrote {}".format(suite["reference_file"]))
 
 
-def run_export(suite, case, output_directory):
+def _prepare_case_copy(suite, root, case_name):
+    """Copy one QGIS case so an integration run cannot modify its source."""
+    source_project = Path(suite["project_file"])
+    workspace = root / case_name
+    qgis_directory = workspace / "QGIS"
+    shutil.copytree(source_project.parent, qgis_directory)
+    project_file = qgis_directory / source_project.name
+    if not project_file.is_file():
+        raise FileNotFoundError(
+            "Copied QGIS project is missing: {}".format(project_file)
+        )
+    output_directory = workspace / "output"
+    output_directory.mkdir()
+    return project_file, output_directory
+
+
+def run_export(suite, case, project_file, output_directory):
     """Run one table row through the installed qgis2fds provider."""
     command = _qgis_process_command()
     parameters = {
-        "project_path": suite["project_file"],
+        "project_path": project_file,
         "distance_units": "meters",
         "area_units": "m2",
         "chid": case["chid"],
@@ -76,7 +94,7 @@ def run_export(suite, case, output_directory):
 
     completed = subprocess.run(
         command,
-        cwd=suite["project_file"].parent,
+        cwd=project_file.parent,
         capture_output=True,
         text=True,
         timeout=300,
