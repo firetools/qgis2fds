@@ -46,6 +46,9 @@ The integration tests additionally require:
 - internet access for the `golden_gate_remote` test, which downloads its DEM
   and land-use coverage from remote WCS services.
 
+FDS is optional. It is required only when `run_fds = true` in
+`dev/pytest.ini`. The configured FDS integration currently targets FDS 6.11.1.
+
 The reference environment uses the QGIS Flatpak application:
 
 ```sh
@@ -71,7 +74,9 @@ flatpak run --command=qgis_process org.qgis.qgis plugins list
 The list must contain qgis2fds. If it does not, check the profile path, the
 symbolic link, and whether the plugin is enabled in that profile.
 
-## Configure qgis_process
+## Configure external executables
+
+### QGIS Processing
 
 The QGIS process is read from the
 `qgis_process` setting in `dev/pytest.ini` and executed exactly as
@@ -106,11 +111,43 @@ reports the integration tests as skipped with the reason shown in its summary.
 If the executable starts but QGIS or the plugin is misconfigured, the
 integration tests fail and include the captured standard output and error.
 
+### FDS
+
+The FDS executable and its optional execution flag are also explicit in
+`dev/pytest.ini`:
+
+```ini
+fds = /var/home/egissi/.local/opt/FDS/FDS6/bin/fds
+run_fds = false
+```
+
+Change `fds` to the absolute path of the FDS installation being tested. Confirm
+the selected version independently, for example:
+
+```sh
+/path/to/fds -v
+```
+
+FDS validation is disabled by default because initialization of the terrain
+and meshes can take minutes even for a short simulation. Enable it explicitly:
+
+```ini
+run_fds = true
+```
+
+When enabled, every integration parameter row is exported with
+`t_end = t_begin + 1` second and the resulting `.fds` file is executed from its
+temporary output directory. A case passes FDS validation only when the process
+returns exit status zero and no line beginning with `ERROR` appears in FDS
+standard output, standard error, or the generated `.out` file. FDS warnings do
+not fail the test. Each FDS process has a five-minute timeout.
+
 ## Run tests
 
 ### Complete test suite
 
 By default pytest runs both the fast unit tests and the QGIS integration tests.
+Optional FDS execution follows the `run_fds` setting described above.
 Run it from `dev/` so `pytest.ini` and its relative test paths are applied
 directly:
 
@@ -146,7 +183,7 @@ pytest -c dev/pytest.ini dev/tests/integration
 The integration suite loads the QGIS projects stored in `assets/cases/`, runs
 the installed `NIST FDS:Export FDS case` Processing algorithm, and compares
 stable signatures of the generated files with the JSON references in
-`dev/tests/integration/`.
+`dev/tests/integration/`. If enabled, FDS then validates every generated case.
 
 Each parameter row operates on a fresh temporary copy of its complete QGIS
 case. The copy is created below the repository root because the Flatpak has a
@@ -187,7 +224,7 @@ dev/tests/integration/rebuild_references.py --all
 The script uses the same temporary-case mechanism and the same `qgis_process`
 setting as pytest. It replaces the selected JSON reference manifests in
 `dev/tests/integration/`; review their version-control diff before accepting
-the new references.
+the new references. Reference rebuilding exports cases but does not run FDS.
 
 ## Build the QGIS plugin package
 
@@ -259,6 +296,10 @@ repository website at https://plugins.qgis.org/
   `qgis_process` value in `dev/pytest.ini`.
 - `Algorithm NIST FDS:Export FDS case not found`: install or enable qgis2fds in
   the profile used by the configured QGIS command.
+- `Configured fds executable is unavailable`: correct the `fds` path or set
+  `run_fds = false` in `dev/pytest.ini`.
+- FDS validation failure: inspect the reported FDS errors and the generated
+  case diagnostics. The test preserves stdout and stderr in its failure report.
 - Remote Golden Gate failures: verify network access and availability of the
   configured WCS services.
 - Reference mismatch: inspect the generated-output change before rebuilding

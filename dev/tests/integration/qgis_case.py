@@ -4,6 +4,7 @@ import configparser
 import hashlib
 import json
 from pathlib import Path
+import re
 import shlex
 import shutil
 import struct
@@ -17,7 +18,11 @@ PYTEST_CONFIGURATION_FILE = TESTS_DIRECTORY.parents[1] / "pytest.ini"
 
 
 class QgisProcessUnavailable(RuntimeError):
-    """Raised when no QGIS Processing command can be found."""
+    """Raised when the configured QGIS Processing command is unavailable."""
+
+
+class FdsUnavailable(RuntimeError):
+    """Raised when the configured FDS command is unavailable."""
 
 
 def compare_with_reference(suite, case):
@@ -34,7 +39,10 @@ def compare_with_reference(suite, case):
             suite, Path(temporary), case["name"]
         )
         run_export(suite, case, project_file, output_directory)
-        return result_signature(case, output_directory), references[case["name"]]
+        actual = result_signature(case, output_directory)
+        if _fds_validation_enabled():
+            run_fds(case, output_directory)
+        return actual, references[case["name"]]
 
 
 def rebuild_references(suite):
@@ -121,6 +129,51 @@ def run_export(suite, case, project_file, output_directory):
     )
 
 
+def run_fds(case, output_directory):
+    """Run FDS and reject its exit status or any reported error."""
+    command = _configured_fds_command()
+    input_file = output_directory / (case["chid"] + ".fds")
+    command.append(input_file.name)
+    completed = subprocess.run(
+        command,
+        cwd=output_directory,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+
+    output_file = output_directory / (case["chid"] + ".out")
+    report = "\n".join(
+        (
+            completed.stdout,
+            completed.stderr,
+            (
+                output_file.read_text(encoding="utf-8", errors="replace")
+                if output_file.is_file()
+                else ""
+            ),
+        )
+    )
+    errors = [
+        line.strip()
+        for line in report.splitlines()
+        if re.match(r"^\s*ERROR\b", line, flags=re.IGNORECASE)
+    ]
+    if completed.returncode == 0 and not errors:
+        return
+
+    raise RuntimeError(
+        "FDS validation failed with exit code {}\n"
+        "Reported errors:\n{}\nSTDOUT:\n{}\nSTDERR:\n{}".format(
+            completed.returncode,
+            "\n".join(errors) if errors else "none",
+            completed.stdout,
+            completed.stderr,
+        )
+    )
+
+
 def result_signature(case, output_directory):
     """Summarize generated files into stable, reviewable reference values."""
     chid = case["chid"]
@@ -146,26 +199,53 @@ def result_signature(case, output_directory):
 
 def _configured_qgis_process_command():
     """Read the explicit QGIS Processing command from pytest.ini."""
+    return _configured_command("qgis_process", QgisProcessUnavailable)
+
+
+def _configured_fds_command():
+    """Read the explicit FDS command from pytest.ini."""
+    return _configured_command("fds", FdsUnavailable)
+
+
+def _fds_validation_enabled():
+    """Return whether pytest.ini enables the optional FDS execution."""
     configuration = configparser.ConfigParser(interpolation=None)
     if not configuration.read(PYTEST_CONFIGURATION_FILE, encoding="utf-8"):
-        raise QgisProcessUnavailable(
+        raise FdsUnavailable(
+            "Pytest configuration is missing: {}".format(
+                PYTEST_CONFIGURATION_FILE
+            )
+        )
+    try:
+        return configuration.getboolean("pytest", "run_fds", fallback=False)
+    except ValueError as error:
+        raise FdsUnavailable(
+            "run_fds in {} must be true or false".format(
+                PYTEST_CONFIGURATION_FILE
+            )
+        ) from error
+
+
+def _configured_command(setting, unavailable_error):
+    """Read and validate one external command from pytest.ini."""
+    configuration = configparser.ConfigParser(interpolation=None)
+    if not configuration.read(PYTEST_CONFIGURATION_FILE, encoding="utf-8"):
+        raise unavailable_error(
             "Pytest configuration is missing: {}".format(
                 PYTEST_CONFIGURATION_FILE
             )
         )
 
-    configured = configuration.get(
-        "pytest", "qgis_process", fallback=""
-    ).strip()
+    configured = configuration.get("pytest", setting, fallback="").strip()
     command = shlex.split(configured)
     if not command:
-        raise QgisProcessUnavailable(
-            "Set qgis_process in {}".format(PYTEST_CONFIGURATION_FILE)
+        raise unavailable_error(
+            "Set {} in {}".format(setting, PYTEST_CONFIGURATION_FILE)
         )
     if shutil.which(command[0]) is None:
-        raise QgisProcessUnavailable(
-            "Configured qgis_process executable is unavailable: {}".format(
-                command[0]
+        raise unavailable_error(
+            "Configured {} executable is unavailable: {}".format(
+                setting, command[0]
             )
         )
     return command

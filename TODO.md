@@ -5,17 +5,7 @@
 - release and upload new plugin
 - import data from fds case with fdsreader
 - create fdswriter
-
-- tests:
-Measured line coverage from the six in-process unit tests:
-Module	Coverage
-bingeom.py	89.2%
-model.py	86.2%
-fds.py	55.1%
-Combined measured source	63.6%
-
-
-The 11 QGIS integration cases exercise algorithm.py, parameters.py, spatial.py, remote.py, GEOM, OBST, texture rendering, and WCS downloads, but their line coverage is not measured.
+- add unit tests
 Largest unit-test gaps:
 Surface catalog CSV loading and validation.
 OBST edge-cell generation.

@@ -2,7 +2,11 @@
 
 import pytest
 
-from qgis_case import QgisProcessUnavailable, compare_with_reference
+from qgis_case import (
+    FdsUnavailable,
+    QgisProcessUnavailable,
+    compare_with_reference,
+)
 from qgis_suites import QGIS_CASE_IDS, QGIS_CASES
 
 
@@ -11,7 +15,7 @@ from qgis_suites import QGIS_CASE_IDS, QGIS_CASES
 def test_qgis_export_matches_reference(suite, case):
     try:
         actual, expected = compare_with_reference(suite, case)
-    except QgisProcessUnavailable as error:
+    except (FdsUnavailable, QgisProcessUnavailable) as error:
         pytest.skip(str(error))
 
     assert actual == expected

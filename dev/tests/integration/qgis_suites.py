@@ -27,3 +27,12 @@ QGIS_CASE_IDS = tuple(
 
 if len(SUITES_BY_NAME) != len(SUITES):
     raise RuntimeError("QGIS integration suite names must be unique.")
+
+for suite, case in QGIS_CASES:
+    settings = case["settings"]
+    if settings["t_end"] != settings["t_begin"] + 1.0:
+        raise RuntimeError(
+            "Integration case {}-{} must run for exactly one second.".format(
+                suite["name"], case["name"]
+            )
+        )

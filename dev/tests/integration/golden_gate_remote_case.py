@@ -24,7 +24,7 @@ CASES = (
             "nmesh": 4,
             "cell_size": 10.0,
             "t_begin": 0.0,
-            "t_end": 30.0,
+            "t_end": 1.0,
             "export_obst": False,
         },
     },
