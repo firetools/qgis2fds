@@ -1,8 +1,8 @@
 """Shared end-to-end QGIS project regression-test support."""
 
+import configparser
 import hashlib
 import json
-import os
 from pathlib import Path
 import shlex
 import shutil
@@ -12,7 +12,8 @@ import tempfile
 
 
 TESTS_DIRECTORY = Path(__file__).resolve().parent
-REPOSITORY_DIRECTORY = TESTS_DIRECTORY.parents[1]
+REPOSITORY_DIRECTORY = TESTS_DIRECTORY.parents[2]
+PYTEST_CONFIGURATION_FILE = TESTS_DIRECTORY.parents[1] / "pytest.ini"
 
 
 class QgisProcessUnavailable(RuntimeError):
@@ -75,7 +76,7 @@ def _prepare_case_copy(suite, root, case_name):
 
 def run_export(suite, case, project_file, output_directory):
     """Run one table row through the installed qgis2fds provider."""
-    command = _qgis_process_command()
+    command = _configured_qgis_process_command()
     parameters = {
         "project_path": project_file,
         "distance_units": "meters",
@@ -143,21 +144,31 @@ def result_signature(case, output_directory):
     }
 
 
-def _qgis_process_command():
-    configured = os.environ.get("QGIS_PROCESS")
-    if configured:
-        return shlex.split(configured)
+def _configured_qgis_process_command():
+    """Read the explicit QGIS Processing command from pytest.ini."""
+    configuration = configparser.ConfigParser(interpolation=None)
+    if not configuration.read(PYTEST_CONFIGURATION_FILE, encoding="utf-8"):
+        raise QgisProcessUnavailable(
+            "Pytest configuration is missing: {}".format(
+                PYTEST_CONFIGURATION_FILE
+            )
+        )
 
-    executable = shutil.which("qgis_process")
-    if executable:
-        return [executable]
-
-    if shutil.which("flatpak"):
-        return ["flatpak", "run", "--command=qgis_process", "org.qgis.qgis"]
-
-    raise QgisProcessUnavailable(
-        "qgis_process is unavailable; set QGIS_PROCESS to its command"
-    )
+    configured = configuration.get(
+        "pytest", "qgis_process", fallback=""
+    ).strip()
+    command = shlex.split(configured)
+    if not command:
+        raise QgisProcessUnavailable(
+            "Set qgis_process in {}".format(PYTEST_CONFIGURATION_FILE)
+        )
+    if shutil.which(command[0]) is None:
+        raise QgisProcessUnavailable(
+            "Configured qgis_process executable is unavailable: {}".format(
+                command[0]
+            )
+        )
+    return command
 
 
 def _normalize_fds(content):

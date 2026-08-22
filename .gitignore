@@ -15,35 +15,5 @@ __pycache__/
 *_downloaded.tif
 *_qgis2fds_local_*.tif
 
-# Tests
-!dev/pytest.ini
-
 # FDS calculations
 FDS
-*.s3d
-*.s3d.sz
-*_cpu.csv
-*_git.txt
-*_hrr.csv
-*_steps.csv
-*_devc.csv
-*.binfo
-*.end
-*.out
-*.sinfo
-*.smv
-*.ge
-*.ge2
-*.ter
-*.ini
-*.bingeom
-*.sf
-*.sf.bnd
-*.be
-*.be.bnd
-*.bf
-*.bf.bnd
-*.gbf
-*.fds
-*.gsf
-*.gcf

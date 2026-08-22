@@ -33,6 +33,32 @@ Mode 1 applies the global wind uniformly and runs empirical surface fire
 propagation without terrain-modified flow, active heat release, or a fluid
 solve.
 
+## Tests
+
+Run all tests from the `dev` directory by default:
+
+```sh
+cd dev
+pytest
+```
+
+Run the fast unit tests independently:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/unit
+```
+
+Run the QGIS integration tests independently:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/integration
+```
+
+Integration case tables, reference manifests, shared support code, and the
+reference rebuild command are kept together in `dev/tests/integration/`.
+The `qgis_process` command is explicit in `dev/pytest.ini`; change that setting
+when testing against a native QGIS installation or a different Flatpak setup.
+
 ## Temporary reminder
 
 ~/.var/app/org.qgis.qgis/data/QGIS/QGIS4/profiles/default/python/plugins/qgis2fds

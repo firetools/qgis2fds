@@ -1,10 +1,10 @@
 """Registry of QGIS integration suites and their parameter rows."""
 
-from cern_meyrin.cern_meyrin_case import SUITE as CERN_MEYRIN
-from chimney_tops_2.chimney_tops_2_case import SUITE as CHIMNEY_TOPS_2
-from golden_gate_local.golden_gate_local_case import SUITE as GOLDEN_GATE_LOCAL
-from golden_gate_remote.golden_gate_remote_case import SUITE as GOLDEN_GATE_REMOTE
-from level_set_demo.level_set_demo_case import SUITE as LEVEL_SET_DEMO
+from cern_meyrin_case import SUITE as CERN_MEYRIN
+from chimney_tops_2_case import SUITE as CHIMNEY_TOPS_2
+from golden_gate_local_case import SUITE as GOLDEN_GATE_LOCAL
+from golden_gate_remote_case import SUITE as GOLDEN_GATE_REMOTE
+from level_set_demo_case import SUITE as LEVEL_SET_DEMO
 
 
 SUITES = (
