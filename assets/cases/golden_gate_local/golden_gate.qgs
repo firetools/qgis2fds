@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis projectname="" saveDateTime="2026-08-21T14:54:10" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.0-Belém do Pará">
+<qgis projectname="" saveDateTime="2026-08-23T17:13:16" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.1-Belém do Pará">
   <homePath path=""/>
   <title></title>
   <transaction mode="Disabled"/>
@@ -1255,7 +1255,7 @@ def my_form_open(dialog, layer, feature):
                 <Option name="type" type="QString" value="collection"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleLine" enabled="1" id="{71e353d0-2fa8-4eb4-9985-4b740ae92598}" locked="0" pass="0">
+            <layer class="SimpleLine" enabled="1" id="{4e2b085b-020c-4283-8062-cf58648d3409}" locked="0" pass="0">
               <Option type="Map">
                 <Option name="align_dash_pattern" type="QString" value="0"/>
                 <Option name="capstyle" type="QString" value="square"/>
@@ -1267,7 +1267,7 @@ def my_form_open(dialog, layer, feature):
                 <Option name="dash_pattern_offset_unit" type="QString" value="MM"/>
                 <Option name="draw_inside_polygon" type="QString" value="0"/>
                 <Option name="joinstyle" type="QString" value="bevel"/>
-                <Option name="line_color" type="QString" value="225,89,137,255,rgb:0.8823529,0.3490196,0.5372549,1"/>
+                <Option name="line_color" type="QString" value="183,72,75,255,rgb:0.7176471,0.282353,0.2941177,1"/>
                 <Option name="line_style" type="QString" value="solid"/>
                 <Option name="line_width" type="QString" value="0.6"/>
                 <Option name="line_width_unit" type="QString" value="MM"/>
@@ -1304,10 +1304,10 @@ def my_form_open(dialog, layer, feature):
                 <Option name="type" type="QString" value="collection"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleFill" enabled="1" id="{bb75ef72-694d-4d80-8275-8def93a032f2}" locked="0" pass="0">
+            <layer class="SimpleFill" enabled="1" id="{b1d89a40-3f22-4977-850b-b8277ceaa4c5}" locked="0" pass="0">
               <Option type="Map">
                 <Option name="border_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-                <Option name="color" type="QString" value="225,89,137,255,rgb:0.8823529,0.3490196,0.5372549,1"/>
+                <Option name="color" type="QString" value="183,72,75,255,rgb:0.7176471,0.282353,0.2941177,1"/>
                 <Option name="joinstyle" type="QString" value="bevel"/>
                 <Option name="offset" type="QString" value="0,0"/>
                 <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
@@ -1347,7 +1347,7 @@ def my_form_open(dialog, layer, feature):
       </pipe-data-defined-properties>
       <pipe>
         <provider>
-          <resampling enabled="false" maxOversampling="2" zoomedInResamplingMethod="bilinear" zoomedOutResamplingMethod="nearestNeighbour"/>
+          <resampling enabled="false" maxOversampling="1" zoomedInResamplingMethod="nearestNeighbour" zoomedOutResamplingMethod="nearestNeighbour"/>
         </provider>
         <rasterrenderer alphaBand="-1" band="1" nodataColor="" opacity="1" type="paletted">
           <rasterTransparency/>
@@ -1375,7 +1375,7 @@ def my_form_open(dialog, layer, feature):
             <paletteEntry alpha="255" color="#a3b1f3" label="FBFM12" value="12"/>
             <paletteEntry alpha="255" color="#ba7750" label="Urban" value="91"/>
             <paletteEntry alpha="255" color="#eaeaea" label="Snow/Ice" value="92"/>
-            <paletteEntry alpha="255" color="#fdf2f2" label="Agriculture" value="93"/>
+            <paletteEntry alpha="255" color="#fdf2f2" label="Agricolture" value="93"/>
             <paletteEntry alpha="255" color="#89b7dd" label="Water" value="98"/>
             <paletteEntry alpha="255" color="#85999c" label="Barren" value="99"/>
           </colorPalette>
@@ -1393,7 +1393,7 @@ def my_form_open(dialog, layer, feature):
         </rasterrenderer>
         <brightnesscontrast brightness="0" contrast="0" gamma="1"/>
         <huesaturation colorizeBlue="128" colorizeGreen="128" colorizeOn="0" colorizeRed="255" colorizeStrength="100" grayscaleMode="0" invertColors="0" saturation="0"/>
-        <rasterresampler maxOversampling="2" zoomedInResampler="bilinear"/>
+        <rasterresampler maxOversampling="1"/>
         <resamplingStage>resamplingFilter</resamplingStage>
       </pipe>
       <blendMode>6</blendMode>
@@ -1481,7 +1481,7 @@ def my_form_open(dialog, layer, feature):
       <flags>
         <Identifiable>1</Identifiable>
         <Removable>1</Removable>
-        <Searchable>0</Searchable>
+        <Searchable>1</Searchable>
         <Private>0</Private>
       </flags>
       <temporal bandNumber="1" enabled="0" fetchMode="0" mode="0">
@@ -1507,7 +1507,7 @@ def my_form_open(dialog, layer, feature):
                 <Option name="type" type="QString" value="collection"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleLine" enabled="1" id="{6b36fc30-4227-412c-9943-c133089e1f4e}" locked="0" pass="0">
+            <layer class="SimpleLine" enabled="1" id="{abac887f-1cca-483b-a066-376859f5a0f4}" locked="0" pass="0">
               <Option type="Map">
                 <Option name="align_dash_pattern" type="QString" value="0"/>
                 <Option name="capstyle" type="QString" value="square"/>
@@ -1519,7 +1519,7 @@ def my_form_open(dialog, layer, feature):
                 <Option name="dash_pattern_offset_unit" type="QString" value="MM"/>
                 <Option name="draw_inside_polygon" type="QString" value="0"/>
                 <Option name="joinstyle" type="QString" value="bevel"/>
-                <Option name="line_color" type="QString" value="190,207,80,255,rgb:0.7450981,0.8117647,0.3137255,1"/>
+                <Option name="line_color" type="QString" value="213,180,60,255,rgb:0.8352941,0.7058824,0.2352941,1"/>
                 <Option name="line_style" type="QString" value="solid"/>
                 <Option name="line_width" type="QString" value="0.6"/>
                 <Option name="line_width_unit" type="QString" value="MM"/>
@@ -1556,10 +1556,10 @@ def my_form_open(dialog, layer, feature):
                 <Option name="type" type="QString" value="collection"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleFill" enabled="1" id="{50d7ea99-3aaa-4c00-bbec-1b66b160d1ee}" locked="0" pass="0">
+            <layer class="SimpleFill" enabled="1" id="{5e743111-83fe-4260-bbda-bf9f88fe4948}" locked="0" pass="0">
               <Option type="Map">
                 <Option name="border_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
-                <Option name="color" type="QString" value="190,207,80,255,rgb:0.7450981,0.8117647,0.3137255,1"/>
+                <Option name="color" type="QString" value="213,180,60,255,rgb:0.8352941,0.7058824,0.2352941,1"/>
                 <Option name="joinstyle" type="QString" value="bevel"/>
                 <Option name="offset" type="QString" value="0,0"/>
                 <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
@@ -1583,9 +1583,9 @@ def my_form_open(dialog, layer, feature):
       </elevation>
       <customproperties>
         <Option type="Map">
-          <Option name="WMSBackgroundLayer" type="QString" value="false"/>
-          <Option name="WMSPublishDataSourceUrl" type="QString" value="false"/>
-          <Option name="embeddedWidgets/count" type="QString" value="0"/>
+          <Option name="WMSBackgroundLayer" type="bool" value="false"/>
+          <Option name="WMSPublishDataSourceUrl" type="bool" value="false"/>
+          <Option name="embeddedWidgets/count" type="int" value="0"/>
           <Option name="identify/format" type="QString" value="Value"/>
         </Option>
       </customproperties>
@@ -2064,7 +2064,7 @@ def my_form_open(dialog, layer, feature):
   <Sensors/>
   <ProjectViewSettings UseProjectScales="0" rotation="0">
     <Scales/>
-    <DefaultViewExtent xmax="-2278553.66650766367092729" xmin="-2280822.39294410264119506" ymax="1964411.49595921020954847" ymin="1962579.15579800587147474">
+    <DefaultViewExtent xmax="-2278699.53042839141562581" xmin="-2280676.52902337489649653" ymax="1964411.49595921020954847" ymin="1962579.15579800587147474">
       <spatialrefsys nativeFormat="Wkt">
         <wkt>PROJCRS["NAD83 / Conus Albers",BASEGEOGCRS["NAD83",DATUM["North American Datum 1983",ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4269]],CONVERSION["Conus Albers",METHOD["Albers Equal Area",ID["EPSG",9822]],PARAMETER["Latitude of false origin",23,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8821]],PARAMETER["Longitude of false origin",-96,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8822]],PARAMETER["Latitude of 1st standard parallel",29.5,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8823]],PARAMETER["Latitude of 2nd standard parallel",45.5,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8824]],PARAMETER["Easting at false origin",0,LENGTHUNIT["metre",1],ID["EPSG",8826]],PARAMETER["Northing at false origin",0,LENGTHUNIT["metre",1],ID["EPSG",8827]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Data analysis and small scale data presentation for contiguous lower 48 states."],AREA["United States (USA) - CONUS onshore - Alabama; Arizona; Arkansas; California; Colorado; Connecticut; Delaware; Florida; Georgia; Idaho; Illinois; Indiana; Iowa; Kansas; Kentucky; Louisiana; Maine; Maryland; Massachusetts; Michigan; Minnesota; Mississippi; Missouri; Montana; Nebraska; Nevada; New Hampshire; New Jersey; New Mexico; New York; North Carolina; North Dakota; Ohio; Oklahoma; Oregon; Pennsylvania; Rhode Island; South Carolina; South Dakota; Tennessee; Texas; Utah; Vermont; Virginia; Washington; West Virginia; Wisconsin; Wyoming."],BBOX[24.41,-124.79,49.38,-66.91]],ID["EPSG",5070]]</wkt>
         <proj4>+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs</proj4>
@@ -2129,7 +2129,7 @@ def my_form_open(dialog, layer, feature):
       </spatialrefsys>
     </CoordinateCustomCrs>
   </ProjectDisplaySettings>
-  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Fire_b0dc7bbb_6702_4e71_9afe_8048e4f66b7c" destinationLayerName="Fire" destinationLayerProvider="ogr" destinationLayerSource="./layers/Fire.gpkg|layername=Fire">
+  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Fire_b0dc7bbb_6702_4e71_9afe_8048e4f66b7c" destinationLayerName="Fire" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/assets/cases/golden_gate_local/layers/Fire.gpkg|layername=Fire">
     <timeStampFields/>
   </ProjectGpsSettings>
 </qgis>
