@@ -1917,7 +1917,7 @@ def my_form_open(dialog, layer, feature):
       <properties name="dem_layer" type="QString">_5294a749_25fa_4861_990a_283ddf87dccd</properties>
       <properties name="export_obst" type="bool">false</properties>
       <properties name="extent_layer" type="QString">Extent_0642b0c8_932e_418f_9e94_a1a555ee0f05</properties>
-      <properties name="fds_path" type="QString">../FDS</properties>
+      <properties name="fds_path" type="QString">./FDS</properties>
       <properties name="fire_layer" type="QString">Fire_b0dc7bbb_6702_4e71_9afe_8048e4f66b7c</properties>
       <properties name="landuse_layer" type="QString">_f805e8d6_196e_4707_83da_e16f9fbf0e9e</properties>
       <properties name="landuse_type_filepath" type="QString">./sheets/Landfire F13 landuse type.csv</properties>

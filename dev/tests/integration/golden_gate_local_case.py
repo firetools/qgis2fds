@@ -4,12 +4,11 @@ from pathlib import Path
 
 
 CASE_DIRECTORY = Path(__file__).resolve().parent
-QGIS_DIRECTORY = (
+CASE_ASSETS_DIRECTORY = (
     CASE_DIRECTORY.parents[2]
     / "assets"
     / "cases"
     / "golden_gate_local"
-    / "QGIS"
 )
 
 # Exercise the saved project resolution, a coarser GEOM export, and explicit
@@ -59,7 +58,7 @@ CASES = (
 
 SUITE = {
     "name": "golden_gate_local",
-    "project_file": QGIS_DIRECTORY / "golden_gate.qgs",
+    "project_file": CASE_ASSETS_DIRECTORY / "golden_gate.qgs",
     "reference_file": CASE_DIRECTORY / "golden_gate_local_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7019",

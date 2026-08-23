@@ -4,12 +4,11 @@ from pathlib import Path
 
 
 CASE_DIRECTORY = Path(__file__).resolve().parent
-QGIS_DIRECTORY = (
+CASE_ASSETS_DIRECTORY = (
     CASE_DIRECTORY.parents[2]
     / "assets"
     / "cases"
     / "golden_gate_remote"
-    / "QGIS"
 )
 
 # One row is sufficient here: the purpose of this network-backed suite is to
@@ -32,7 +31,7 @@ CASES = (
 
 SUITE = {
     "name": "golden_gate_remote",
-    "project_file": QGIS_DIRECTORY / "golden_gate_remote.qgs",
+    "project_file": CASE_ASSETS_DIRECTORY / "golden_gate_remote.qgs",
     "reference_file": CASE_DIRECTORY / "golden_gate_remote_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7019",

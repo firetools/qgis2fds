@@ -70,9 +70,8 @@ def _prepare_case_copy(suite, root, case_name):
     """Copy one QGIS case so an integration run cannot modify its source."""
     source_project = Path(suite["project_file"])
     workspace = root / case_name
-    qgis_directory = workspace / "QGIS"
-    shutil.copytree(source_project.parent, qgis_directory)
-    project_file = qgis_directory / source_project.name
+    shutil.copytree(source_project.parent, workspace)
+    project_file = workspace / source_project.name
     if not project_file.is_file():
         raise FileNotFoundError(
             "Copied QGIS project is missing: {}".format(project_file)

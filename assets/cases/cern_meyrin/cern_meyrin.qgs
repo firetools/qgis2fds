@@ -1495,7 +1495,7 @@ def my_form_open(dialog, layer, feature):
       <properties name="dem_layer" type="QString">dem_layer_90178e14_1fe5_40d2_8bd3_2721c14f8b0c</properties>
       <properties name="export_obst" type="bool">false</properties>
       <properties name="extent_layer" type="QString">Extent_aecca660_0811_44d7_9f24_f7f364999b60</properties>
-      <properties name="fds_path" type="QString">../FDS</properties>
+      <properties name="fds_path" type="QString">./FDS</properties>
       <properties name="fire_layer" type="QString"></properties>
       <properties name="landuse_layer" type="QString"></properties>
       <properties name="landuse_type_filepath" type="QString"></properties>
@@ -1606,7 +1606,7 @@ def my_form_open(dialog, layer, feature):
       </spatialrefsys>
     </CoordinateCustomCrs>
   </ProjectDisplaySettings>
-  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Extent_aecca660_0811_44d7_9f24_f7f364999b60" destinationLayerName="Extent" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/dev/tests/cern_meyrin/QGIS/layers/Extent.gpkg|layername=Extent">
+  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Extent_aecca660_0811_44d7_9f24_f7f364999b60" destinationLayerName="Extent" destinationLayerProvider="ogr" destinationLayerSource="./layers/Extent.gpkg|layername=Extent">
     <timeStampFields/>
   </ProjectGpsSettings>
 </qgis>

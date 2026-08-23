@@ -3107,7 +3107,7 @@ def my_form_open(dialog, layer, feature):
       <QUANTITY type="QString">0</QUANTITY>
       <crs type="QString">EPSG:5070</crs>
       <dateTime type="QString">PyQt5.QtCore.QDateTime()</dateTime>
-      <fds_path type="QString">C:\Users\rwc6@nist.gov\Desktop\perim30MeshEditWindUpdP264</fds_path>
+      <fds_path type="QString">./FDS</fds_path>
       <project_crs type="QString">EPSG:5070</project_crs>
       <samplePoints type="QString">False</samplePoints>
       <t_step type="QString">10.0</t_step>
@@ -3120,7 +3120,7 @@ def my_form_open(dialog, layer, feature):
       <export_obst type="bool">false</export_obst>
       <extent type="QString">1110975.681700000,1129042.423100000,1465221.682400000,1486081.471700000 [EPSG:5070]</extent>
       <extent_layer type="QString">fds_extent_0496da50_b04e_436f_8bc9_9f33135b1d88</extent_layer>
-      <fds_path type="QString">../FDS</fds_path>
+      <fds_path type="QString">./FDS</fds_path>
       <fire_layer type="QString">init_fire_210d472e_7a2b_41eb_a9ff_aaa853d323e6</fire_layer>
       <landuse_layer type="QString">LC22_F13_220_Abrev_0e9ab1c8_e284_40b9_86bb_5c1e1fa12c55</landuse_layer>
       <landuse_type_filepath type="QString">./sheets/Landfire.gov_F13.csv</landuse_type_filepath>

@@ -4,12 +4,11 @@ from pathlib import Path
 
 
 CASE_DIRECTORY = Path(__file__).resolve().parent
-QGIS_DIRECTORY = (
+CASE_ASSETS_DIRECTORY = (
     CASE_DIRECTORY.parents[2]
     / "assets"
     / "cases"
     / "chimney_tops_2"
-    / "QGIS"
 )
 
 # The first row retains the project's 30 m terrain sampling and 10 m FDS cell
@@ -59,7 +58,7 @@ CASES = (
 
 SUITE = {
     "name": "chimney_tops_2",
-    "project_file": QGIS_DIRECTORY / "Chimney_Tops_2.qgs",
+    "project_file": CASE_ASSETS_DIRECTORY / "Chimney_Tops_2.qgs",
     "reference_file": CASE_DIRECTORY / "chimney_tops_2_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7019",

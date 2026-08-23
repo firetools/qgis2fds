@@ -4,8 +4,8 @@ from pathlib import Path
 
 
 CASE_DIRECTORY = Path(__file__).resolve().parent
-QGIS_DIRECTORY = (
-    CASE_DIRECTORY.parents[2] / "assets" / "cases" / "cern_meyrin" / "QGIS"
+CASE_ASSETS_DIRECTORY = (
+    CASE_DIRECTORY.parents[2] / "assets" / "cases" / "cern_meyrin"
 )
 
 # Each row overrides selected values stored in cern_meyrin.qgs. The extent and
@@ -55,7 +55,7 @@ CASES = (
 
 SUITE = {
     "name": "cern_meyrin",
-    "project_file": QGIS_DIRECTORY / "cern_meyrin.qgs",
+    "project_file": CASE_ASSETS_DIRECTORY / "cern_meyrin.qgs",
     "reference_file": CASE_DIRECTORY / "cern_meyrin_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7004",
