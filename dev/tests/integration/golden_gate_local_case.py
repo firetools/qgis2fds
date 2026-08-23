@@ -13,7 +13,7 @@ QGIS_DIRECTORY = (
 )
 
 # Exercise the saved project resolution, a coarser GEOM export, and explicit
-# OBST terrain cells. Every row uses the local DEM, land use, ignition, and wind
+# OBST terrain cells. Every row uses the local DEM, landuse, ignition, and wind
 # inputs so failures cannot be hidden by remote layer availability.
 CASES = (
     {

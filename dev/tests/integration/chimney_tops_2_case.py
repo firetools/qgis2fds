@@ -14,7 +14,7 @@ QGIS_DIRECTORY = (
 
 # The first row retains the project's 30 m terrain sampling and 10 m FDS cell
 # size. Coarser GEOM and OBST rows keep the suite practical while exercising
-# both terrain serialization paths with land use, ignition, and wind enabled.
+# both terrain serialization paths with landuse, ignition, and wind enabled.
 CASES = (
     {
         "name": "geom_project",

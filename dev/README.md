@@ -44,7 +44,7 @@ The integration tests additionally require:
   `qgis_process`;
 - access to the case data under `assets/cases/`;
 - internet access for the `golden_gate_remote` test, which downloads its DEM
-  and land-use coverage from remote WCS services.
+  and landuse coverage from remote WCS services.
 
 FDS is optional. It is required only when `run_fds = true` in
 `dev/pytest.ini`. The configured FDS integration currently targets FDS 6.11.1.
