@@ -615,7 +615,7 @@ _REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
         longitude=grid.longitude,
         north_bearing=grid.north_bearing,
         chid=_quote(chid),
-        title=_quote("Wildfire terrain {}".format(chid)),
+        title=_quote("{}, description".format(chid)),
         t_begin=t_begin,
         t_end=t_end,
         image_entry=image_entry,
