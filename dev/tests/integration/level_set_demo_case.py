@@ -11,20 +11,33 @@ CASE_ASSETS_DIRECTORY = (
     / "level_set_demo"
 )
 
-# Preserve the parameters stored in the supplied Level Set Demo project. The
-# blank origin intentionally lets qgis2fds use the domain extent centroid.
+# Exercise both terrain representations with the supplied project parameters.
+# The blank origin intentionally uses the domain extent centroid.
 CASES = (
     {
-        "name": "geom_project",
-        "chid": "level_set_demo_geom_project",
+        "name": "geom",
+        "chid": "level_set_demo_geom",
         "settings": {
             "pixel_size": 30.0,
-            "tex_pixel_size": 5.0,
+            "tex_pixel_size": 1.0,
             "nmesh": 100,
             "cell_size": 30.0,
             "t_begin": 0.0,
             "t_end": 1.0,
             "export_obst": False,
+        },
+    },
+    {
+        "name": "obst",
+        "chid": "level_set_demo_obst",
+        "settings": {
+            "pixel_size": 30.0,
+            "tex_pixel_size": 1.0,
+            "nmesh": 100,
+            "cell_size": 30.0,
+            "t_begin": 0.0,
+            "t_end": 1.0,
+            "export_obst": True,
         },
     },
 )

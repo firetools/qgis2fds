@@ -1,13 +1,24 @@
 {
-  "geom_project": {
-    "bingeom_sha256": "b15e3678175a6f57f0a826314eb455b9c779321ba49118d4a0089523e20c3828",
+  "geom": {
+    "bingeom_sha256": "e2c253697c9190c1dd0bfbe2bd7aeb3212913ac9be6d6b238bd120303f2b453a",
     "fds_line_count": 92,
     "geom_count": 1,
-    "normalized_fds_sha256": "3b093d32f38881568d29569fbdfddc8212a974a115f29f8de16acffb79c17b6a",
+    "normalized_fds_sha256": "db8430e2e23894cb8586b660534ff5adbf4219623562f567ac7b1c12dd9718f4",
     "obst_count": 0,
     "texture_dimensions": [
-      525,
-      340
+      1050,
+      680
+    ]
+  },
+  "obst": {
+    "bingeom_sha256": null,
+    "fds_line_count": 7581,
+    "geom_count": 0,
+    "normalized_fds_sha256": "236c8cb89ed35a41c2477195017ab58f76ab80896b86f0851bbdc56eb2eaae23",
+    "obst_count": 7490,
+    "texture_dimensions": [
+      1050,
+      680
     ]
   }
 }

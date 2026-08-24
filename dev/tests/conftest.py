@@ -11,9 +11,3 @@ def pytest_addoption(parser):
         "fds",
         "Command used to validate exported FDS integration cases",
     )
-    parser.addini(
-        "run_fds",
-        "Whether each exported integration case is run through FDS",
-        type="bool",
-        default=False,
-    )

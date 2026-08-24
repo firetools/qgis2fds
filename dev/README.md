@@ -29,8 +29,9 @@ python3 -c "import numpy, pytest; print(numpy.__version__, pytest.__version__)"
 The package builder uses only the Python standard library. It does not need
 QGIS and does not require additional build packages.
 
-The repository contains `dev/pytest.ini`. This is a pytest configuration file,, it defines test discovery, Python import
-paths, the integration marker, and the command used to start `qgis_process`.
+The repository contains `dev/pytest.ini`. This pytest configuration defines
+test discovery, Python import paths, test markers, and the command used to
+start `qgis_process`.
 
 `pytest-qgis` is not required. The integration tests launch `qgis_process` as a
 separate process and exercise the installed qgis2fds Processing provider.
@@ -46,8 +47,8 @@ The integration tests additionally require:
 - internet access for the `golden_gate_remote` test, which downloads its DEM
   and landuse coverage from remote WCS services.
 
-FDS is optional. It is required only when `run_fds = true` in
-`dev/pytest.ini`. The configured FDS integration currently targets FDS 6.11.1.
+FDS is optional. It is required only when running tests marked `fds`. The
+configured FDS integration currently targets FDS 6.11.1.
 
 The reference environment uses the QGIS Flatpak application:
 
@@ -113,12 +114,10 @@ integration tests fail and include the captured standard output and error.
 
 ### FDS
 
-The FDS executable and its optional execution flag are also explicit in
-`dev/pytest.ini`:
+The FDS executable is explicit in `dev/pytest.ini`:
 
 ```ini
 fds = /var/home/egissi/.local/opt/FDS/FDS6/bin/fds
-run_fds = false
 ```
 
 Change `fds` to the absolute path of the FDS installation being tested. Confirm
@@ -128,28 +127,24 @@ the selected version independently, for example:
 /path/to/fds -v
 ```
 
-FDS validation is disabled by default because initialization of the terrain
-and meshes can take minutes even for a short simulation. Enable it explicitly:
-
-```ini
-run_fds = true
-```
-
-When enabled, every integration parameter row is exported with
-`t_end = t_begin + 1` second and the resulting `.fds` file is executed from its
-temporary output directory. A case passes FDS validation only when the process
-returns exit status zero and no line beginning with `ERROR` appears in FDS
-standard output, standard error, or the generated `.out` file. FDS warnings do
-not fail the test. Each FDS process has a five-minute timeout.
+FDS tests are excluded from the default marker selection because initialization
+of the terrain and meshes can take minutes even for a short simulation. They
+are separate parameterized tests selected explicitly with `pytest -m fds`.
+Each GEOM and OBST row is exported with `t_end = t_begin + 1` second and its
+`.fds` file is executed from a fresh temporary output directory. A case passes
+FDS validation only when the process returns exit status zero and no line
+beginning with
+`ERROR` appears in FDS standard output, standard error, or the generated
+`.out` file. FDS warnings do not fail the test. Each FDS process has a
+five-minute timeout.
 
 ## Run tests
 
 ### Complete test suite
 
-By default pytest runs both the fast unit tests and the QGIS integration tests.
-Optional FDS execution follows the `run_fds` setting described above.
-Run it from `dev/` so `pytest.ini` and its relative test paths are applied
-directly:
+By default pytest runs the fast unit tests and QGIS export-reference tests. The
+separate FDS tests are deselected unless requested with `-m fds`.
+Run from `dev/` so `pytest.ini` and its relative test paths are applied directly:
 
 ```sh
 cd dev
@@ -183,7 +178,19 @@ pytest -c dev/pytest.ini dev/tests/integration
 The integration suite loads the QGIS projects stored in `assets/cases/`, runs
 the installed `NIST FDS:Export FDS case` Processing algorithm, and compares
 stable signatures of the generated files with the JSON references in
-`dev/tests/integration/`. If enabled, FDS then validates every generated case.
+`dev/tests/integration/`. Every project has one GEOM row and one OBST row.
+
+Run only the export-reference tests with:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/integration -m "not fds"
+```
+
+Run only the optional FDS tests with:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/integration -m fds
+```
 
 Each parameter row operates on a fresh temporary copy of its complete QGIS
 case. The copy is created below the repository root because the Flatpak has a
@@ -296,8 +303,8 @@ repository website at https://plugins.qgis.org/
   `qgis_process` value in `dev/pytest.ini`.
 - `Algorithm NIST FDS:Export FDS case not found`: install or enable qgis2fds in
   the profile used by the configured QGIS command.
-- `Configured fds executable is unavailable`: correct the `fds` path or set
-  `run_fds = false` in `dev/pytest.ini`.
+- `Configured fds executable is unavailable`: correct the `fds` path, or omit
+  `-m fds` when FDS validation is not needed.
 - FDS validation failure: inspect the reported FDS errors and the generated
   case diagnostics. The test preserves stdout and stderr in its failure report.
 - Remote Golden Gate failures: verify network access and availability of the

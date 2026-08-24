@@ -8,16 +8,15 @@ CASE_ASSETS_DIRECTORY = (
     CASE_DIRECTORY.parents[2] / "assets" / "cases" / "cern_meyrin"
 )
 
-# Each row overrides selected values stored in cern_meyrin.qgs. The extent and
-# DEM are passed by their saved project layer IDs, so project loading itself is
-# part of the behavior under test.
+# Exercise both terrain representations with the parameters stored in the QGIS
+# project. Layer IDs make project loading itself part of the behavior under test.
 CASES = (
     {
-        "name": "geom_fine",
-        "chid": "cern_meyrin_geom_fine",
+        "name": "geom",
+        "chid": "cern_meyrin_geom",
         "settings": {
-            "pixel_size": 1.0,
-            "tex_pixel_size": 1.0,
+            "pixel_size": 0.5,
+            "tex_pixel_size": 0.5,
             "nmesh": 4,
             "cell_size": 0.5,
             "t_begin": 0.0,
@@ -26,26 +25,13 @@ CASES = (
         },
     },
     {
-        "name": "geom_coarse",
-        "chid": "cern_meyrin_geom_coarse",
+        "name": "obst",
+        "chid": "cern_meyrin_obst",
         "settings": {
-            "pixel_size": 2.0,
-            "tex_pixel_size": 2.0,
-            "nmesh": 2,
-            "cell_size": 1.0,
-            "t_begin": 0.0,
-            "t_end": 1.0,
-            "export_obst": False,
-        },
-    },
-    {
-        "name": "obst_coarse",
-        "chid": "cern_meyrin_obst_coarse",
-        "settings": {
-            "pixel_size": 2.0,
-            "tex_pixel_size": 2.0,
-            "nmesh": 2,
-            "cell_size": 1.0,
+            "pixel_size": 0.5,
+            "tex_pixel_size": 0.5,
+            "nmesh": 4,
+            "cell_size": 0.5,
             "t_begin": 0.0,
             "t_end": 1.0,
             "export_obst": True,

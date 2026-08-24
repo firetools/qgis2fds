@@ -134,4 +134,3 @@ def test_rendered_case_keeps_surface_only_wildfire_settings():
     assert "QUANTITY='FIRE ARRIVAL TIME'" in case
     assert "QUANTITY='FIRE RESIDENCE TIME'" in case
     assert "QUANTITY='LS SPREAD RATE'" in case
-

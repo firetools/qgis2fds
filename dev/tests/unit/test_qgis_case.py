@@ -7,22 +7,6 @@ import pytest
 import qgis_case
 
 
-@pytest.mark.parametrize(
-    ("configured", "expected"),
-    (("false", False), ("true", True)),
-)
-def test_fds_validation_is_configurable(
-    tmp_path, monkeypatch, configured, expected
-):
-    configuration = tmp_path / "pytest.ini"
-    configuration.write_text(
-        "[pytest]\nrun_fds = {}\n".format(configured), encoding="utf-8"
-    )
-    monkeypatch.setattr(qgis_case, "PYTEST_CONFIGURATION_FILE", configuration)
-
-    assert qgis_case._fds_validation_enabled() is expected
-
-
 def test_fds_validation_rejects_reported_errors(tmp_path, monkeypatch):
     input_file = tmp_path / "case.fds"
     input_file.write_text("&TAIL /\n", encoding="utf-8")

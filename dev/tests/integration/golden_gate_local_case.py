@@ -11,16 +11,15 @@ CASE_ASSETS_DIRECTORY = (
     / "golden_gate_local"
 )
 
-# Exercise the saved project resolution, a coarser GEOM export, and explicit
-# OBST terrain cells. Every row uses the local DEM, landuse, ignition, and wind
-# inputs so failures cannot be hidden by remote layer availability.
+# Exercise both terrain representations with the local DEM, landuse, ignition,
+# wind, texture, and mesh settings stored in the QGIS project.
 CASES = (
     {
-        "name": "geom_project",
-        "chid": "golden_gate_local_geom_project",
+        "name": "geom",
+        "chid": "golden_gate_local_geom",
         "settings": {
             "pixel_size": 10.0,
-            "tex_pixel_size": 2.0,
+            "tex_pixel_size": 1.0,
             "nmesh": 4,
             "cell_size": 10.0,
             "t_begin": 0.0,
@@ -29,24 +28,11 @@ CASES = (
         },
     },
     {
-        "name": "geom_coarse",
-        "chid": "golden_gate_local_geom_coarse",
-        "settings": {
-            "pixel_size": 20.0,
-            "tex_pixel_size": 4.0,
-            "nmesh": 2,
-            "cell_size": 20.0,
-            "t_begin": 0.0,
-            "t_end": 1.0,
-            "export_obst": False,
-        },
-    },
-    {
-        "name": "obst_project",
-        "chid": "golden_gate_local_obst_project",
+        "name": "obst",
+        "chid": "golden_gate_local_obst",
         "settings": {
             "pixel_size": 10.0,
-            "tex_pixel_size": 2.0,
+            "tex_pixel_size": 1.0,
             "nmesh": 4,
             "cell_size": 10.0,
             "t_begin": 0.0,
@@ -58,7 +44,7 @@ CASES = (
 
 SUITE = {
     "name": "golden_gate_local",
-    "project_file": CASE_ASSETS_DIRECTORY / "golden_gate.qgs",
+    "project_file": CASE_ASSETS_DIRECTORY / "golden_gate_local.qgs",
     "reference_file": CASE_DIRECTORY / "golden_gate_local_references.json",
     "base_settings": {
         "ellipsoid": "EPSG:7019",

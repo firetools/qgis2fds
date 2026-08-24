@@ -6,6 +6,7 @@ from qgis_case import (
     FdsUnavailable,
     QgisProcessUnavailable,
     compare_with_reference,
+    validate_with_fds,
 )
 from qgis_suites import QGIS_CASE_IDS, QGIS_CASES
 
@@ -15,7 +16,17 @@ from qgis_suites import QGIS_CASE_IDS, QGIS_CASES
 def test_qgis_export_matches_reference(suite, case):
     try:
         actual, expected = compare_with_reference(suite, case)
-    except (FdsUnavailable, QgisProcessUnavailable) as error:
+    except QgisProcessUnavailable as error:
         pytest.skip(str(error))
 
     assert actual == expected
+
+
+@pytest.mark.integration
+@pytest.mark.fds
+@pytest.mark.parametrize(("suite", "case"), QGIS_CASES, ids=QGIS_CASE_IDS)
+def test_fds_accepts_exported_case(suite, case):
+    try:
+        validate_with_fds(suite, case)
+    except (FdsUnavailable, QgisProcessUnavailable) as error:
+        pytest.skip(str(error))

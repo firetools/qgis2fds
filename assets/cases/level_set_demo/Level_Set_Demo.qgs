@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis projectname="" saveDateTime="2026-08-23T17:22:41" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.1-Belém do Pará">
+<qgis projectname="" saveDateTime="2026-08-24T12:13:26" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.1-Belém do Pará">
   <homePath path=""/>
   <title></title>
   <transaction mode="Disabled"/>
@@ -423,7 +423,7 @@
                 <Option name="type" type="QString" value="collection"/>
               </Option>
             </data_defined_properties>
-            <layer class="SimpleLine" enabled="1" id="{9ac51f9b-9f3b-4418-ba70-607e753e2fe2}" locked="0" pass="0">
+            <layer class="SimpleLine" enabled="1" id="{c711e80c-31f1-465b-8ee7-d2e69b59673a}" locked="0" pass="0">
               <Option type="Map">
                 <Option name="align_dash_pattern" type="QString" value="0"/>
                 <Option name="capstyle" type="QString" value="square"/>
@@ -435,7 +435,7 @@
                 <Option name="dash_pattern_offset_unit" type="QString" value="MM"/>
                 <Option name="draw_inside_polygon" type="QString" value="0"/>
                 <Option name="joinstyle" type="QString" value="bevel"/>
-                <Option name="line_color" type="QString" value="228,26,28,255,rgb:0.8941177,0.1019608,0.1098039,1"/>
+                <Option name="line_color" type="QString" value="77,175,74,255,rgb:0.3019608,0.6862745,0.2901961,1"/>
                 <Option name="line_style" type="QString" value="solid"/>
                 <Option name="line_width" type="QString" value="0.96"/>
                 <Option name="line_width_unit" type="QString" value="MM"/>
@@ -475,18 +475,51 @@
       </renderer-v2>
       <selection mode="Default">
         <selectionColor invalid="1"/>
+        <selectionSymbol>
+          <symbol alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0" name="" type="fill">
+            <data_defined_properties>
+              <Option type="Map">
+                <Option name="name" type="QString" value=""/>
+                <Option name="properties"/>
+                <Option name="type" type="QString" value="collection"/>
+              </Option>
+            </data_defined_properties>
+            <layer class="SimpleFill" enabled="1" id="{8e90948a-efcc-4fe4-a9f9-df3030369ccc}" locked="0" pass="0">
+              <Option type="Map">
+                <Option name="border_width_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
+                <Option name="color" type="QString" value="0,0,255,255,rgb:0,0,1,1"/>
+                <Option name="joinstyle" type="QString" value="bevel"/>
+                <Option name="offset" type="QString" value="0,0"/>
+                <Option name="offset_map_unit_scale" type="QString" value="3x:0,0,0,0,0,0"/>
+                <Option name="offset_unit" type="QString" value="MM"/>
+                <Option name="outline_color" type="QString" value="35,35,35,255,rgb:0.1372549,0.1372549,0.1372549,1"/>
+                <Option name="outline_style" type="QString" value="solid"/>
+                <Option name="outline_width" type="QString" value="0.26"/>
+                <Option name="outline_width_unit" type="QString" value="MM"/>
+                <Option name="style" type="QString" value="solid"/>
+              </Option>
+              <data_defined_properties>
+                <Option type="Map">
+                  <Option name="name" type="QString" value=""/>
+                  <Option name="properties"/>
+                  <Option name="type" type="QString" value="collection"/>
+                </Option>
+              </data_defined_properties>
+            </layer>
+          </symbol>
+        </selectionSymbol>
       </selection>
       <customproperties>
         <Option type="Map">
           <Option name="embeddedWidgets/count" type="int" value="0"/>
-          <Option name="variableNames" type="invalid"/>
-          <Option name="variableValues" type="invalid"/>
+          <Option name="variableNames"/>
+          <Option name="variableValues"/>
         </Option>
       </customproperties>
       <blendMode>0</blendMode>
       <featureBlendMode>0</featureBlendMode>
       <layerOpacity>1</layerOpacity>
-      <SingleCategoryDiagramRenderer attributeLegend="1" diagramType="Histogram">
+      <LinearlyInterpolatedDiagramRenderer attributeLegend="1" classificationField="id" diagramType="Histogram" lowerHeight="0" lowerValue="0" lowerWidth="0" upperHeight="5" upperValue="0" upperWidth="5">
         <DiagramCategory backgroundAlpha="255" backgroundColor="#ffffff" barWidth="5" diagramOrientation="Up" direction="0" enabled="0" height="15" labelPlacementMethod="XHeight" lineSizeScale="3x:0,0,0,0,0,0" lineSizeType="MM" maxScaleDenominator="1e+08" minScaleDenominator="0" minimumSize="0" opacity="1" penAlpha="255" penColor="#000000" penWidth="0" rotationOffset="270" scaleBasedVisibility="0" scaleDependency="Area" showAxis="1" sizeScale="3x:0,0,0,0,0,0" sizeType="MM" spacing="5" spacingUnit="MM" spacingUnitScale="3x:0,0,0,0,0,0" stackedDiagramMode="Horizontal" stackedDiagramSpacing="0" stackedDiagramSpacingUnit="MM" stackedDiagramSpacingUnitScale="3x:0,0,0,0,0,0" width="15">
           <fontProperties bold="0" description="MS Shell Dlg 2,8.25,-1,5,400,0,0,0,0,0,0,0,0,0,0,1" italic="0" strikethrough="0" style="" underline="0"/>
           <attribute color="#000000" colorOpacity="1" field="" label=""/>
@@ -540,7 +573,7 @@
             </symbol>
           </axisSymbol>
         </DiagramCategory>
-      </SingleCategoryDiagramRenderer>
+      </LinearlyInterpolatedDiagramRenderer>
       <DiagramLayerSettings dist="0" linePlacementFlags="18" obstacle="0" placement="1" priority="0" showAll="1" zIndex="0">
         <properties>
           <Option type="Map">
@@ -1930,7 +1963,7 @@ def my_form_open(dialog, layer, feature):
       <properties name="t_end" type="double">0</properties>
       <properties name="tex_layer" type="QString">Google_Satellite_60fbab3b_04b4_4fd0_8a86_40964d0d4d27</properties>
       <properties name="tex_layer_dpm" type="double">2</properties>
-      <properties name="tex_pixel_size" type="double">5</properties>
+      <properties name="tex_pixel_size" type="double">1</properties>
       <properties name="text_filepath" type="QString"></properties>
       <properties name="wind_filepath" type="QString">sheets/Level_Set_Demo_Wind.csv</properties>
     </properties>
@@ -2061,7 +2094,7 @@ def my_form_open(dialog, layer, feature):
   <Sensors/>
   <ProjectViewSettings UseProjectScales="0" rotation="0">
     <Scales/>
-    <DefaultViewExtent xmax="-83.49555413407668425" xmin="-83.54939692829495357" ymax="35.74493565815917862" ymin="35.69503258059101825">
+    <DefaultViewExtent xmax="-83.49424669315747849" xmin="-83.55070436921415933" ymax="35.74493565815917862" ymin="35.69503258059101825">
       <spatialrefsys nativeFormat="Wkt">
         <wkt>GEOGCRS["WGS 84",ENSEMBLE["World Geodetic System 1984 ensemble",MEMBER["World Geodetic System 1984 (Transit)"],MEMBER["World Geodetic System 1984 (G730)"],MEMBER["World Geodetic System 1984 (G873)"],MEMBER["World Geodetic System 1984 (G1150)"],MEMBER["World Geodetic System 1984 (G1674)"],MEMBER["World Geodetic System 1984 (G1762)"],MEMBER["World Geodetic System 1984 (G2139)"],MEMBER["World Geodetic System 1984 (G2296)"],ELLIPSOID["WGS 84",6378137,298.257223563,LENGTHUNIT["metre",1]],ENSEMBLEACCURACY[2.0]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],CS[ellipsoidal,2],AXIS["geodetic latitude (Lat)",north,ORDER[1],ANGLEUNIT["degree",0.0174532925199433]],AXIS["geodetic longitude (Lon)",east,ORDER[2],ANGLEUNIT["degree",0.0174532925199433]],USAGE[SCOPE["Horizontal component of 3D system."],AREA["World."],BBOX[-90,-180,90,180]],ID["EPSG",4326]]</wkt>
         <proj4>+proj=longlat +datum=WGS84 +no_defs</proj4>
@@ -2126,7 +2159,7 @@ def my_form_open(dialog, layer, feature):
       </spatialrefsys>
     </CoordinateCustomCrs>
   </ProjectDisplaySettings>
-  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Ignition_Area_1edacf04_da62_47fd_9ee3_fbab5e378fd3" destinationLayerName="Ignition_Area" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/assets/cases/level_set_demo/layers/Ignition_Area.shp">
+  <ProjectGpsSettings autoAddTrackVertices="0" autoCommitFeatures="0" destinationFollowsActiveLayer="1" destinationLayer="Domain_Extent_8a348d62_eebd_4f32_8e80_6f4237784cc9" destinationLayerName="Domain_Extent" destinationLayerProvider="ogr" destinationLayerSource="/var/home/egissi/Documenti/Git/qgis2fds/assets/cases/level_set_demo/layers/Domain_Extent.shp">
     <timeStampFields/>
   </ProjectGpsSettings>
 </qgis>

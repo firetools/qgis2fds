@@ -1991,7 +1991,7 @@ def my_form_open(dialog, layer, feature):
       <properties name="t_begin" type="double">0</properties>
       <properties name="t_end" type="double">30</properties>
       <properties name="tex_layer" type="QString"></properties>
-      <properties name="tex_pixel_size" type="double">2</properties>
+      <properties name="tex_pixel_size" type="double">1</properties>
       <properties name="text_filepath" type="QString"></properties>
       <properties name="wind_filepath" type="QString">./sheets/wind.csv</properties>
     </properties>

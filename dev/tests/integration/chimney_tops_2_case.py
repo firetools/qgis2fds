@@ -11,30 +11,16 @@ CASE_ASSETS_DIRECTORY = (
     / "chimney_tops_2"
 )
 
-# The first row retains the project's 30 m terrain sampling and 10 m FDS cell
-# size. Coarser GEOM and OBST rows keep the suite practical while exercising
-# both terrain serialization paths with landuse, ignition, and wind enabled.
+# Exercise both terrain representations with the project's terrain, texture,
+# mesh, landuse, ignition, and wind settings.
 CASES = (
     {
-        "name": "geom_project",
-        "chid": "chimney_tops_2_geom_project",
+        "name": "geom",
+        "chid": "chimney_tops_2_geom",
         "settings": {
             "pixel_size": 30.0,
             "tex_pixel_size": 10.0,
             "nmesh": 264,
-            "cell_size": 10.0,
-            "t_begin": 0.0,
-            "t_end": 1.0,
-            "export_obst": False,
-        },
-    },
-    {
-        "name": "geom_coarse",
-        "chid": "chimney_tops_2_geom_coarse",
-        "settings": {
-            "pixel_size": 90.0,
-            "tex_pixel_size": 90.0,
-            "nmesh": 6,
             "cell_size": 30.0,
             "t_begin": 0.0,
             "t_end": 1.0,
@@ -42,12 +28,12 @@ CASES = (
         },
     },
     {
-        "name": "obst_coarse",
-        "chid": "chimney_tops_2_obst_coarse",
+        "name": "obst",
+        "chid": "chimney_tops_2_obst",
         "settings": {
-            "pixel_size": 90.0,
-            "tex_pixel_size": 90.0,
-            "nmesh": 6,
+            "pixel_size": 30.0,
+            "tex_pixel_size": 10.0,
+            "nmesh": 264,
             "cell_size": 30.0,
             "t_begin": 0.0,
             "t_end": 1.0,

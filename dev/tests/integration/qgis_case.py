@@ -40,9 +40,23 @@ def compare_with_reference(suite, case):
         )
         run_export(suite, case, project_file, output_directory)
         actual = result_signature(case, output_directory)
-        if _fds_validation_enabled():
-            run_fds(case, output_directory)
         return actual, references[case["name"]]
+
+
+def validate_with_fds(suite, case):
+    """Export one isolated case and run it through optional FDS validation."""
+    # Fail or skip before performing the QGIS export when FDS is unavailable.
+    _configured_fds_command()
+
+    with tempfile.TemporaryDirectory(
+        prefix=".qgis2fds-fds-{}-".format(suite["name"]),
+        dir=REPOSITORY_DIRECTORY,
+    ) as temporary:
+        project_file, output_directory = _prepare_case_copy(
+            suite, Path(temporary), case["name"]
+        )
+        run_export(suite, case, project_file, output_directory)
+        run_fds(case, output_directory)
 
 
 def rebuild_references(suite):
@@ -204,25 +218,6 @@ def _configured_qgis_process_command():
 def _configured_fds_command():
     """Read the explicit FDS command from pytest.ini."""
     return _configured_command("fds", FdsUnavailable)
-
-
-def _fds_validation_enabled():
-    """Return whether pytest.ini enables the optional FDS execution."""
-    configuration = configparser.ConfigParser(interpolation=None)
-    if not configuration.read(PYTEST_CONFIGURATION_FILE, encoding="utf-8"):
-        raise FdsUnavailable(
-            "Pytest configuration is missing: {}".format(
-                PYTEST_CONFIGURATION_FILE
-            )
-        )
-    try:
-        return configuration.getboolean("pytest", "run_fds", fallback=False)
-    except ValueError as error:
-        raise FdsUnavailable(
-            "run_fds in {} must be true or false".format(
-                PYTEST_CONFIGURATION_FILE
-            )
-        ) from error
 
 
 def _configured_command(setting, unavailable_error):
