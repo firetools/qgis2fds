@@ -236,23 +236,27 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
 
     project = QgsProject.instance()
     try:
-        # Only visible project layers belong in the Smokeview terrain texture.
-        layers = project.layerTreeRoot().checkedLayers()
+        # Match the canvas: layerOrder() honors an optional custom order, while
+        # checkedLayers() identifies the layers currently visible in the tree.
+        root = project.layerTreeRoot()
+        checked_ids = {layer.id() for layer in root.checkedLayers()}
+        layers = [layer for layer in root.layerOrder() if layer.id() in checked_ids]
     except AttributeError:
-        # Retain a fallback for QGIS builds without checkedLayers().
+        # Retain a fallback for QGIS builds without the layer-tree helpers.
         layers = list(project.mapLayers().values())
     layers = [layer for layer in layers if layer.isValid()]
     if not layers:
         feedback.pushWarning("Texture skipped: the project has no visible layers.")
         return None
-
     settings = QgsMapSettings()
     settings.setDestinationCrs(utm_crs)
     settings.setExtent(_grid_rectangle(grid))
     settings.setOutputSize(QSize(width, height))
     settings.setBackgroundColor(QColor(255, 255, 255))
-    # Render order from QgsMapSettings is bottom to top.
-    settings.setLayers(list(reversed(layers)))
+    # layerOrder() and QgsMapSettings both use top-to-bottom order: index 0 is
+    # rendered last and therefore appears on top. Reversing this list would
+    # hide vector overlays such as Fire and Extent below opaque rasters.
+    settings.setLayers(layers)
 
     job = QgsMapRendererSequentialJob(settings)
     job.start()
