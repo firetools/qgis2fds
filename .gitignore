@@ -6,6 +6,12 @@ __pycache__/
 # Rope project settings
 .ropeproject
 
+# Test and build temporary files
+.pytest_cache/
+/.qgis2fds-test-*/
+/.qgis2fds-fds-*/
+/dev/build/.qgis2fds-*.tmp
+
 # QGIS
 *.qgs~
 *.qgz
