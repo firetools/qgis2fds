@@ -1,5 +1,5 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis projectname="" saveDateTime="2026-08-23T17:18:05" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.1-Belém do Pará">
+<qgis projectname="" saveDateTime="2026-08-24T09:49:11" saveUser="egissi" saveUserFull="Emanuele Gissi" version="4.2.1-Belém do Pará">
   <homePath path=""/>
   <title></title>
   <transaction mode="Disabled"/>
@@ -975,8 +975,8 @@ def my_form_open(dialog, layer, feature):
       <customproperties>
         <Option type="Map">
           <Option name="embeddedWidgets/count" type="int" value="0"/>
-          <Option name="variableNames"/>
-          <Option name="variableValues"/>
+          <Option name="variableNames" type="invalid"/>
+          <Option name="variableValues" type="invalid"/>
         </Option>
       </customproperties>
       <blendMode>0</blendMode>
@@ -1977,13 +1977,13 @@ def my_form_open(dialog, layer, feature):
     <properties name="WMTSUrl" type="QString"></properties>
     <properties name="qgis2fds">
       <properties name="cell_size" type="double">10</properties>
-      <properties name="chid" type="QString">golden_gate</properties>
-      <properties name="dem_layer" type="QString">_5294a749_25fa_4861_990a_283ddf87dccd</properties>
+      <properties name="chid" type="QString">golden_gate_remote</properties>
+      <properties name="dem_layer" type="QString">LF2020_Elev_CONUS_1362afda_95af_4bf3_a906_68535cdb48fc</properties>
       <properties name="export_obst" type="bool">false</properties>
       <properties name="extent_layer" type="QString">Extent_0642b0c8_932e_418f_9e94_a1a555ee0f05</properties>
       <properties name="fds_path" type="QString">./FDS</properties>
       <properties name="fire_layer" type="QString">Fire_b0dc7bbb_6702_4e71_9afe_8048e4f66b7c</properties>
-      <properties name="landuse_layer" type="QString">_f805e8d6_196e_4707_83da_e16f9fbf0e9e</properties>
+      <properties name="landuse_layer" type="QString">LF2025_FBFM13_CONUS_ecbcf54b_b570_4151_ba4b_61221a6973f9</properties>
       <properties name="landuse_type_filepath" type="QString">./sheets/Landfire F13 landuse type.csv</properties>
       <properties name="nmesh" type="double">4</properties>
       <properties name="origin" type="QString">-2279359.733937,1963331.421795 [EPSG:5070]</properties>
@@ -2094,7 +2094,7 @@ def my_form_open(dialog, layer, feature):
   <Sensors/>
   <ProjectViewSettings UseProjectScales="0" rotation="0">
     <Scales/>
-    <DefaultViewExtent xmax="-2278398.95234106900170445" xmin="-2280375.95093605248257518" ymax="1964568.30069772759452462" ymin="1962735.96053652325645089">
+    <DefaultViewExtent xmax="-2277658.03297812398523092" xmin="-2281116.87029899749904871" ymax="1964568.30069772759452462" ymin="1962735.96053652325645089">
       <spatialrefsys nativeFormat="Wkt">
         <wkt>PROJCRS["NAD83 / Conus Albers",BASEGEOGCRS["NAD83",DATUM["North American Datum 1983",ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1]]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4269]],CONVERSION["Conus Albers",METHOD["Albers Equal Area",ID["EPSG",9822]],PARAMETER["Latitude of false origin",23,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8821]],PARAMETER["Longitude of false origin",-96,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8822]],PARAMETER["Latitude of 1st standard parallel",29.5,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8823]],PARAMETER["Latitude of 2nd standard parallel",45.5,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8824]],PARAMETER["Easting at false origin",0,LENGTHUNIT["metre",1],ID["EPSG",8826]],PARAMETER["Northing at false origin",0,LENGTHUNIT["metre",1],ID["EPSG",8827]]],CS[Cartesian,2],AXIS["easting (X)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["northing (Y)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Data analysis and small scale data presentation for contiguous lower 48 states."],AREA["United States (USA) - CONUS onshore - Alabama; Arizona; Arkansas; California; Colorado; Connecticut; Delaware; Florida; Georgia; Idaho; Illinois; Indiana; Iowa; Kansas; Kentucky; Louisiana; Maine; Maryland; Massachusetts; Michigan; Minnesota; Mississippi; Missouri; Montana; Nebraska; Nevada; New Hampshire; New Jersey; New Mexico; New York; North Carolina; North Dakota; Ohio; Oklahoma; Oregon; Pennsylvania; Rhode Island; South Carolina; South Dakota; Tennessee; Texas; Utah; Vermont; Virginia; Washington; West Virginia; Wisconsin; Wyoming."],BBOX[24.41,-124.79,49.38,-66.91]],ID["EPSG",5070]]</wkt>
         <proj4>+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs</proj4>
