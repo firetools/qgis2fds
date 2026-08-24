@@ -601,9 +601,9 @@ _REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
 &BNDF QUANTITY='LS SPREAD RATE' /
 
 ! Wind rose at domain origin
-&DEVC ID='Origin_UV' XYZ=0.,0.,995.90 QUANTITY='U-VELOCITY' /
-&DEVC ID='Origin_VV' XYZ=0.,0.,995.90 QUANTITY='V-VELOCITY' /
-&DEVC ID='Origin_WV' XYZ=0.,0.,995.90 QUANTITY='W-VELOCITY' /
+&DEVC ID='Origin_UV' XYZ=0.,0.,{wind_rose_z:.3f} QUANTITY='U-VELOCITY' /
+&DEVC ID='Origin_VV' XYZ=0.,0.,{wind_rose_z:.3f} QUANTITY='V-VELOCITY' /
+&DEVC ID='Origin_WV' XYZ=0.,0.,{wind_rose_z:.3f} QUANTITY='W-VELOCITY' /
 
 ! Terrain geometry
 {terrain_text}
@@ -632,6 +632,7 @@ _REAC ID='Wood' SOOT_YIELD=0.005 O=2.5 C=3.4 H=6.2
         mesh_y_end=layout.y_min + layout.mesh_height,
         z_min=layout.z_min,
         z_max=layout.z_max,
+        wind_rose_z=layout.z_max - 0.001,
         surfaces=surfaces,
         wind_text=_wind_namelists(wind),
         terrain_text=terrain_namelists(
