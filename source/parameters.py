@@ -35,7 +35,7 @@ class ParameterSpec:
 SPECS = (
     ParameterSpec("chid", "FDS case identifier (CHID)", "string", "terrain"),
     ParameterSpec("fds_path", "FDS case folder", "folder", "./FDS"),
-    ParameterSpec("extent_layer", "Terrain extent layer", "vector"),
+    ParameterSpec("extent_layer", "Domain extent layer", "vector"),
     ParameterSpec("pixel_size", "Terrain resolution (m)", "float", 10.0, minimum=0.01),
     ParameterSpec(
         "origin",
