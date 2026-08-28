@@ -122,15 +122,7 @@ def run_export(suite, case, project_file, output_directory):
         timeout=300,
         check=False,
     )
-    # QGIS 4.2 Flatpak currently exits its qgis_process wrapper with 139 during
-    # shutdown after some projects have produced complete output files. Accept
-    # only that exact Flatpak condition; signature checks verify serialization.
-    recoverable_flatpak_shutdown = (
-        Path(command[0]).name == "flatpak"
-        and completed.returncode == 139
-        and (output_directory / (case["chid"] + ".fds")).is_file()
-    )
-    if completed.returncode == 0 or recoverable_flatpak_shutdown:
+    if completed.returncode == 0:
         return
 
     raise RuntimeError(

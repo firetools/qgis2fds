@@ -9,7 +9,6 @@ from qgis.core import (
     Qgis,
     QgsProcessingAlgorithm,
     QgsProcessingException,
-    QgsProcessingMultiStepFeedback,
     QgsProcessingOutputFile,
     QgsProject,
 )
@@ -34,6 +33,7 @@ from .spatial import (
 
 
 PLUGIN_VERSION = "2.0.0"
+EXPORT_STAGE_COUNT = 6
 
 
 class ExportFdsAlgorithm(QgsProcessingAlgorithm):
@@ -55,7 +55,10 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
 
     def processAlgorithm(self, parameters, context, model_feedback):
         """Run the export with enough context to diagnose failures from logs."""
-        feedback = QgsProcessingMultiStepFeedback(6, model_feedback)
+        # Keep using the caller-owned feedback throughout the run. A Python-owned
+        # QgsProcessingMultiStepFeedback can receive queued progress events after
+        # its wrapped qgis_process feedback has been destroyed, causing SIGSEGV.
+        feedback = model_feedback
         project = QgsProject.instance()
         stage = "initialization"
         _diagnostic(
@@ -114,7 +117,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 ),
             )
 
-            feedback.setCurrentStep(0)
+            _set_stage_progress(feedback, 0)
             _check_canceled(feedback)
             stage = "loading support files"
             _diagnostic(feedback, "Stage 1/6: loading surface, wind, and text files.")
@@ -136,7 +139,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 ),
             )
 
-            feedback.setCurrentStep(1)
+            _set_stage_progress(feedback, 1)
             _check_canceled(feedback)
             stage = "preparing the terrain grid"
             _diagnostic(feedback, "Stage 2/6: preparing the metric terrain grid.")
@@ -166,7 +169,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 ),
             )
 
-            feedback.setCurrentStep(2)
+            _set_stage_progress(feedback, 2)
             _check_canceled(feedback)
             stage = "sampling terrain rasters"
             _diagnostic(
@@ -196,7 +199,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 ),
             )
 
-            feedback.setCurrentStep(3)
+            _set_stage_progress(feedback, 3)
             _check_canceled(feedback)
             stage = "applying fire polygons"
             if values["fire_layer"] is None:
@@ -236,7 +239,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 "surface.".format(len(unknown)),
             )
 
-            feedback.setCurrentStep(4)
+            _set_stage_progress(feedback, 4)
             _check_canceled(feedback)
             stage = "building the FDS domain"
             _diagnostic(feedback, "Stage 5/6: building meshes, assumptions, and texture.")
@@ -323,7 +326,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                     ),
                 )
 
-            feedback.setCurrentStep(5)
+            _set_stage_progress(feedback, 5)
             _check_canceled(feedback)
             stage = "writing generated files"
             _diagnostic(feedback, "Stage 6/6: serializing the FDS case.")
@@ -390,6 +393,7 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 )
             ) from error
 
+        _set_stage_progress(feedback, EXPORT_STAGE_COUNT)
         _diagnostic(
             feedback,
             "Export completed, FDS case: <{}>.".format(fds_filepath),
@@ -451,6 +455,11 @@ def _read_extra_text(filepath):
 def _check_canceled(feedback):
     if feedback.isCanceled():
         raise QgsProcessingException("Export canceled.")
+
+
+def _set_stage_progress(feedback, completed_stages):
+    """Report coarse export progress without introducing a feedback wrapper."""
+    feedback.setProgress(100.0 * completed_stages / EXPORT_STAGE_COUNT)
 
 
 def _diagnostic(feedback, message):
