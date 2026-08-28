@@ -96,6 +96,13 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
                 raise QgsProcessingException(
                     "landuse_type_filepath is required when landuse_layer is set."
                 )
+            if (
+                values["fire_layer"] is not None
+                and not values["landuse_type_filepath"]
+            ):
+                raise QgsProcessingException(
+                    "landuse_type_filepath is required when fire_layer is set."
+                )
 
             stage = "preparing the output directory"
             output_directory = _resolve_path(values["fds_path"], project)
@@ -127,6 +134,8 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
             wind_filepath = _resolve_optional_file(values["wind_filepath"], project)
             text_filepath = _resolve_optional_file(values["text_filepath"], project)
             catalog = SurfaceCatalog.load(landuse_filepath)
+            if values["fire_layer"] is not None:
+                catalog.require_fire_surfaces()
             wind = read_wind(wind_filepath)
             extra_text = _read_extra_text(text_filepath)
             _diagnostic(

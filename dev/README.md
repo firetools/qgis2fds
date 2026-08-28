@@ -117,11 +117,12 @@ integration tests fail and include the captured standard output and error.
 The FDS executable is explicit in `dev/pytest.ini`:
 
 ```ini
-fds = /var/home/egissi/.local/opt/FDS/FDS6/bin/fds
+fds = fds
 ```
 
-Change `fds` to the absolute path of the FDS installation being tested. Confirm
-the selected version independently, for example:
+This uses the `fds` executable found on `PATH`. For an unambiguous test
+environment, change it to the absolute path of the FDS installation being
+tested. Confirm the selected version independently, for example:
 
 ```sh
 /path/to/fds -v

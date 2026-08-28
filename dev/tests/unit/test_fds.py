@@ -75,6 +75,13 @@ def test_read_wind_rejects_duplicate_times(tmp_path):
         read_wind(str(wind_file))
 
 
+def test_fire_layer_catalog_requires_two_surface_rows():
+    catalog = SurfaceCatalog((Surface(0, "INERT"),))
+
+    with pytest.raises(ValueError, match="at least two surfaces"):
+        catalog.require_fire_surfaces()
+
+
 def test_assumptions_count_only_ignition_cells():
     terrain, catalog = _terrain_and_catalog()
     layout = build_mesh_layout(terrain, cell_size=10.0, maximum_meshes=1)

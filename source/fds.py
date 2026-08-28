@@ -100,6 +100,14 @@ class SurfaceCatalog:
     def inside_fire_code(self):
         return self.surfaces[-1].code
 
+    def require_fire_surfaces(self):
+        """Ensure the catalog can define separate perimeter and interior rows."""
+        if len(self.surfaces) < 2:
+            raise ValueError(
+                "The landuse type file must contain at least two surfaces when "
+                "a fire layer is selected."
+            )
+
     @property
     def fds_ids(self):
         return tuple(surface.fds_id for surface in self.surfaces)
