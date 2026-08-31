@@ -10,6 +10,7 @@ __pycache__/
 .pytest_cache/
 /.qgis2fds-test-*/
 /.qgis2fds-fds-*/
+/.qgis2fds-quantitative-cases/
 /dev/build/.qgis2fds-*.tmp
 
 # QGIS
