@@ -3,15 +3,17 @@
 from qgis.core import QgsProcessingProvider
 
 from .algorithm import ExportFdsAlgorithm
+from .import_algorithm import ImportFdsAlgorithm
 
 
 class FdsProvider(QgsProcessingProvider):
-    """Provide the FDS export algorithm."""
+    """Provide the FDS export and result-import algorithms."""
 
     def loadAlgorithms(self):
-        # There is one stable algorithm ID beneath this provider; keeping it here
-        # preserves existing Processing models and qgis_process commands.
+        # Keep the export ID unchanged for existing Processing models and add
+        # result import as a separate operation sharing the project settings.
         self.addAlgorithm(ExportFdsAlgorithm())
+        self.addAlgorithm(ImportFdsAlgorithm())
 
     def id(self):
         # Kept verbatim for compatibility with existing qgis_process calls.

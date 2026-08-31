@@ -113,9 +113,9 @@ SPECS = (
 )
 
 
-def add_parameters(algorithm, project):
+def add_parameters(algorithm, project, specs=SPECS):
     """Add all public inputs, using values stored in the QGIS project."""
-    for spec in SPECS:
+    for spec in specs:
         default = _stored_default(project, spec)
         if spec.kind == "string":
             parameter = QgsProcessingParameterString(
@@ -179,10 +179,12 @@ def add_parameters(algorithm, project):
         algorithm.addParameter(parameter)
 
 
-def read_parameters(algorithm, parameters, context, project, feedback):
+def read_parameters(
+    algorithm, parameters, context, project, feedback, specs=SPECS
+):
     """Read typed values and persist them under the qgis2fds project keys."""
     values = {}
-    for spec in SPECS:
+    for spec in specs:
         # Keep both forms: QGIS supplies the typed value to the exporter, while
         # the raw value may preserve a relative path or a CRS-qualified point.
         raw = parameters.get(spec.name)

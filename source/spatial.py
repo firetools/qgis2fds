@@ -56,7 +56,7 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
 
     # A local UTM CRS gives raster operations and FDS a metric coordinate system
     # selected from the requested origin instead of the layer's native CRS.
-    utm_crs = _utm_crs(wgs84_origin.x(), wgs84_origin.y())
+    utm_crs = local_utm_crs(wgs84_origin.x(), wgs84_origin.y())
     extent_to_utm = QgsCoordinateTransform(
         extent_layer.crs(), utm_crs, QgsProject.instance()
     )
@@ -269,7 +269,8 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
     return filepath
 
 
-def _utm_crs(longitude, latitude):
+def local_utm_crs(longitude, latitude):
+    """Return the standard local UTM CRS for one WGS 84 coordinate."""
     if not -180.0 <= longitude <= 180.0:
         raise QgsProcessingException("Longitude is outside the valid range.")
     if not -80.0 <= latitude <= 84.0:
