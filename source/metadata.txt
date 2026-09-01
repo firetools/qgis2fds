@@ -2,7 +2,7 @@
 name=qgis2fds
 description=Export wildfire cases to FDS and import temporal FDS results
 about=Creates NIST Fire Dynamics Simulator input files for surface wildfire propagation and imports AGL slices and wildfire boundary results as georeferenced temporal QGIS mesh layers. Terrain can be exported as FDS OBST namelists or binary GEOM geometry.
-version=2.0.0
+version=2.0.1
 qgisMinimumVersion=4.2
 author=Emanuele Gissi, Ruggero Poletto
 email=emanuele.gissi@gmail.com
