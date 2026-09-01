@@ -5,7 +5,7 @@ import os
 
 import numpy as np
 import processing
-from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtCore import QEventLoop, QSize, QTimer
 from qgis.PyQt.QtGui import QColor
 from qgis.core import (
     QgsBearingUtils,
@@ -29,6 +29,12 @@ from .remote import RASTER_NUMPY_DTYPES, ensure_local_raster
 NODATA = -9999.0
 MAX_TEXTURE_PIXELS = 100_000_000
 MAX_TEXTURE_DIMENSION = 16_384
+TEXTURE_RENDER_TIMEOUT_SECONDS = 60
+
+# A timed-out renderer is canceled asynchronously so the export can continue.
+# Keep its Python wrapper alive until QGIS emits ``finished``; destroying an
+# active QgsMapRendererSequentialJob would block while its destructor cancels.
+_CANCELING_TEXTURE_RENDER_JOBS = []
 
 
 def prepare_grid(extent_layer, origin, project_crs, pixel_size):
@@ -56,7 +62,7 @@ def prepare_grid(extent_layer, origin, project_crs, pixel_size):
 
     # A local UTM CRS gives raster operations and FDS a metric coordinate system
     # selected from the requested origin instead of the layer's native CRS.
-    utm_crs = _utm_crs(wgs84_origin.x(), wgs84_origin.y())
+    utm_crs = local_utm_crs(wgs84_origin.x(), wgs84_origin.y())
     extent_to_utm = QgsCoordinateTransform(
         extent_layer.crs(), utm_crs, QgsProject.instance()
     )
@@ -259,8 +265,14 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
     settings.setLayers(layers)
 
     job = QgsMapRendererSequentialJob(settings)
-    job.start()
-    job.waitForFinished()
+    if not _wait_for_texture_render(job, TEXTURE_RENDER_TIMEOUT_SECONDS):
+        feedback.pushWarning(
+            "Texture rendering timed out after {} s; a remote layer may be "
+            "slow or unavailable. Continuing without a terrain texture.".format(
+                TEXTURE_RENDER_TIMEOUT_SECONDS
+            )
+        )
+        return None
     image = job.renderedImage()
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     if image.isNull() or not image.save(filepath, "PNG"):
@@ -269,7 +281,52 @@ def render_texture(grid, utm_crs, filepath, texture_pixel_size, feedback):
     return filepath
 
 
-def _utm_crs(longitude, latitude):
+def _wait_for_texture_render(job, timeout_seconds):
+    """Wait for an asynchronous renderer without exceeding ``timeout_seconds``."""
+    event_loop = QEventLoop()
+    timer = QTimer()
+    timer.setSingleShot(True)
+    timed_out = [False]
+
+    def on_timeout():
+        # The render may have completed just as the timer event was queued.
+        if not job.isActive():
+            event_loop.quit()
+            return
+        timed_out[0] = True
+        _retain_canceling_texture_job(job)
+        job.cancelWithoutBlocking()
+        event_loop.quit()
+
+    job.finished.connect(event_loop.quit)
+    timer.timeout.connect(on_timeout)
+    timer.start(max(1, int(round(timeout_seconds * 1000))))
+    job.start()
+    if job.isActive():
+        event_loop.exec()
+    timer.stop()
+    return not timed_out[0]
+
+
+def _retain_canceling_texture_job(job):
+    """Retain a non-blocking cancellation until the renderer has stopped."""
+    _CANCELING_TEXTURE_RENDER_JOBS.append(job)
+
+    def release():
+        try:
+            _CANCELING_TEXTURE_RENDER_JOBS.remove(job)
+        except ValueError:
+            pass
+        try:
+            job.finished.disconnect(release)
+        except (TypeError, RuntimeError):
+            pass
+
+    job.finished.connect(release)
+
+
+def local_utm_crs(longitude, latitude):
+    """Return the standard local UTM CRS for one WGS 84 coordinate."""
     if not -180.0 <= longitude <= 180.0:
         raise QgsProcessingException("Longitude is outside the valid range.")
     if not -80.0 <= latitude <= 84.0:

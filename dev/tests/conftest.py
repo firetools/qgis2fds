@@ -11,3 +11,7 @@ def pytest_addoption(parser):
         "fds",
         "Command used to validate exported FDS integration cases",
     )
+    parser.addini(
+        "quantitative_cases_directory",
+        "Optional directory in which generated quantitative cases are retained",
+    )

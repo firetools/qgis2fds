@@ -33,17 +33,18 @@ The repository contains `dev/pytest.ini`. This pytest configuration defines
 test discovery, Python import paths, test markers, and the command used to
 start `qgis_process`.
 
-`pytest-qgis` is not required. The integration tests launch `qgis_process` as a
-separate process and exercise the installed qgis2fds Processing provider.
+`pytest-qgis` is not required. The quantitative terrain unit tests and the
+integration tests launch `qgis_process` as a separate process and exercise the
+installed qgis2fds Processing provider.
 
-### QGIS integration tests
+### QGIS Processing tests
 
-The integration tests additionally require:
+The generated-layer unit tests and integration tests additionally require:
 
 - QGIS 4.2 or a compatible later QGIS 4 release;
 - the qgis2fds plugin installed and enabled in the QGIS profile used by
   `qgis_process`;
-- access to the case data under `assets/cases/`;
+- access to the case data under `assets/cases/` for the integration tests;
 - internet access for the `golden_gate_remote` test, which downloads its DEM
   and landuse coverage from remote WCS services.
 
@@ -106,11 +107,12 @@ Arguments may follow the executable. The value is split into an argument list
 and passed directly to Python's subprocess API, so shell pipelines,
 redirections, aliases, and shell variable expansion are not supported.
 
-The same setting is used by both the integration tests and the reference
-rebuild script. If the first executable in the command is unavailable, pytest
-reports the integration tests as skipped with the reason shown in its summary.
-If the executable starts but QGIS or the plugin is misconfigured, the
-integration tests fail and include the captured standard output and error.
+The same setting is used by the quantitative unit tests, integration tests,
+and reference rebuild script. If the first executable in the command is
+unavailable, pytest reports the QGIS-dependent tests as skipped with the reason
+shown in its summary. If the executable starts but QGIS or the plugin is
+misconfigured, those tests fail and include the captured standard output and
+error.
 
 ### FDS
 
@@ -154,7 +156,7 @@ pytest
 
 The default test paths are:
 
-- `tests/unit/` for tests that run entirely in the host Python process;
+- `tests/unit/` for pure Python tests and generated small-scale QGIS cases;
 - `tests/integration/` for end-to-end QGIS project exports.
 
 ### Unit tests only
@@ -165,8 +167,46 @@ From the repository root:
 pytest -c dev/pytest.ini dev/tests/unit
 ```
 
-These tests cover FDS text generation, binary geometry generation, and the
-plugin package builder. They do not start QGIS and should complete quickly.
+These tests cover FDS text generation, binary geometry generation, the plugin
+package builder, and quantitative small-scale terrain behavior. The
+quantitative cases generate temporary UTM projects, ASCII-grid DEM and landuse
+rasters, GeoJSON extent and fire layers, and a surface catalog. They run the
+production `NIST FDS:Export FDS case` Processing algorithm and compare the
+exported OBST elevations and surface IDs with explicit numeric expectations.
+
+The generated cases cover:
+
+- one uniform plane with terrain pixels finer than, equal to, and coarser than
+  the native DEM grid;
+- two specified slopes meeting in a valley at all three resolutions;
+- aligned and offset DEM/landuse grids;
+- aligned and offset DEM/landuse/fire inputs.
+
+Run only the pure Python unit tests without starting QGIS with:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/unit -m "not qgis"
+```
+
+Run only the generated-layer production Processing tests with:
+
+```sh
+pytest -c dev/pytest.ini dev/tests/unit -m qgis
+```
+
+By default, each generated case is deleted after its test finishes. To retain
+the QGIS project, generated input layers, surface catalog, Processing output,
+and complete FDS case, set this optional value in `dev/pytest.ini`:
+
+```ini
+quantitative_cases_directory = .qgis2fds-quantitative-cases
+```
+
+Relative paths are resolved from the repository root; absolute paths are also
+accepted. Each pytest invocation creates a directory named
+`run-YYYYMMDD-HHMMSS-PID`, with one readable subdirectory per parameterized
+case. Retained runs are never reused or automatically deleted. The suggested
+`.qgis2fds-quantitative-cases/` directory is ignored by Git.
 
 ### Integration tests only
 
