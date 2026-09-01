@@ -127,9 +127,9 @@ def add_parameters(algorithm, project, specs=SPECS):
             )
         elif spec.kind in ("float", "integer"):
             number_type = (
-                QgsProcessingParameterNumber.Integer
+                QgsProcessingParameterNumber.Type.Integer
                 if spec.kind == "integer"
-                else QgsProcessingParameterNumber.Double
+                else QgsProcessingParameterNumber.Type.Double
             )
             number_options = {}
             if spec.minimum is not None:
@@ -144,9 +144,9 @@ def add_parameters(algorithm, project, specs=SPECS):
             )
         elif spec.kind in ("file", "folder"):
             behavior = (
-                QgsProcessingParameterFile.Folder
+                QgsProcessingParameterFile.Behavior.Folder
                 if spec.kind == "folder"
-                else QgsProcessingParameterFile.File
+                else QgsProcessingParameterFile.Behavior.File
             )
             parameter = QgsProcessingParameterFile(
                 spec.name,
@@ -174,7 +174,8 @@ def add_parameters(algorithm, project, specs=SPECS):
 
         if spec.advanced:
             parameter.setFlags(
-                parameter.flags() | QgsProcessingParameterDefinition.FlagAdvanced
+                parameter.flags()
+                | QgsProcessingParameterDefinition.Flag.FlagAdvanced
             )
         algorithm.addParameter(parameter)
 

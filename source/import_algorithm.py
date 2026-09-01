@@ -58,8 +58,8 @@ class ImportFdsAlgorithm(QgsProcessingAlgorithm):
         """Run on the main thread because the algorithm changes the layer tree."""
         return (
             super().flags()
-            | QgsProcessingAlgorithm.FlagNoThreading
-            | QgsProcessingAlgorithm.FlagRequiresProject
+            | QgsProcessingAlgorithm.Flag.FlagNoThreading
+            | QgsProcessingAlgorithm.Flag.FlagRequiresProject
         )
 
     def initAlgorithm(self, config=None):

@@ -46,8 +46,8 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
         """Run on QGIS's main thread because the export updates the project."""
         return (
             super().flags()
-            | QgsProcessingAlgorithm.FlagNoThreading
-            | QgsProcessingAlgorithm.FlagRequiresProject
+            | QgsProcessingAlgorithm.Flag.FlagNoThreading
+            | QgsProcessingAlgorithm.Flag.FlagRequiresProject
         )
 
     def initAlgorithm(self, config=None):

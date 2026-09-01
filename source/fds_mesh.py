@@ -247,16 +247,16 @@ def write_mesh_layers(filepath, layer_name, crs, layout, groups):
 def _persist_group(layer, filepath, layout, group, driver):
     expected = len(layout.faces) if layout.data_on_faces else len(layout.vertices)
     data_type = (
-        QgsMeshDatasetGroupMetadata.DataOnFaces
+        QgsMeshDatasetGroupMetadata.DataType.DataOnFaces
         if layout.data_on_faces
-        else QgsMeshDatasetGroupMetadata.DataOnVertices
+        else QgsMeshDatasetGroupMetadata.DataType.DataOnVertices
     )
     finite_values = []
     blocks = []
     block_type = (
-        QgsMeshDataBlock.Vector2DDouble
+        QgsMeshDataBlock.DataType.Vector2DDouble
         if group.vector
-        else QgsMeshDataBlock.ScalarDouble
+        else QgsMeshDataBlock.DataType.ScalarDouble
     )
     for values in group.values:
         array = np.asarray(values, dtype=np.float64)
