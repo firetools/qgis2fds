@@ -7,10 +7,10 @@ import shutil
 import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
-from urllib.request import Request, urlopen
-import xml.etree.ElementTree as ElementTree
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 import numpy as np
+from qgis.PyQt.QtCore import QXmlStreamReader
 from qgis.core import (
     Qgis,
     QgsCoordinateReferenceSystem,
@@ -29,6 +29,10 @@ from .parameters import PROJECT_GROUP
 LOCAL_COPY_SUFFIX = "qgis2fds_local"
 REMOTE_DOWNLOAD_TIMEOUT = 120
 REMOTE_BUFFER_PIXELS = 1
+REMOTE_METADATA_MAXIMUM_BYTES = 8_000_000
+REMOTE_XML_MAXIMUM_DEPTH = 128
+REMOTE_XML_MAXIMUM_ELEMENTS = 100_000
+REMOTE_URL_SCHEMES = frozenset(("http", "https"))
 RASTER_NUMPY_DTYPES = {
     Qgis.DataType.Byte: np.dtype("u1"),
     Qgis.DataType.Int8: np.dtype("i1"),
@@ -39,6 +43,46 @@ RASTER_NUMPY_DTYPES = {
     Qgis.DataType.Float32: np.dtype("=f4"),
     Qgis.DataType.Float64: np.dtype("=f8"),
 }
+
+
+class RemoteXmlError(ValueError):
+    """Raised when remote WCS XML is unsafe or malformed."""
+
+
+def _validate_remote_url(url):
+    """Reject local and custom URL schemes before opening a remote resource."""
+    try:
+        parts = urlsplit(url)
+        hostname = parts.hostname
+        parts.port
+    except (TypeError, ValueError) as error:
+        raise URLError("Remote WCS URL is invalid") from error
+    if parts.scheme.lower() not in REMOTE_URL_SCHEMES or hostname is None:
+        raise URLError("Remote WCS URLs must use HTTP or HTTPS")
+
+
+class _RemoteRedirectHandler(HTTPRedirectHandler):
+    """Allow redirects only when their destination is also HTTP(S)."""
+
+    def redirect_request(self, request, file_pointer, code, message, headers, url):
+        _validate_remote_url(url)
+        return super().redirect_request(
+            request,
+            file_pointer,
+            code,
+            message,
+            headers,
+            url,
+        )
+
+
+_REMOTE_OPENER = build_opener(_RemoteRedirectHandler())
+
+
+def _open_remote_request(request):
+    """Open one validated HTTP(S) request with a bounded timeout."""
+    _validate_remote_url(request.full_url)
+    return _REMOTE_OPENER.open(request, timeout=REMOTE_DOWNLOAD_TIMEOUT)
 
 
 def ensure_local_raster(
@@ -436,6 +480,103 @@ def _write_numeric_provider(
         )
 
 
+def _xml_numbers(text, element_name):
+    """Parse finite numeric XML element content."""
+    try:
+        values = [float(value) for value in text.split()]
+    except ValueError as error:
+        raise RemoteXmlError(
+            "WCS {} contains invalid numeric data".format(element_name)
+        ) from error
+    if any(not math.isfinite(value) for value in values):
+        raise RemoteXmlError(
+            "WCS {} contains non-finite numeric data".format(element_name)
+        )
+    return values
+
+
+def _parse_coverage_xml(data):
+    """Extract required WCS fields with Qt's non-DOM streaming parser."""
+    reader = QXmlStreamReader(data)
+    elements = []
+    element_count = 0
+    rectified_found = False
+    rectified_depth = None
+    rectified_crs = ""
+    vectors = []
+    envelope_stack = []
+    envelopes = []
+
+    while not reader.atEnd():
+        token = reader.readNext()
+        if token in (
+            QXmlStreamReader.TokenType.DTD,
+            QXmlStreamReader.TokenType.EntityReference,
+        ):
+            raise RemoteXmlError("WCS XML must not contain DTDs or entities")
+
+        if reader.isStartElement():
+            element_count += 1
+            if element_count > REMOTE_XML_MAXIMUM_ELEMENTS:
+                raise RemoteXmlError("WCS XML contains too many elements")
+            name = str(reader.name())
+            elements.append([name, []])
+            depth = len(elements)
+            if depth > REMOTE_XML_MAXIMUM_DEPTH:
+                raise RemoteXmlError("WCS XML nesting is too deep")
+            if name == "RectifiedGrid" and not rectified_found:
+                rectified_found = True
+                rectified_depth = depth
+                rectified_crs = str(reader.attributes().value("srsName"))
+            elif name == "Envelope":
+                envelope_stack.append(
+                    {
+                        "depth": depth,
+                        "crs": str(reader.attributes().value("srsName")),
+                        "positions": [],
+                    }
+                )
+        elif token == QXmlStreamReader.TokenType.Characters and elements:
+            elements[-1][1].append(str(reader.text()))
+        elif reader.isEndElement():
+            if not elements:
+                raise RemoteXmlError("WCS XML has an unexpected closing element")
+            name, text_parts = elements.pop()
+            depth = len(elements) + 1
+            if name != str(reader.name()):
+                raise RemoteXmlError("WCS XML elements are not balanced")
+            text = "".join(text_parts)
+            if (
+                name == "offsetVector"
+                and rectified_depth is not None
+                and depth > rectified_depth
+            ):
+                vectors.append(_xml_numbers(text, name))
+            elif (
+                name == "pos"
+                and envelope_stack
+                and depth > envelope_stack[-1]["depth"]
+            ):
+                envelope_stack[-1]["positions"].append(
+                    _xml_numbers(text, name)
+                )
+            elif (
+                name == "Envelope"
+                and envelope_stack
+                and depth == envelope_stack[-1]["depth"]
+            ):
+                envelope = envelope_stack.pop()
+                envelopes.append((envelope["crs"], envelope["positions"]))
+            elif name == "RectifiedGrid" and depth == rectified_depth:
+                rectified_depth = None
+
+    if reader.hasError():
+        raise RemoteXmlError("Invalid WCS XML: {}".format(reader.errorString()))
+    if elements:
+        raise RemoteXmlError("WCS XML contains unclosed elements")
+    return rectified_found, rectified_crs, vectors, envelopes
+
+
 def _describe_coverage(layer):
     """Read the native grid of the WCS coverage represented by a layer."""
     parts, coverage = _coverage_service(layer)
@@ -450,41 +591,30 @@ def _describe_coverage(layer):
     )
     request = Request(url, headers={"User-Agent": "qgis2fds/2.0"})
     try:
-        with urlopen(request, timeout=REMOTE_DOWNLOAD_TIMEOUT) as response:
-            root = ElementTree.fromstring(response.read())
-    except (ElementTree.ParseError, HTTPError, URLError, OSError) as error:
+        with _open_remote_request(request) as response:
+            data = response.read(REMOTE_METADATA_MAXIMUM_BYTES + 1)
+        if len(data) > REMOTE_METADATA_MAXIMUM_BYTES:
+            raise RemoteXmlError("WCS metadata response is too large")
+        rectified_found, crs_name, vectors, envelopes = _parse_coverage_xml(data)
+    except (RemoteXmlError, HTTPError, URLError, OSError) as error:
         raise QgsProcessingException(
             "Cannot read WCS metadata for remote layer '{}': {}".format(
                 layer.name(), error
             )
         )
 
-    rectified_grid = next(
-        (
-            element
-            for element in root.iter()
-            if _xml_name(element) == "RectifiedGrid"
-        ),
-        None,
-    )
-    if rectified_grid is None:
+    if not rectified_found:
         raise QgsProcessingException(
             "WCS layer '{}' does not describe a native rectified grid.".format(
                 layer.name()
             )
         )
-    crs_name = rectified_grid.attrib.get("srsName", "")
     crs = QgsCoordinateReferenceSystem(crs_name)
     if not crs.isValid():
         raise QgsProcessingException(
             "WCS layer '{}' has no valid native CRS.".format(layer.name())
         )
 
-    vectors = [
-        [float(value) for value in (element.text or "").split()]
-        for element in rectified_grid.iter()
-        if _xml_name(element) == "offsetVector"
-    ]
     resolution_x = max(
         (abs(vector[0]) for vector in vectors if len(vector) >= 2), default=0.0
     )
@@ -497,18 +627,14 @@ def _describe_coverage(layer):
         )
 
     coverage_extent = None
-    for envelope in root.iter():
-        if (
-            _xml_name(envelope) != "Envelope"
-            or envelope.attrib.get("srsName") != crs_name
-        ):
+    for envelope_crs, positions in envelopes:
+        if envelope_crs != crs_name:
             continue
-        positions = [
-            [float(value) for value in (element.text or "").split()]
-            for element in envelope.iter()
-            if _xml_name(element) == "pos"
-        ]
-        if len(positions) >= 2:
+        if (
+            len(positions) >= 2
+            and len(positions[0]) >= 2
+            and len(positions[1]) >= 2
+        ):
             coverage_extent = QgsRectangle(
                 positions[0][0],
                 positions[0][1],
@@ -566,7 +692,7 @@ def _download_coverage(
     )
     request = Request(url, headers={"User-Agent": "qgis2fds/2.0"})
     try:
-        with urlopen(request, timeout=REMOTE_DOWNLOAD_TIMEOUT) as response:
+        with _open_remote_request(request) as response:
             with open(filepath, "wb") as output:
                 shutil.copyfileobj(response, output)
     except (HTTPError, URLError, OSError) as error:
@@ -605,13 +731,15 @@ def _coverage_service(layer):
         )
 
     endpoint = endpoint_values[0]
-    parts = urlsplit(endpoint)
-    if parts.scheme not in ("http", "https"):
+    try:
+        _validate_remote_url(endpoint)
+    except URLError as error:
         raise QgsProcessingException(
-            "Remote layer '{}' does not use an HTTP service.".format(
+            "Remote layer '{}' does not use a valid HTTP service.".format(
                 layer.name()
             )
-        )
+        ) from error
+    parts = urlsplit(endpoint)
     return parts, _wcs_coverage_name(parts.path, coverage_values[0])
 
 
@@ -640,10 +768,6 @@ def _wcs_url(parts, parameters):
     return urlunsplit(
         (parts.scheme, parts.netloc, parts.path, urlencode(query), "")
     )
-
-
-def _xml_name(element):
-    return element.tag.rsplit("}", 1)[-1]
 
 
 def _wcs_coverage_name(service_path, layer_name):
