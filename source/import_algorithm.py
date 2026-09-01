@@ -41,7 +41,7 @@ from .fds_results import (
 )
 from .parameters import SPECS, add_parameters, read_parameters
 from .spatial import local_utm_crs
-from .algorithm import PLUGIN_VERSION
+from .export_algorithm import PLUGIN_VERSION
 
 
 IMPORT_SPECS = SPECS[:2]
@@ -146,7 +146,7 @@ class ImportFdsAlgorithm(QgsProcessingAlgorithm):
                 ),
             )
 
-            stage = "importing AGL slices"
+            stage = "importing SLCF AGL results"
             _set_progress(feedback, 2)
             imported = []
             output_files = []
@@ -172,7 +172,7 @@ class ImportFdsAlgorithm(QgsProcessingAlgorithm):
                 imported.extend(layers)
                 output_files.extend(files)
 
-            stage = "importing wildfire boundaries"
+            stage = "importing wildfire BNDF results"
             _set_progress(feedback, 3)
             _check_canceled(feedback)
             boundary_entries = [
@@ -202,7 +202,7 @@ class ImportFdsAlgorithm(QgsProcessingAlgorithm):
             _set_progress(feedback, 4)
             if not imported:
                 raise QgsProcessingException(
-                    "No AGL slices or supported wildfire boundary results were found."
+                    "No SLCF AGL or supported wildfire BNDF results were found."
                 )
             # Delay project mutation until every requested result has been read
             # and persisted, so a late failure does not leave partial layers.
@@ -258,10 +258,8 @@ class ImportFdsAlgorithm(QgsProcessingAlgorithm):
 
     def shortHelpString(self):
         return (
-            "Imports all completed FDS AGL slices and the FIRE ARRIVAL TIME, "
-            "FIRE RESIDENCE TIME, and LS SPREAD RATE boundary outputs as "
-            "persistent temporal QGIS mesh layers. CHID and the FDS case folder "
-            "reuse the export settings stored in the current project."
+            "Imports all calculated FDS SLCF AGL and wildfire BNDF results as "
+            "persistent temporal QGIS mesh layers."
         )
 
     def createInstance(self):
@@ -334,15 +332,15 @@ def _import_agl_height(
         times, values, unit = _merge_slice_quantity(layout, by_mesh)
         groups.append(TemporalGroup(quantity, unit, times, tuple(values)))
 
-    label = "{} AGL".format(_format_height(height))
+    label = "{} SLCF AGL={}".format(chid, _format_height(height))
     filepath = os.path.join(
         output_directory,
-        "{}_agl_{}.2dm".format(chid, _filename_height(height)),
+        "{}_SLCF_AGL_{}.2dm".format(chid, _filename_height(height)),
     )
     layers, datasets = write_mesh_layers(filepath, label, crs, layout, groups)
     _diagnostic(
         feedback,
-        "Imported AGL {} m: {} mesh vertices, {} faces, {} separate dataset "
+        "Imported SLCF AGL={}: {} mesh vertices, {} faces, {} separate dataset "
         "layers.".format(
             _format_height(height),
             len(layout.vertices),
@@ -383,7 +381,7 @@ def _import_boundaries(
         selected = structured_entries
     else:
         raise QgsProcessingException(
-            "Wildfire boundary output is incomplete across GEOM and structured "
+            "Wildfire BNDF output is incomplete across GEOM and structured "
             "files."
         )
     if any(entry.kind == "BNDC" for entry in selected):
@@ -401,13 +399,13 @@ def _import_boundaries(
         )
         representation = "structured"
     layout = transform_frame(layout, origin_easting, origin_northing, rotation)
-    filepath = os.path.join(output_directory, "{}_terrain_boundary.2dm".format(chid))
+    filepath = os.path.join(output_directory, "{}_BNDF.2dm".format(chid))
     layers, datasets = write_mesh_layers(
-        filepath, "{} terrain wildfire results".format(chid), crs, layout, groups
+        filepath, "{} BNDF".format(chid), crs, layout, groups
     )
     _diagnostic(
         feedback,
-        "Imported {} wildfire boundaries: {} vertices, {} faces, {} separate "
+        "Imported {} wildfire BNDF results: {} vertices, {} faces, {} separate "
         "dataset layers.".format(
             representation, len(layout.vertices), len(layout.faces), len(groups)
         ),
@@ -436,7 +434,7 @@ def _geometry_boundary_groups(entries, case_directory, feedback):
             topology = topologies.get(entry.mesh_id)
             if topology is None:
                 raise QgsProcessingException(
-                    "Boundary quantity '{}' has an unexpected mesh {}.".format(
+                    "Wildfire BNDF QUANTITY='{}' has an unexpected mesh {}.".format(
                         quantity, entry.mesh_id
                     )
                 )
@@ -564,7 +562,7 @@ def _common_times(series_values, label):
 def _require_mesh_set(actual, expected, label):
     if set(actual) != set(expected):
         raise QgsProcessingException(
-            "Boundary quantity '{}' is not available on the same FDS meshes as "
+            "Wildfire BNDF QUANTITY='{}' is not available on the same FDS meshes as "
             "the other quantities.".format(label)
         )
 

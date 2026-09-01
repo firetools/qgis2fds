@@ -1,4 +1,4 @@
-"""The single qgis2fds processing algorithm."""
+"""QGIS Processing algorithm for exporting an FDS wildfire case."""
 
 import os
 import time

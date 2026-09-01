@@ -2,7 +2,7 @@
 
 from qgis.core import QgsProcessingProvider
 
-from .algorithm import ExportFdsAlgorithm
+from .export_algorithm import ExportFdsAlgorithm
 from .import_algorithm import ImportFdsAlgorithm
 
 
