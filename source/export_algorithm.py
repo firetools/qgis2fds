@@ -25,6 +25,7 @@ from .fds import (
 )
 from .parameters import add_parameters, read_parameters
 from .spatial import (
+    TEXTURE_RENDER_TIMEOUT_SECONDS,
     apply_fire_layer,
     prepare_grid,
     render_texture,
@@ -309,8 +310,8 @@ class ExportFdsAlgorithm(QgsProcessingAlgorithm):
             stage = "rendering the terrain texture"
             _diagnostic(
                 feedback,
-                "Rendering terrain texture at {:.6g} m per pixel.".format(
-                    values["tex_pixel_size"]
+                "Rendering terrain texture at {:.6g} m per pixel (timeout: {} s).".format(
+                    values["tex_pixel_size"], TEXTURE_RENDER_TIMEOUT_SECONDS
                 ),
             )
             rendered_texture = render_texture(
