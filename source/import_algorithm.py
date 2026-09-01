@@ -49,7 +49,7 @@ IMPORT_STAGE_COUNT = 5
 
 
 class ImportFdsAlgorithm(QgsProcessingAlgorithm):
-    """Import AGL slices and wildfire boundary results as temporal mesh layers."""
+    """Import calculated SLCF AGL and wildfire BNDF results as temporal mesh layers."""
 
     OUTPUT_LAYERS = "mesh_layers"
     OUTPUT_DIRECTORY = "output_directory"
@@ -308,7 +308,7 @@ def _import_agl_height(
         series_by_quantity[quantity] = by_mesh
 
     groups = []
-    consumed = set()
+    merged_quantities = {}
     if "U-VELOCITY" in series_by_quantity and "V-VELOCITY" in series_by_quantity:
         u_times, u_values, u_unit = _merge_slice_quantity(
             layout, series_by_quantity["U-VELOCITY"]
@@ -322,14 +322,19 @@ def _import_agl_height(
             east, north = rotate_vectors(u_frame, v_frame, rotation)
             vectors.append(np.column_stack((east, north)))
         groups.append(
-            TemporalGroup("VELOCITY", u_unit or v_unit, u_times, tuple(vectors), True)
+            TemporalGroup(
+                "UV-VELOCITY", u_unit or v_unit, u_times, tuple(vectors), True
+            )
         )
-        consumed.update(("U-VELOCITY", "V-VELOCITY"))
+        merged_quantities["U-VELOCITY"] = (u_times, u_values, u_unit)
+        merged_quantities["V-VELOCITY"] = (v_times, v_values, v_unit)
 
     for quantity, by_mesh in series_by_quantity.items():
-        if quantity in consumed:
-            continue
-        times, values, unit = _merge_slice_quantity(layout, by_mesh)
+        merged = merged_quantities.get(quantity)
+        if merged is None:
+            times, values, unit = _merge_slice_quantity(layout, by_mesh)
+        else:
+            times, values, unit = merged
         groups.append(TemporalGroup(quantity, unit, times, tuple(values)))
 
     label = "{} SLCF AGL={}".format(chid, _format_height(height))
